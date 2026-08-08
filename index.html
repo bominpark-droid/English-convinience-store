@@ -1,6 +1,3 @@
-
-
-Index · HTML
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -32,7 +29,7 @@ body{
   letter-spacing:0.01em;
 }
 #app{max-width:440px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;position:relative}
- 
+
 /* ── 상단 바 ─────────────────────────── */
 .topbar{
   position:sticky;top:0;z-index:20;
@@ -43,7 +40,7 @@ body{
 .brand{display:flex;align-items:center;gap:8px;font-size:19px}
 .brand .awning{display:inline-block;font-size:22px}
 .gearbtn{background:none;border:none;color:#fff;font-size:20px;padding:6px;cursor:pointer;opacity:.9}
- 
+
 /* 영머니 가격표 태그 */
 .moneytag{
   position:relative;display:flex;align-items:center;gap:6px;
@@ -59,22 +56,22 @@ body{
 .moneytag .won{font-size:13px;opacity:.75}
 .moneytag.bump{animation:bump .4s ease}
 @keyframes bump{30%{transform:scale(1.15)}}
- 
+
 /* ── 메인 영역 ───────────────────────── */
 main{flex:1;padding:16px 16px 96px;overflow-x:hidden}
 .screen{display:none;animation:fadein .25s ease}
 .screen.on{display:block}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
- 
+
 h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8px}
 .sub{color:var(--sub);font-size:14px;line-height:1.5}
- 
+
 .card{
   background:var(--card);border-radius:var(--r);
   padding:18px;box-shadow:0 2px 0 var(--line), 0 6px 16px rgba(32,48,42,.06);
   margin-bottom:14px;
 }
- 
+
 /* 버튼: 장난감처럼 눌리는 느낌 */
 .btn{
   display:block;width:100%;border:none;cursor:pointer;
@@ -95,7 +92,7 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
 .btn:disabled{opacity:.45;pointer-events:none}
 .btnrow{display:flex;gap:10px}
 .btnrow .btn{flex:1}
- 
+
 /* ── 홈 ─────────────────────────────── */
 .hello{font-size:22px;margin:4px 2px 2px}
 .hello small{display:block;font-size:14px;color:var(--sub);margin-top:2px}
@@ -113,7 +110,7 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
 .statbox b{display:block;font-size:19px;color:var(--green)}
 .statbox span{font-size:12px;color:var(--sub)}
 .lvbadge{display:inline-flex;align-items:center;gap:6px;background:var(--green-lt);color:var(--green-dk);border-radius:999px;padding:5px 12px;font-size:13px}
- 
+
 /* ── 학습 카드 (뒤집기) ───────────────── */
 .learnhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .dots{display:flex;gap:5px}
@@ -142,7 +139,7 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
 }
 .spk:active{transform:translateY(2px);box-shadow:0 1px 0 #C9E4D6}
 .wordno{position:absolute;top:14px;left:16px;background:var(--yellow);color:#5A3E00;font-size:13px;border-radius:8px;padding:3px 10px;box-shadow:0 2px 0 var(--yellow-dk)}
- 
+
 /* ── 퀴즈 ────────────────────────────── */
 .qbox{text-align:center;padding:26px 18px}
 .qbox .qword{font-size:36px;margin:8px 0 6px;word-break:break-word}
@@ -161,7 +158,7 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
 @keyframes shake{20%{transform:translateX(-6px)}50%{transform:translateX(6px)}80%{transform:translateX(-3px)}}
 .qfeed{min-height:30px;text-align:center;font-size:17px;margin-top:12px}
 .qfeed .good{color:var(--ok)} .qfeed .oops{color:var(--bad)}
- 
+
 /* 코인 획득 애니메이션 */
 .coinfly{
   position:fixed;z-index:60;pointer-events:none;
@@ -170,7 +167,7 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
   animation:rise 1s ease-out forwards;
 }
 @keyframes rise{0%{opacity:0;transform:translateY(10px) scale(.8)}20%{opacity:1;transform:translateY(0) scale(1.05)}100%{opacity:0;transform:translateY(-70px) scale(1)}}
- 
+
 /* ── 편의점 ──────────────────────────── */
 .storefront{
   background:var(--green);border-radius:var(--r);color:#fff;
@@ -207,7 +204,7 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
 .item .buy{margin-top:2px}
 .item.no .buy{opacity:.4;pointer-events:none}
 .item .lack{font-size:11px;color:var(--red);min-height:14px}
- 
+
 /* ── 영수증 ──────────────────────────── */
 .receipt{
   background:#fff;border-radius:6px;padding:16px 16px 20px;margin-bottom:14px;
@@ -228,14 +225,14 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
   background:var(--yellow);color:#5A3E00;box-shadow:0 2px 0 var(--yellow-dk);white-space:nowrap;
 }
 .givebtn.done{background:var(--green-lt);color:var(--green-dk);box-shadow:0 2px 0 #C9E4D6}
- 
+
 /* ── 복습/단어장 ─────────────────────── */
 .wrow{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line)}
 .wrow .wen{font-size:17px;min-width:0}
 .wrow .wko{flex:1;color:var(--sub);font-size:14px;text-align:right}
 .wrow .wspk{border:none;background:var(--green-lt);color:var(--green-dk);border-radius:10px;padding:6px 9px;cursor:pointer;font-size:14px}
 .duetag{background:#FFE9E2;color:#C2371C;border-radius:999px;font-size:12px;padding:3px 10px}
- 
+
 /* ── 레벨테스트/결과/모달 ─────────────── */
 .center{text-align:center}
 .bigemo{font-size:64px;margin:10px 0}
@@ -254,7 +251,7 @@ input[type=text]{
   border:2px solid var(--line);border-radius:14px;padding:12px 14px;outline:none;background:#fff;color:var(--ink);
 }
 input[type=text]:focus{border-color:var(--green)}
- 
+
 /* ── 하단 탭 ─────────────────────────── */
 nav{
   position:fixed;bottom:0;left:50%;transform:translateX(-50%);
@@ -270,16 +267,16 @@ nav button{
 nav button .ni{font-size:21px;line-height:1}
 nav button.on{color:var(--green)}
 nav button.on .ni{transform:scale(1.12)}
- 
+
 /* 컨페티 */
 .confetti{position:fixed;top:-16px;z-index:70;font-size:18px;pointer-events:none;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
- 
+
 .savedwarn{background:#FFF4D6;border:2px solid var(--yellow);border-radius:14px;padding:10px 14px;font-size:13px;color:#7A5600;margin-bottom:14px;display:none}
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important;transition:none !important}
 }
- 
+
 /* ── v2 추가: 단계 바 · 말하기 · 잠금 ── */
 .stagebar{display:flex;gap:6px;margin-bottom:12px}
 .stg{flex:1;text-align:center;font-size:12px;color:var(--sub);background:#fff;border:2px solid var(--line);border-radius:12px;padding:7px 2px}
@@ -297,7 +294,7 @@ nav button.on .ni{transform:scale(1.12)}
 .lockcard{border:2px dashed var(--yellow-dk);background:var(--yellow-lt)}
 .blank{display:inline-block;min-width:76px;border-bottom:3px solid var(--green);color:var(--green);text-align:center}
 .knowbtn{font-family:inherit;font-size:12px;border:none;background:none;color:var(--sub);text-decoration:underline;cursor:pointer;margin-top:10px}
- 
+
 /* ── v3: 상점 리뉴얼 · 뽑기 · 로그인 · 대시보드 ── */
 .store2{position:relative;border-radius:18px;overflow:hidden;border:3px solid #23305B;margin-bottom:14px;background:linear-gradient(#BFE3FF 0 55%,#E9EFF4 55% 100%)}
 .s-sign{background:#23305B;color:#fff;text-align:center;padding:11px 6px 8px;font-size:21px;letter-spacing:1px}
@@ -365,7 +362,7 @@ const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑"];
 const DAILY_N = 10;
 const LV_NAME = ["", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
 const BOX_GAP = [0, 1, 3, 7, 14, 30, 60];
- 
+
 const STORE_ITEMS = [
   /* 간식 — 2025~26 편의점 실제가 */
   {id:"haribo", cat:"간식", nm:"하리보 골드베렌", emo:"🐻", pr:2500},
@@ -409,12 +406,12 @@ const STORE_ITEMS = [
   {id:"stickerbook", cat:"도서", nm:"스티커북", emo:"📖", pr:6000},
   {id:"comic", cat:"도서", nm:"만화책", emo:"📚", pr:10000},
 ];
- 
+
 /* ═══════════ 서버 연결 설정 ═══════════
    ▼ 아래 따옴표 안에 Apps Script 웹앱 배포 URL을 붙여넣으세요. (설치가이드.md 참고)
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
- 
+
 let SESSION = null; /* {uid, name, token, tts} */
 function loadSession(){ try{ SESSION = JSON.parse(localStorage.getItem("ecvs-session")||"null"); }catch(e){ SESSION=null; } }
 function saveSession(){ try{ if(SESSION) localStorage.setItem("ecvs-session", JSON.stringify(SESSION)); else localStorage.removeItem("ecvs-session"); }catch(e){} }
@@ -431,7 +428,7 @@ async function api(action, data){
     throw new Error(j && j.err ? j.err : "server");
   } finally { if(tid) clearTimeout(tid); }
 }
- 
+
 /* ═══════════ 저장소 (서버 → 로컬 캐시 → Claude storage) ═══════════ */
 let memState = null, storageMode = "none";
 function storeKey(){ return SESSION ? ("ecvs-"+SESSION.uid) : "ecvs-guest"; }
@@ -467,7 +464,7 @@ const Store = {
     }, 500);
   }
 };
- 
+
 /* ═══════════ 이벤트 로그 + 서버 동기화 ═══════════ */
 let EVQ = [], flushT = null, syncState = "idle";
 function logEv(type, data){ EVQ.push(Object.assign({t:Date.now(), type}, data||{})); if(EVQ.length>300) EVQ = EVQ.slice(-300); }
@@ -487,7 +484,7 @@ function updateSyncDot(){
   const el = $("#syncDot"); if(!el) return;
   el.textContent = SESSION ? (syncState==="off" ? "⚠️" : "☁️") : "";
 }
- 
+
 /* ═══════════ 학습 통계(dstats) + 공부 시간 추적 ═══════════ */
 function dst(){
   if(!S.dstats) S.dstats = {};
@@ -502,7 +499,7 @@ function startTimeTracker(){
     if(document.visibilityState==="visible" && S && S.placed){ dst().min += 0.5; save(); }
   }, 30000);
 }
- 
+
 /* ═══════════ 발음: 기기에서 가장 좋은 미국 영어 음성 자동 선택 + 직접 선택 ═══════════ */
 let voices = [];
 function loadVoices(){ try{ voices = speechSynthesis.getVoices(); }catch(e){} }
@@ -519,7 +516,32 @@ function rankVoice(v){
   if(/compact|espeak/.test(n)) s-=4;
   return s;
 }
-function enVoices(){ return voices.filter(v=>rankVoice(v)>=0).sort((a,b)=>rankVoice(b)-rankVoice(a)); }
+function isJunkVoice(v){
+  const n=(v.name||"").toLowerCase();
+  if(/compact|espeak|pico|novelty|eloquence/.test(n)) return true;
+  if(/albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|hysterical|deviled|grandma|grandpa|rocko|shelley|sandy|flo|eddy|reed|junior|kathy|fred|ralph|princess|agnes|victoria|bruce/.test(n)) return true;
+  return false;
+}
+function voiceGrade(v){
+  const n=(v.name||"").toLowerCase();
+  if(/premium/.test(n)) return "프리미엄";
+  if(/enhanced|neural|natural|multilingual/.test(n)) return "고급";
+  if(/google/.test(n)) return "구글";
+  return "";
+}
+function enVoices(){
+  let list = voices.filter(v=>rankVoice(v)>=0 && !isJunkVoice(v));
+  if(!list.length) list = voices.filter(v=>rankVoice(v)>=0);
+  const seen={};
+  return list.filter(v=>{ if(seen[v.name]) return false; seen[v.name]=1; return true; })
+             .sort((a,b)=>rankVoice(b)-rankVoice(a));
+}
+function refreshVoices(){
+  try{ speechSynthesis.cancel(); }catch(e){}
+  loadVoices();
+  try{ const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); }catch(e){}
+  setTimeout(()=>{ loadVoices(); openSettings(); }, 900);
+}
 function pickVoice(){
   if(S && S.voiceName){ const v=voices.find(x=>x.name===S.voiceName); if(v) return v; }
   const list = enVoices(); return list.length ? list[0] : null;
@@ -558,7 +580,7 @@ async function speakServer(text, rate){
     CURA = a; a.play();
   }catch(e){ speakLocal(text, rate); }
 }
- 
+
 /* ═══════════ 말하기 인식 (마이크 안 되면 자가 체크로 자동 전환) ═══════════ */
 const SRCls = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 let micState = SRCls ? "unknown" : "no";  /* unknown | ok | no */
@@ -593,7 +615,7 @@ function saidSent(tr, sent){
   target.forEach(x=>{ if(heard.some(y=>tokMatch(x,y))) hit++; });
   return (hit/target.length) >= 0.6;
 }
- 
+
 /* ═══════════ 효과음 ═══════════ */
 let AC = null;
 function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; }
@@ -614,7 +636,7 @@ const Sfx = {
   tada(){ [523,659,784,1047].forEach((f,i)=>tone(f,i*.09,.18,"triangle")); },
   flip(){ tone(500,0,.06,"sine",.05); }
 };
- 
+
 /* ═══════════ 헬퍼 ═══════════ */
 const $ = s=>document.querySelector(s);
 function todayStr(d){ const x=d||new Date(); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
@@ -1039,10 +1061,10 @@ function defaultState(){ return {
   buys:[], log:[]
 };}
 function save(){ Store.save(S); }
- 
+
 let WIDX = {};
 function buildIndex(){ WIDX={}; for(const lv in WORDS){ WORDS[lv].forEach(a=>{ WIDX[a[0]]={w:a[0],k:a[1],e:a[2],t:a[3],s:a[4],st:a[5],lv:Number(lv)}; }); } }
- 
+
 function updateMoney(){ $("#moneyVal").textContent = comma(S.money); }
 function addMoney(n, el, label){
   S.money += n; S.earned += n; updateMoney(); bumpMoney(); Sfx.coin();
@@ -1130,7 +1152,7 @@ function levelUpCheck(){
     save();
   }
 }
- 
+
 /* ═══════════ 화면 전환 ═══════════ */
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
@@ -1153,7 +1175,7 @@ function stageBar(stage){
   names.forEach((n,i)=>{ h+='<div class="stg '+(i<stage?"done":(i===stage?"now":""))+'">'+n+'</div>'; });
   return h+'</div>';
 }
- 
+
 /* ═══════════ 시작 화면 ═══════════ */
 function renderWelcome(){
   $("#scr-welcome").innerHTML =
@@ -1171,7 +1193,7 @@ function beginPlacement(){
   S.name = nm || S.name || "친구"; save();
   ac(); startPlacement();
 }
- 
+
 /* ═══════════ 레벨 테스트 ═══════════ */
 let P = null;
 function startPlacement(){
@@ -1228,7 +1250,7 @@ function finishPlacement(){
    +'<p class="sub" style="margin:12px 0 18px">'+(first ? '시작 보너스 <b>영머니 '+comma(REWARD.PLACE)+'원</b> 지급 완료!<br>' : '')+'이제 매일 이 레벨의 새 단어 10개로<br>영머니를 모아 보자 💪</p>'
    +'<button class="btn" onclick="go(\'home\')">시작하기</button></div>';
 }
- 
+
 /* ═══════════ 홈 ═══════════ */
 function renderHome(){
   pickDay();
@@ -1368,7 +1390,7 @@ function knowIt(){
   }
   save(); renderCard();
 }
- 
+
 /* ═══════════ 2단계: 예문 연습 (빈칸 채우기) ═══════════ */
 function startEx(){
   const s = curSession();
@@ -1417,7 +1439,7 @@ function exAnswer(idx){
   save();
 }
 function exNext(){ const s=curSession(); s.exIdx++; save(); renderEx(); }
- 
+
 /* ═══════════ 3단계: 듣고 따라 말하기 ═══════════ */
 let SP = {fails:0};
 function startSpeak(){
@@ -1733,7 +1755,7 @@ function finishReview(){
    +'<div class="btnrow"><button class="btn yellow" onclick="go(\'home\')">오늘의 새 단어 배우기 📚</button></div>'
    +'<button class="btn ghost sm" style="margin-top:10px" onclick="go(\'review\')">단어장 보기</button></div>';
 }
- 
+
 function finishBoss(){
   S.lastBoss = todayStr();
   const bonus = REWARD.BOSS_CLEAR + (Q.perfect ? REWARD.BOSS_PERFECT : 0);
@@ -1760,7 +1782,7 @@ function finishDrill(){
    +'<p class="sub" style="margin:10px 0 10px">헷갈리던 단어 <b>'+Q.total+'개</b>를 다시 잡았어!<br>훈련 보너스 <b>+'+REWARD.DRILL_CLEAR+'</b> · 획득 <b>+'+comma(Q.earned)+'</b><br>맞힌 단어는 실수 카운트가 줄어 목록에서 빠져요.</p>'
    +'<div class="btnrow"><button class="btn" onclick="go(\'home\')">홈으로</button></div></div>';
 }
- 
+
 /* ═══════════ 편의점 ═══════════ */
 let storeCat = "전체";
 function renderStore(cat){
@@ -1895,7 +1917,7 @@ function renderLog(){
    +'<div class="rline" style="border-bottom:none"><div class="rnm"><b>총 사용 영머니</b></div><span class="rpr"><b>'+comma(spent)+'원</b></span></div></div>';
 }
 function toggleGiven(i){ if(S.buys[i]){ S.buys[i].given = !S.buys[i].given; save(); renderLog(); } }
- 
+
 /* ═══════════ 복습 · 단어장 ═══════════ */
 function renderReview(){
   const due = dueReviews();
@@ -1932,12 +1954,12 @@ function renderReview(){
    +'<h2 class="sec">📖 내 단어장 <span class="lvbadge">'+learnedList.length+'개</span></h2>'
    +'<div class="card" style="padding:6px 14px">'+rows+'</div>';
 }
- 
+
 /* ═══════════ 모달 · 설정 ═══════════ */
 function openModal(html){ $("#modalBox").innerHTML = html; $("#modalBg").classList.add("on"); }
 function closeModal(){ $("#modalBg").classList.remove("on"); }
 $("#modalBg").addEventListener("click", e=>{ if(e.target.id==="modalBg") closeModal(); });
- 
+
 let VLIST = [];
 function openSettings(){
   loadVoices();
@@ -1946,8 +1968,8 @@ function openSettings(){
   const micTxt = micState==="no" ? "사용 불가 · 자가 체크 모드" : (micState==="ok" ? "정상 작동 중 🎤" : "첫 사용 때 권한을 물어봐요");
   let lvBtns = "";
   for(let l=1;l<=5;l++){ lvBtns += '<button class="minibtn '+(S.level===l?"on":"")+'" onclick="setLv('+l+')">'+l+'</button>'; }
-  let vopts = '<option value="">자동 추천</option>';
-  VLIST.forEach((v,i)=>{ vopts += '<option value="'+i+'" '+(S.voiceName===v.name?"selected":"")+'>'+esc(v.name)+'</option>'; });
+  let vopts = '<option value="">자동 추천 (가장 좋은 음성)</option>';
+  VLIST.forEach((v,i)=>{ const g=voiceGrade(v); vopts += '<option value="'+i+'" '+(S.voiceName===v.name?"selected":"")+'>'+esc(v.name)+(g?" ★"+g:"")+'</option>'; });
   openModal('<h3>⚙️ 설정 <span class="sub" style="font-size:12px">(부모님과 함께)</span></h3>'
    +'<div class="setrow"><span>이름</span><div style="display:flex;gap:6px;flex:1;max-width:220px">'
    +'<input type="text" id="setNm" maxlength="10" value="'+esc(S.name)+'">'
@@ -1956,6 +1978,7 @@ function openSettings(){
    +'<div class="setrow"><span>발음 음성</span><div style="display:flex;gap:6px;flex:1;max-width:230px;align-items:center">'
    +'<select id="voiceSel" onchange="setVoice()" style="flex:1;font-family:inherit;font-size:13px;padding:8px;border-radius:10px;border:2px solid var(--line)">'+vopts+'</select>'
    +'<button class="minibtn" onclick="speak(\'Hello! Nice to meet you. I am your English voice.\')">▶</button></div></div>'
+   +'<div class="setrow"><span></span><button class="minibtn" onclick="refreshVoices()">🔄 방금 설치한 음성이 안 보이면 (목록 새로고침)</button></div>'
    +'<div class="setrow"><span></span><button class="minibtn" onclick="openVoiceGuide()">🌟 더 좋은 발음 만들기 (음성 설치법)</button></div>'
    +(SESSION && SESSION.tts ? '<div class="setrow"><span>원어민 음성 (서버 AI)</span><button class="minibtn '+(S.ttsHQ!==false?"on":"")+'" onclick="toggleHQ()">'+(S.ttsHQ!==false?"켜짐":"꺼짐")+'</button></div>' : '')
    +'<div class="setrow"><span>말하기 마이크</span><span class="sub" style="font-size:12px">'+micTxt+'</span></div>'
@@ -1999,13 +2022,13 @@ function doReset(){
   S = defaultState(); save(); updateMoney(); closeModal();
   renderWelcome(); show("welcome");
 }
- 
+
 /* ═══════════ 시작 ═══════════ */
 document.querySelectorAll("nav button").forEach(b=>{
   b.addEventListener("click", ()=>{ ac(); go(b.dataset.go); });
 });
 $("#gearBtn").addEventListener("click", openSettings);
- 
+
 /* ═══════════ 로그인 / 가입 ═══════════ */
 let AUTHMODE = "login";
 function renderAuth(){
@@ -2071,7 +2094,7 @@ async function testServer(){
 }
 function guestMode(){ SESSION=null; saveSession(); bootUser(); }
 function logout(){ SESSION=null; saveSession(); syncState="idle"; updateSyncDot(); closeModal(); renderAuth(); show("auth"); }
- 
+
 /* ═══════════ 부팅 ═══════════ */
 async function bootUser(){
   let loaded = null;
@@ -2101,7 +2124,3 @@ async function bootUser(){
 </script>
 </body>
 </html>
- 
-
-
-
