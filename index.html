@@ -410,7 +410,7 @@ const STORE_ITEMS = [
 /* ═══════════ 서버 연결 설정 ═══════════
    ▼ 아래 따옴표 안에 Apps Script 웹앱 배포 URL을 붙여넣으세요. (설치가이드.md 참고)
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
-const SERVER_URL = "https://script.google.com/macros/s/AKfycbzNx6eoW4WouZbNgtpVF2TE-AoQ4D63s8c1Xzfk9vY0G_Ld13-BbsCdi8Q4Hgc1w5yr/exec";
+const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
 function loadSession(){ try{ SESSION = JSON.parse(localStorage.getItem("ecvs-session")||"null"); }catch(e){ SESSION=null; } }
