@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#0E8A63">
+<title>영어 편의점 - 영단어 게임</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F6F2; --card:#FFFFFF; --ink:#20302A; --sub:#6E8078;
+  --green:#0E8A63; --green-dk:#0A6B4C; --green-lt:#E3F3EC;
+  --yellow:#FFC531; --yellow-dk:#E0A400; --yellow-lt:#FFF4D6;
+  --red:#FF5A3C; --red-dk:#D93E22; --blue:#2E86DE;
+  --coin:#FFB800; --line:#E2EAE4;
+  --ok:#22B573; --bad:#FF5A3C;
+  --r:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Jua', -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  background:var(--bg); color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  letter-spacing:0.01em;
+}
+#app{max-width:440px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;position:relative}
+
+/* ── 상단 바 ─────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:var(--green);color:#fff;
+  border-bottom:4px solid var(--green-dk);
+}
+.brand{display:flex;align-items:center;gap:8px;font-size:19px}
+.brand .awning{display:inline-block;font-size:22px}
+.gearbtn{background:none;border:none;color:#fff;font-size:20px;padding:6px;cursor:pointer;opacity:.9}
+
+/* 영머니 가격표 태그 */
+.moneytag{
+  position:relative;display:flex;align-items:center;gap:6px;
+  background:var(--yellow);color:#5A3E00;
+  padding:6px 14px 6px 20px;border-radius:10px;
+  font-size:17px;box-shadow:0 3px 0 var(--yellow-dk);
+}
+.moneytag::before{
+  content:"";position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.25);
+}
+.moneytag .won{font-size:13px;opacity:.75}
+.moneytag.bump{animation:bump .4s ease}
+@keyframes bump{30%{transform:scale(1.15)}}
+
+/* ── 메인 영역 ───────────────────────── */
+main{flex:1;padding:16px 16px 96px;overflow-x:hidden}
+.screen{display:none;animation:fadein .25s ease}
+.screen.on{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8px}
+.sub{color:var(--sub);font-size:14px;line-height:1.5}
+
+.card{
+  background:var(--card);border-radius:var(--r);
+  padding:18px;box-shadow:0 2px 0 var(--line), 0 6px 16px rgba(32,48,42,.06);
+  margin-bottom:14px;
+}
+
+/* 버튼: 장난감처럼 눌리는 느낌 */
+.btn{
+  display:block;width:100%;border:none;cursor:pointer;
+  font-family:inherit;font-size:18px;color:#fff;
+  background:var(--green);border-radius:16px;
+  padding:15px 18px;box-shadow:0 5px 0 var(--green-dk);
+  transition:transform .05s, box-shadow .05s;
+  text-align:center;
+}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--green-dk)}
+.btn.yellow{background:var(--yellow);color:#5A3E00;box-shadow:0 5px 0 var(--yellow-dk)}
+.btn.yellow:active{box-shadow:0 1px 0 var(--yellow-dk)}
+.btn.red{background:var(--red);box-shadow:0 5px 0 var(--red-dk)}
+.btn.red:active{box-shadow:0 1px 0 var(--red-dk)}
+.btn.ghost{background:#fff;color:var(--green);box-shadow:0 5px 0 var(--line);border:2px solid var(--line)}
+.btn.ghost:active{box-shadow:0 1px 0 var(--line)}
+.btn.sm{font-size:15px;padding:10px 14px;border-radius:12px}
+.btn:disabled{opacity:.45;pointer-events:none}
+.btnrow{display:flex;gap:10px}
+.btnrow .btn{flex:1}
+
+/* ── 홈 ─────────────────────────────── */
+.hello{font-size:22px;margin:4px 2px 2px}
+.hello small{display:block;font-size:14px;color:var(--sub);margin-top:2px}
+.streak{
+  display:inline-flex;align-items:center;gap:6px;margin:8px 0 14px;
+  background:#FFE9E2;color:#C2371C;border-radius:999px;padding:6px 14px;font-size:14px;
+}
+.mission{position:relative;overflow:hidden}
+.mission .mtitle{font-size:17px;margin-bottom:4px}
+.mission .mdesc{color:var(--sub);font-size:14px;margin-bottom:12px}
+.pbar{height:14px;background:var(--green-lt);border-radius:999px;overflow:hidden;margin-bottom:12px}
+.pbar>i{display:block;height:100%;background:var(--green);border-radius:999px;transition:width .4s ease}
+.statrow{display:flex;gap:10px;margin-bottom:14px}
+.statbox{flex:1;background:#fff;border-radius:16px;padding:12px 8px;text-align:center;box-shadow:0 2px 0 var(--line)}
+.statbox b{display:block;font-size:19px;color:var(--green)}
+.statbox span{font-size:12px;color:var(--sub)}
+.lvbadge{display:inline-flex;align-items:center;gap:6px;background:var(--green-lt);color:var(--green-dk);border-radius:999px;padding:5px 12px;font-size:13px}
+
+/* ── 학습 카드 (뒤집기) ───────────────── */
+.learnhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.dots{display:flex;gap:5px}
+.dots i{width:9px;height:9px;border-radius:50%;background:#D6E2DA}
+.dots i.done{background:var(--green)}
+.dots i.now{background:var(--yellow);transform:scale(1.25)}
+.scene{perspective:1200px;margin-bottom:14px}
+.flip{position:relative;width:100%;min-height:330px;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,1.4,.6,1);cursor:pointer}
+.flip.on{transform:rotateY(180deg)}
+.face{
+  position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:#fff;border-radius:24px;box-shadow:0 3px 0 var(--line), 0 10px 24px rgba(32,48,42,.08);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:22px;text-align:center;
+}
+.face.back{transform:rotateY(180deg)}
+.face .word{font-size:40px;line-height:1.1;margin:10px 0 4px;word-break:break-word}
+.face .meaning{font-size:27px;color:var(--green-dk);margin-bottom:12px}
+.face .ex{font-size:17px;line-height:1.5;margin-bottom:4px}
+.face .ext{font-size:14px;color:var(--sub);line-height:1.5}
+.face .hint{margin-top:14px;font-size:13px;color:var(--sub)}
+.spk{
+  border:none;background:var(--green-lt);color:var(--green-dk);
+  font-family:inherit;font-size:15px;border-radius:999px;padding:9px 16px;cursor:pointer;
+  box-shadow:0 3px 0 #C9E4D6;display:inline-flex;align-items:center;gap:6px;
+}
+.spk:active{transform:translateY(2px);box-shadow:0 1px 0 #C9E4D6}
+.wordno{position:absolute;top:14px;left:16px;background:var(--yellow);color:#5A3E00;font-size:13px;border-radius:8px;padding:3px 10px;box-shadow:0 2px 0 var(--yellow-dk)}
+
+/* ── 퀴즈 ────────────────────────────── */
+.qbox{text-align:center;padding:26px 18px}
+.qbox .qword{font-size:36px;margin:8px 0 6px;word-break:break-word}
+.qbox .qmean{font-size:25px;color:var(--green-dk);margin:8px 0}
+.qbox .qtype{font-size:13px;color:var(--sub)}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{
+  font-family:inherit;font-size:18px;text-align:left;cursor:pointer;
+  background:#fff;border:2px solid var(--line);border-radius:16px;
+  padding:14px 16px;box-shadow:0 4px 0 var(--line);color:var(--ink);
+  transition:transform .05s;
+}
+.opt:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.opt.ok{background:#E4F8EE;border-color:var(--ok);box-shadow:0 4px 0 #17925A;color:#0A6B4C}
+.opt.bad{background:#FFECE7;border-color:var(--bad);box-shadow:0 4px 0 var(--red-dk);color:#B23317;animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-6px)}50%{transform:translateX(6px)}80%{transform:translateX(-3px)}}
+.qfeed{min-height:30px;text-align:center;font-size:17px;margin-top:12px}
+.qfeed .good{color:var(--ok)} .qfeed .oops{color:var(--bad)}
+
+/* 코인 획득 애니메이션 */
+.coinfly{
+  position:fixed;z-index:60;pointer-events:none;
+  font-size:17px;background:var(--yellow);color:#5A3E00;
+  border-radius:999px;padding:6px 14px;box-shadow:0 3px 0 var(--yellow-dk);
+  animation:rise 1s ease-out forwards;
+}
+@keyframes rise{0%{opacity:0;transform:translateY(10px) scale(.8)}20%{opacity:1;transform:translateY(0) scale(1.05)}100%{opacity:0;transform:translateY(-70px) scale(1)}}
+
+/* ── 편의점 ──────────────────────────── */
+.storefront{
+  background:var(--green);border-radius:var(--r);color:#fff;
+  padding:14px 16px;margin-bottom:14px;position:relative;overflow:hidden;
+  box-shadow:0 4px 0 var(--green-dk);
+}
+.storefront .awn{
+  position:absolute;top:0;left:0;right:0;height:12px;
+  background:repeating-linear-gradient(90deg, #fff 0 18px, var(--yellow) 18px 36px);
+}
+.storefront h3{font-size:19px;margin:10px 0 2px}
+.storefront p{font-size:13px;opacity:.9}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;font-family:inherit;font-size:14px;cursor:pointer;
+  background:#fff;border:2px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--sub);
+}
+.chip.on{background:var(--green);border-color:var(--green-dk);color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.item{
+  background:#fff;border-radius:18px;padding:14px 12px 12px;text-align:center;
+  box-shadow:0 2px 0 var(--line), 0 6px 14px rgba(32,48,42,.05);
+  display:flex;flex-direction:column;gap:6px;
+}
+.item .emo{font-size:40px;line-height:1}
+.item .nm{font-size:15px;min-height:22px}
+.item .pricetag{
+  position:relative;align-self:center;
+  background:var(--yellow);color:#5A3E00;border-radius:8px;
+  padding:4px 12px 4px 18px;font-size:15px;box-shadow:0 2px 0 var(--yellow-dk);
+}
+.item .pricetag::before{content:"";position:absolute;left:7px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--green)}
+.item .buy{margin-top:2px}
+.item.no .buy{opacity:.4;pointer-events:none}
+.item .lack{font-size:11px;color:var(--red);min-height:14px}
+
+/* ── 영수증 ──────────────────────────── */
+.receipt{
+  background:#fff;border-radius:6px;padding:16px 16px 20px;margin-bottom:14px;
+  box-shadow:0 6px 14px rgba(32,48,42,.08);
+  background-image:radial-gradient(circle at 8px -4px, transparent 8px, #fff 8px);
+  font-size:15px;
+  border-bottom:2px dashed var(--line);
+}
+.receipt h4{text-align:center;font-size:16px;letter-spacing:.15em;margin-bottom:2px}
+.receipt .rsub{text-align:center;font-size:11px;color:var(--sub);margin-bottom:10px;letter-spacing:.05em}
+.rline{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.rline .remo{font-size:20px}
+.rline .rnm{flex:1;line-height:1.3}
+.rline .rnm small{display:block;font-size:11px;color:var(--sub);font-weight:normal}
+.rline .rpr{font-size:14px;color:#5A3E00}
+.givebtn{
+  font-family:inherit;font-size:12px;border:none;border-radius:999px;padding:6px 10px;cursor:pointer;
+  background:var(--yellow);color:#5A3E00;box-shadow:0 2px 0 var(--yellow-dk);white-space:nowrap;
+}
+.givebtn.done{background:var(--green-lt);color:var(--green-dk);box-shadow:0 2px 0 #C9E4D6}
+
+/* ── 복습/단어장 ─────────────────────── */
+.wrow{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line)}
+.wrow .wen{font-size:17px;min-width:0}
+.wrow .wko{flex:1;color:var(--sub);font-size:14px;text-align:right}
+.wrow .wspk{border:none;background:var(--green-lt);color:var(--green-dk);border-radius:10px;padding:6px 9px;cursor:pointer;font-size:14px}
+.duetag{background:#FFE9E2;color:#C2371C;border-radius:999px;font-size:12px;padding:3px 10px}
+
+/* ── 레벨테스트/결과/모달 ─────────────── */
+.center{text-align:center}
+.bigemo{font-size:64px;margin:10px 0}
+.lvresult{font-size:30px;color:var(--green);margin:6px 0}
+.modalbg{position:fixed;inset:0;background:rgba(20,30,26,.5);z-index:80;display:none;align-items:flex-end;justify-content:center}
+.modalbg.on{display:flex}
+.modal{background:#fff;border-radius:24px 24px 0 0;width:100%;max-width:440px;padding:22px 18px 28px;max-height:86dvh;overflow-y:auto;animation:up .25s ease}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.modal h3{font-size:19px;margin-bottom:12px}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+.setrow .mini{display:flex;gap:6px}
+.minibtn{font-family:inherit;font-size:14px;border:2px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px;cursor:pointer;color:var(--sub)}
+.minibtn.on{background:var(--green);border-color:var(--green-dk);color:#fff}
+input[type=text]{
+  font-family:inherit;font-size:17px;width:100%;
+  border:2px solid var(--line);border-radius:14px;padding:12px 14px;outline:none;background:#fff;color:var(--ink);
+}
+input[type=text]:focus{border-color:var(--green)}
+
+/* ── 하단 탭 ─────────────────────────── */
+nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:440px;z-index:30;
+  display:flex;background:#fff;border-top:2px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{
+  flex:1;border:none;background:none;font-family:inherit;cursor:pointer;
+  padding:9px 0 8px;font-size:11px;color:var(--sub);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+nav button .ni{font-size:21px;line-height:1}
+nav button.on{color:var(--green)}
+nav button.on .ni{transform:scale(1.12)}
+
+/* 컨페티 */
+.confetti{position:fixed;top:-16px;z-index:70;font-size:18px;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+.savedwarn{background:#FFF4D6;border:2px solid var(--yellow);border-radius:14px;padding:10px 14px;font-size:13px;color:#7A5600;margin-bottom:14px;display:none}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important;transition:none !important}
+}
+
+/* ── v2 추가: 단계 바 · 말하기 · 잠금 ── */
+.stagebar{display:flex;gap:6px;margin-bottom:12px}
+.stg{flex:1;text-align:center;font-size:12px;color:var(--sub);background:#fff;border:2px solid var(--line);border-radius:12px;padding:7px 2px}
+.stg.done{background:var(--green-lt);border-color:#C9E4D6;color:var(--green-dk)}
+.stg.now{background:var(--yellow);border-color:var(--yellow-dk);color:#5A3E00}
+.micbtn{width:96px;height:96px;border-radius:50%;border:none;cursor:pointer;font-size:40px;background:var(--red);color:#fff;box-shadow:0 6px 0 var(--red-dk);margin:10px auto 4px;display:flex;align-items:center;justify-content:center}
+.micbtn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--red-dk)}
+.micbtn.listening{animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.07);box-shadow:0 6px 0 var(--red-dk),0 0 0 14px rgba(255,90,60,.15)}}
+.repdots{display:flex;gap:9px;justify-content:center;margin:10px 0 4px}
+.repdots i{width:15px;height:15px;border-radius:50%;background:#E9EFEA;border:2px solid var(--line)}
+.repdots i.on{background:var(--yellow);border-color:var(--yellow-dk)}
+.saybox{font-size:22px;line-height:1.45;margin:6px 0 2px}
+.heard{font-size:13px;color:var(--sub);min-height:20px;margin-top:8px}
+.lockcard{border:2px dashed var(--yellow-dk);background:var(--yellow-lt)}
+.blank{display:inline-block;min-width:76px;border-bottom:3px solid var(--green);color:var(--green);text-align:center}
+.knowbtn{font-family:inherit;font-size:12px;border:none;background:none;color:var(--sub);text-decoration:underline;cursor:pointer;margin-top:10px}
+
+/* ── v3: 상점 리뉴얼 · 뽑기 · 로그인 · 대시보드 ── */
+.store2{position:relative;border-radius:18px;overflow:hidden;border:3px solid #23305B;margin-bottom:14px;background:linear-gradient(#BFE3FF 0 55%,#E9EFF4 55% 100%)}
+.s-sign{background:#23305B;color:#fff;text-align:center;padding:11px 6px 8px;font-size:21px;letter-spacing:1px}
+.s-sign small{display:block;font-size:10px;color:#9FE870;letter-spacing:3px;margin-top:2px}
+.s-awn{height:16px;background:repeating-linear-gradient(90deg,#FF5A3C 0 18px,#fff 18px 36px)}
+.s-awn2{height:9px;background:repeating-linear-gradient(90deg,#E24B31 0 18px,#E7E7E7 18px 36px);border-radius:0 0 9px 9px;width:95%;margin:0 auto;box-shadow:0 3px 5px rgba(0,0,0,.14)}
+.s-body{display:flex;gap:8px;padding:12px 12px 14px;align-items:stretch}
+.s-door{flex:0 0 32%;background:linear-gradient(#DFF3FF,#BFE0F5);border:3px solid #55627E;border-radius:8px;position:relative;min-height:98px}
+.s-door:before{content:"";position:absolute;top:0;bottom:0;left:50%;width:3px;background:#55627E}
+.s-door:after{content:"OPEN";position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#FFD64D;border:2px solid #C99B00;font-size:9px;padding:1px 6px;border-radius:6px;font-weight:bold}
+.s-win{flex:1;background:linear-gradient(#EAF7FF,#D3EAF8);border:3px solid #55627E;border-radius:8px;padding:6px;display:flex;flex-wrap:wrap;align-content:space-around;justify-content:space-around;font-size:18px;min-height:98px}
+.s-win i{font-style:normal;filter:drop-shadow(0 2px 1px rgba(0,0,0,.15))}
+.clawcard{background:linear-gradient(135deg,#FF88B0,#FF5F92);border:3px solid #C23A68;border-radius:16px;padding:12px 14px;color:#fff;display:flex;gap:12px;align-items:center;margin-bottom:14px;box-shadow:0 4px 0 #C23A68}
+.clawbox{flex:0 0 62px;height:74px;background:linear-gradient(#FFF3F7 58%,#FFD1E0 58%);border:3px solid #8E2A4C;border-radius:8px;position:relative;font-size:14px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;letter-spacing:-2px}
+.clawbox:before{content:"🦾";position:absolute;top:1px;left:50%;transform:translateX(-50%) scaleY(-1);font-size:13px}
+.clawshake{animation:cshake .16s infinite}
+@keyframes cshake{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.authtab{display:flex;gap:8px;margin-bottom:14px}
+.authtab button{flex:1;font-family:inherit;font-size:14px;padding:10px;border-radius:12px;border:2px solid var(--line);background:#fff;cursor:pointer}
+.authtab button.on{background:var(--yellow);border-color:var(--yellow-dk)}
+.autherr{color:var(--red);font-size:13px;min-height:18px;text-align:center;margin-top:8px}
+.dashbars{display:flex;align-items:flex-end;gap:4px;height:80px;padding:8px 2px 0}
+.dashbars .db{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end}
+.dashbars .db i{width:100%;max-width:16px;background:var(--green);border-radius:4px 4px 0 0;min-height:2px}
+.dashbars .db.today i{background:var(--yellow-dk)}
+.dashbars .db span{font-size:8.5px;color:var(--sub)}
+.lvbar{display:flex;align-items:center;gap:8px;margin:7px 0}
+.lvbar b{flex:0 0 76px;font-size:12px;font-weight:normal;color:var(--sub)}
+.lvbar .pbar{flex:1;margin:0}
+.lvbar span{flex:0 0 46px;font-size:11px;color:var(--sub);text-align:right}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="brand"><span class="awning">🏪</span> 영어 편의점</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="moneytag" id="moneyTag">🪙 <b id="moneyVal">0</b><span class="won">영머니</span></div>
+      <span id="syncDot" style="font-size:13px;margin-right:2px"></span><button class="gearbtn" id="gearBtn" aria-label="설정">⚙️</button>
+    </div>
+  </div>
+  <main>
+    <div class="savedwarn" id="saveWarn">⚠️ 이 환경에서는 저장이 안 돼요. 진행 상황이 앱을 닫으면 사라질 수 있어요.</div>
+    <div class="screen" id="scr-auth"></div><div class="screen" id="scr-welcome"></div>
+    <div class="screen" id="scr-place"></div>
+    <div class="screen" id="scr-home"></div>
+    <div class="screen" id="scr-learn"></div>
+    <div class="screen" id="scr-quiz"></div>
+    <div class="screen" id="scr-store"></div>
+    <div class="screen" id="scr-review"></div>
+    <div class="screen" id="scr-log"></div>
+  </main>
+  <nav id="nav">
+    <button data-go="home" class="on"><span class="ni">🏠</span>홈</button>
+    <button data-go="store"><span class="ni">🏪</span>편의점</button>
+    <button data-go="review"><span class="ni">📖</span>복습</button>
+    <button data-go="log">📊 기록<span class="ni">🧾</span>기록</button>
+  </nav>
+  <div class="modalbg" id="modalBg"><div class="modal" id="modalBox"></div></div>
+</div>
+<script>
+/* ═══════════ 설정/상수 (v2 보상 체계) ═══════════ */
+const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50 };
+const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑"];
+const DAILY_N = 10;
+const LV_NAME = ["", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
+const BOX_GAP = [0, 1, 3, 7, 14, 30, 60];
+
+const STORE_ITEMS = [
+  /* 간식 — 2025~26 편의점 실제가 */
+  {id:"haribo", cat:"간식", nm:"하리보 골드베렌", emo:"🐻", pr:2500},
+  {id:"migumi", cat:"간식", nm:"마이구미 포도", emo:"🍇", pr:1500},
+  {id:"worm", cat:"간식", nm:"왕꿈틀이", emo:"🐛", pr:1500},
+  {id:"saekom", cat:"간식", nm:"새콤달콤 딸기", emo:"🍓", pr:700},
+  {id:"chocosong", cat:"간식", nm:"초코송이", emo:"🍄", pr:1200},
+  {id:"pepero", cat:"간식", nm:"빼빼로", emo:"🍡", pr:2000},
+  {id:"kinder", cat:"간식", nm:"킨더조이", emo:"🥚", pr:2500},
+  {id:"ghana", cat:"간식", nm:"가나초콜릿", emo:"🍫", pr:3400},
+  {id:"melona", cat:"간식", nm:"메로나", emo:"🍈", pr:1500},
+  {id:"screw", cat:"간식", nm:"스크류바", emo:"🌀", pr:1500},
+  {id:"worldcone", cat:"간식", nm:"월드콘", emo:"🍦", pr:2500},
+  {id:"samanco", cat:"간식", nm:"붕어싸만코", emo:"🐟", pr:2000},
+  {id:"polapo", cat:"간식", nm:"폴라포", emo:"🧊", pr:1800},
+  {id:"saewookkang", cat:"간식", nm:"새우깡", emo:"🍤", pr:1500},
+  {id:"pocachip", cat:"간식", nm:"포카칩", emo:"🥔", pr:2400},
+  {id:"homerunball", cat:"간식", nm:"홈런볼", emo:"⚾", pr:2000},
+  {id:"kancho", cat:"간식", nm:"칸쵸(컵)", emo:"🍪", pr:2800},
+  /* 음료 */
+  {id:"bananamilk", cat:"음료", nm:"바나나맛우유", emo:"🍌", pr:1900},
+  {id:"cola", cat:"음료", nm:"코카콜라(캔)", emo:"🥤", pr:2000},
+  {id:"chocoemong", cat:"음료", nm:"초코에몽", emo:"🧃", pr:1800},
+  /* 장난감 */
+  {id:"pokecard", cat:"장난감", nm:"포켓몬 카드팩", emo:"🃏", pr:2000},
+  {id:"minicar", cat:"장난감", nm:"미니카", emo:"🏎️", pr:3500},
+  {id:"slime", cat:"장난감", nm:"슬라임", emo:"🫧", pr:4000},
+  {id:"yoyo", cat:"장난감", nm:"요요", emo:"🪀", pr:5000},
+  {id:"popit", cat:"장난감", nm:"팝잇 피젯", emo:"🧩", pr:6000},
+  {id:"lego", cat:"장난감", nm:"레고 세트", emo:"🧱", pr:50000},
+  {id:"rccar", cat:"장난감", nm:"대형 RC카", emo:"🚙", pr:100000},
+  /* 굿즈 */
+  {id:"sticker", cat:"굿즈", nm:"반짝 스티커", emo:"✨", pr:1500},
+  {id:"eraser", cat:"굿즈", nm:"캐릭터 지우개", emo:"🐰", pr:2000},
+  {id:"keycap", cat:"굿즈", nm:"랜덤 키캡", emo:"⌨️", pr:4000},
+  {id:"keyring", cat:"굿즈", nm:"캐릭터 키링", emo:"🔑", pr:6000},
+  {id:"stationery", cat:"굿즈", nm:"문구 세트", emo:"✏️", pr:8000},
+  {id:"minidoll", cat:"굿즈", nm:"미니 인형", emo:"🧸", pr:12000},
+  {id:"bigdoll", cat:"굿즈", nm:"점보 인형", emo:"🐻", pr:35000},
+  /* 도서 */
+  {id:"stickerbook", cat:"도서", nm:"스티커북", emo:"📖", pr:6000},
+  {id:"comic", cat:"도서", nm:"만화책", emo:"📚", pr:10000},
+];
+
+/* ═══════════ 서버 연결 설정 ═══════════
+   ▼ 아래 따옴표 안에 Apps Script 웹앱 배포 URL을 붙여넣으세요. (설치가이드.md 참고)
+   비워 두면 서버 없이 게스트 모드로만 작동합니다. */
+const SERVER_URL = "https://script.google.com/macros/s/AKfycbzNx6eoW4WouZbNgtpVF2TE-AoQ4D63s8c1Xzfk9vY0G_Ld13-BbsCdi8Q4Hgc1w5yr/exec";
+
+let SESSION = null; /* {uid, name, token, tts} */
+function loadSession(){ try{ SESSION = JSON.parse(localStorage.getItem("ecvs-session")||"null"); }catch(e){ SESSION=null; } }
+function saveSession(){ try{ if(SESSION) localStorage.setItem("ecvs-session", JSON.stringify(SESSION)); else localStorage.removeItem("ecvs-session"); }catch(e){} }
+async function api(action, data){
+  if(!SERVER_URL) throw new Error("no-server");
+  const r = await fetch(SERVER_URL, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify(Object.assign({action}, data||{})), redirect:"follow"});
+  const j = await r.json();
+  if(j && j.ok) return j;
+  throw new Error(j && j.err ? j.err : "server");
+}
+
+/* ═══════════ 저장소 (서버 → 로컬 캐시 → Claude storage) ═══════════ */
+let memState = null, storageMode = "none";
+function storeKey(){ return SESSION ? ("ecvs-"+SESSION.uid) : "ecvs-guest"; }
+const Store = {
+  async load(){
+    if(SESSION){
+      try{
+        const j = await api("load", {uid:SESSION.uid, token:SESSION.token});
+        storageMode = "server"; SESSION.tts = !!j.tts; saveSession();
+        if(j.state) return j.state;
+      }catch(e){ storageMode = "server-off"; }
+      try{ const c = localStorage.getItem(storeKey()); if(c) return JSON.parse(c); }catch(e){}
+      return null;
+    }
+    if (typeof window.storage !== "undefined" && window.storage) {
+      storageMode = "claude";
+      try{ const r = await window.storage.get("ecvs-guest"); if(r && r.value) return JSON.parse(r.value); }catch(e){}
+      try{ const r = await window.storage.get("youngmoney-v2"); if(r && r.value) return JSON.parse(r.value); }catch(e){}
+      return null;
+    }
+    try{ storageMode="local"; const c = localStorage.getItem(storeKey()) || localStorage.getItem("youngmoney-v2"); return c ? JSON.parse(c) : null; }
+    catch(e){ storageMode="none"; return null; }
+  },
+  _t:null,
+  save(st){
+    memState = st;
+    clearTimeout(this._t);
+    this._t = setTimeout(async ()=>{
+      const json = JSON.stringify(st);
+      try{ localStorage.setItem(storeKey(), json); }catch(e){}
+      if(!SESSION && storageMode==="claude"){ try{ await window.storage.set("ecvs-guest", json); }catch(e){} }
+      if(SESSION) flushServer();
+    }, 500);
+  }
+};
+
+/* ═══════════ 이벤트 로그 + 서버 동기화 ═══════════ */
+let EVQ = [], flushT = null, syncState = "idle";
+function logEv(type, data){ EVQ.push(Object.assign({t:Date.now(), type}, data||{})); if(EVQ.length>300) EVQ = EVQ.slice(-300); }
+function flushServer(){
+  if(!SESSION) return;
+  clearTimeout(flushT);
+  flushT = setTimeout(async ()=>{
+    try{
+      const evs = EVQ.slice();
+      await api("save", {uid:SESSION.uid, token:SESSION.token, state:S, events:evs});
+      EVQ = EVQ.slice(evs.length);
+      syncState = "ok"; updateSyncDot();
+    }catch(e){ syncState = "off"; updateSyncDot(); }
+  }, 1200);
+}
+function updateSyncDot(){
+  const el = $("#syncDot"); if(!el) return;
+  el.textContent = SESSION ? (syncState==="off" ? "⚠️" : "☁️") : "";
+}
+
+/* ═══════════ 학습 통계(dstats) + 공부 시간 추적 ═══════════ */
+function dst(){
+  if(!S.dstats) S.dstats = {};
+  const t = todayStr();
+  if(!S.dstats[t]) S.dstats[t] = {q:0, r:0, min:0, w:0, earn:0};
+  return S.dstats[t];
+}
+let timeT = null;
+function startTimeTracker(){
+  if(timeT) return;
+  timeT = setInterval(()=>{
+    if(document.visibilityState==="visible" && S && S.placed){ dst().min += 0.5; save(); }
+  }, 30000);
+}
+
+/* ═══════════ 발음: 기기에서 가장 좋은 미국 영어 음성 자동 선택 + 직접 선택 ═══════════ */
+let voices = [];
+function loadVoices(){ try{ voices = speechSynthesis.getVoices(); }catch(e){} }
+if ("speechSynthesis" in window){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+function rankVoice(v){
+  const n=(v.name||"").toLowerCase(), l=(v.lang||"").replace("_","-").toLowerCase();
+  let s=0;
+  if(l.startsWith("en-us")) s+=4; else if(l.startsWith("en")) s+=1; else return -1;
+  if(/premium/.test(n)) s+=6;
+  if(/enhanced|neural|natural|online|multilingual/.test(n)) s+=5;
+  if(/google us english/.test(n)) s+=4;
+  if(/samantha|ava|allison|zoe|nicky|joelle|evan|nathan|noelle|tom/.test(n)) s+=3;
+  if(/aria|jenny|michelle|guy|emma|andrew|ana/.test(n)) s+=3;
+  if(/compact|espeak/.test(n)) s-=4;
+  return s;
+}
+function enVoices(){ return voices.filter(v=>rankVoice(v)>=0).sort((a,b)=>rankVoice(b)-rankVoice(a)); }
+function pickVoice(){
+  if(S && S.voiceName){ const v=voices.find(x=>x.name===S.voiceName); if(v) return v; }
+  const list = enVoices(); return list.length ? list[0] : null;
+}
+let CURA = null;
+const TTSCACHE = new Map();
+function stopAudio(){ try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
+function speak(text, rate){
+  if(SESSION && SESSION.tts && S && S.ttsHQ!==false){ speakServer(text, rate); return; }
+  speakLocal(text, rate);
+}
+function speakLocal(text, rate){
+  if (!("speechSynthesis" in window)) return;
+  try{
+    stopAudio();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "en-US";
+    const v = pickVoice(); if (v) u.voice = v;
+    u.rate = rate || ((S && S.rate) ? S.rate : 0.85);
+    u.pitch = 1.0;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+async function speakServer(text, rate){
+  try{
+    let b64 = TTSCACHE.get(text);
+    if(!b64){
+      const j = await api("tts", {uid:SESSION.uid, token:SESSION.token, text});
+      b64 = j.audio; if(!b64) throw new Error("noaudio");
+      TTSCACHE.set(text, b64);
+      if(TTSCACHE.size>250) TTSCACHE.delete(TTSCACHE.keys().next().value);
+    }
+    stopAudio();
+    const a = new Audio("data:audio/mp3;base64," + b64);
+    a.playbackRate = ((rate || (S && S.rate) || 0.85) + 0.15);
+    CURA = a; a.play();
+  }catch(e){ speakLocal(text, rate); }
+}
+
+/* ═══════════ 말하기 인식 (마이크 안 되면 자가 체크로 자동 전환) ═══════════ */
+const SRCls = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+let micState = SRCls ? "unknown" : "no";  /* unknown | ok | no */
+let recNow = null;
+function listen(cb){
+  if(!SRCls || micState==="no"){ cb(null); return; }
+  let rec; try{ rec = new SRCls(); }catch(e){ micState="no"; cb(null); return; }
+  rec.lang="en-US"; rec.interimResults=false; rec.maxAlternatives=5; rec.continuous=false;
+  let done=false;
+  rec.onresult = ev=>{ if(done) return; done=true; recNow=null;
+    const alts=[]; const rs=ev.results[0];
+    for(let i=0;i<rs.length;i++) alts.push(rs[i].transcript);
+    micState="ok"; cb(alts.join(" | ")); };
+  rec.onerror = ev=>{ if(done) return; done=true; recNow=null;
+    if(ev.error==="not-allowed"||ev.error==="service-not-allowed"||ev.error==="audio-capture"){ micState="no"; cb(null); }
+    else cb(""); };
+  rec.onend = ()=>{ if(!done){ done=true; recNow=null; cb(""); } };
+  try{ recNow=rec; rec.start(); }catch(e){ recNow=null; micState="no"; cb(null); }
+}
+function stopListen(){ try{ if(recNow) recNow.abort(); }catch(e){} recNow=null; }
+function toks(s){ return String(s).toLowerCase().replace(/'/g,"").replace(/[^a-z ]/g," ").split(/\s+/).filter(Boolean); }
+function tokMatch(a,b){ if(a===b) return true; if(a.length>=3&&b.length>=3&&(a.startsWith(b)||b.startsWith(a))) return true; return false; }
+function saidWord(tr, w){
+  const tw = toks(w); if(!tw.length) return false;
+  const tt = toks(tr);
+  return tw.every(x=>tt.some(y=>tokMatch(x,y)));
+}
+function saidSent(tr, sent){
+  const target = toks(sent), heard = toks(tr);
+  if(!target.length) return false;
+  let hit=0;
+  target.forEach(x=>{ if(heard.some(y=>tokMatch(x,y))) hit++; });
+  return (hit/target.length) >= 0.6;
+}
+
+/* ═══════════ 효과음 ═══════════ */
+let AC = null;
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; }
+function tone(f, t0, dur, type, vol){
+  const c = ac(); if(!c || (S && S.mute)) return;
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type||"sine"; o.frequency.value=f;
+  g.gain.setValueAtTime(0.0001, c.currentTime+t0);
+  g.gain.exponentialRampToValueAtTime(vol||0.12, c.currentTime+t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime+t0+dur);
+  o.connect(g).connect(c.destination);
+  o.start(c.currentTime+t0); o.stop(c.currentTime+t0+dur+0.05);
+}
+const Sfx = {
+  ok(){ tone(660,0,.12,"triangle"); tone(880,.1,.16,"triangle"); },
+  coin(){ tone(988,0,.1,"square",.06); tone(1319,.08,.18,"square",.06); },
+  bad(){ tone(200,0,.22,"sawtooth",.07); },
+  tada(){ [523,659,784,1047].forEach((f,i)=>tone(f,i*.09,.18,"triangle")); },
+  flip(){ tone(500,0,.06,"sine",.05); }
+};
+
+/* ═══════════ 헬퍼 ═══════════ */
+const $ = s=>document.querySelector(s);
+function todayStr(d){ const x=d||new Date(); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
+function addDays(ds, n){ const d=new Date(ds+"T00:00:00"); d.setDate(d.getDate()+n); return todayStr(d); }
+function comma(n){ return (n||0).toLocaleString("ko-KR"); }
+function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function coinFly(txt, x, y){
+  const el=document.createElement("div"); el.className="coinfly"; el.textContent=txt;
+  el.style.left=(x-40)+"px"; el.style.top=(y-20)+"px";
+  document.body.appendChild(el); setTimeout(()=>el.remove(),1100);
+}
+function bumpMoney(){ const t=$("#moneyTag"); t.classList.remove("bump"); void t.offsetWidth; t.classList.add("bump"); }
+function confetti(){
+  const emos=["🎉","🌟","🍬","🪙","🎈","✨"];
+  for(let i=0;i<26;i++){
+    const el=document.createElement("div"); el.className="confetti";
+    el.textContent=emos[Math.floor(Math.random()*emos.length)];
+    el.style.left=Math.random()*100+"vw";
+    el.style.animationDuration=(1.6+Math.random()*1.6)+"s";
+    el.style.animationDelay=(Math.random()*.5)+"s";
+    document.body.appendChild(el); setTimeout(()=>el.remove(),3600);
+  }
+}
+/* ═══════ 단어 DB v2: 미국 초등 학년 기준 (G1~G4), 각 75개 ═══════
+   형식: [단어, 뜻, 예문, 예문해석, 말하기문장(짧고 쉬움), 말하기해석] */
+const WORDS = {
+1:[
+["afraid","무서워하는","Some kids are afraid of the dark.","어떤 아이들은 어둠을 무서워해요.","I am not afraid!","나는 무섭지 않아!"],
+["asleep","잠든","The baby is asleep in the crib.","아기가 아기 침대에서 잠들어 있어요.","The cat is asleep.","고양이가 잠들었어요."],
+["awake","깨어 있는","I stay awake late on Fridays.","나는 금요일에는 늦게까지 깨어 있어요.","Are you awake now?","너 지금 깨어 있어?"],
+["bend","구부리다","Bend your knees when you jump.","점프할 때 무릎을 구부리세요.","Bend down slowly.","천천히 몸을 굽혀 봐."],
+["bite","물다, 한 입 베어 물다","Don't bite your nails, please.","손톱을 물어뜯지 마세요.","Can I bite it?","한 입 먹어도 돼?"],
+["blow","불다","Blow out the candles and make a wish!","촛불을 불어 끄고 소원을 빌어!","Blow the balloon up!","풍선을 불어 봐!"],
+["bounce","튀다, 튀기다","Basketballs bounce very high.","농구공은 아주 높이 튀어요.","Bounce the ball here.","여기서 공을 튀겨 봐."],
+["build","짓다, 만들다","Let's build a sandcastle at the beach.","바닷가에서 모래성을 짓자.","I can build it!","내가 만들 수 있어!"],
+["chase","쫓다, 뒤쫓다","Dogs love to chase squirrels.","강아지들은 다람쥐를 쫓는 걸 좋아해요.","Don't chase me!","나 쫓아오지 마!"],
+["chew","씹다","Chew your food slowly and well.","음식을 천천히 잘 씹으세요.","Chew it well.","꼭꼭 씹어 먹어."],
+["cover","덮다, 가리다","Cover the pot with a lid.","냄비를 뚜껑으로 덮으세요.","Cover your eyes!","눈을 가려 봐!"],
+["crawl","기어가다","Babies crawl before they walk.","아기들은 걷기 전에 기어다녀요.","Ants crawl so fast.","개미는 정말 빨리 기어가."],
+["cross","건너다","Look both ways before you cross.","건너기 전에 양쪽을 살펴보세요.","Let's cross here.","여기서 건너자."],
+["crowd","사람들, 무리","A big crowd watched the game.","많은 사람들이 경기를 지켜봤어요.","Look at the crowd!","저 많은 사람들 좀 봐!"],
+["dig","(땅을) 파다","Dogs dig holes in the yard.","개들은 마당에 구멍을 파요.","Let's dig a hole.","구멍을 파 보자."],
+["dive","다이빙하다, 뛰어들다","Penguins dive deep for fish.","펭귄은 물고기를 잡으러 깊이 잠수해요.","Watch me dive!","내가 다이빙하는 거 봐!"],
+["drop","떨어뜨리다","Don't drop the glass cup.","유리컵을 떨어뜨리지 마세요.","Oops, don't drop it!","이런, 떨어뜨리지 마!"],
+["dry","마른, 말리다","Keep your socks dry in the rain.","비 올 때 양말이 젖지 않게 하세요.","My hands are dry.","내 손은 말랐어."],
+["empty","비어 있는","The juice box is empty now.","주스 팩이 이제 비었어요.","The box is empty.","상자가 비어 있어."],
+["fair","공평한, 공정한","Take turns so the game is fair.","게임이 공평하도록 차례를 지키세요.","That is not fair!","그건 공평하지 않아!"],
+["few","몇 개의, 적은","Only a few cookies are left.","쿠키가 몇 개밖에 안 남았어요.","I have a few.","나 몇 개 있어."],
+["fix","고치다","Dad can fix the broken toy.","아빠는 부서진 장난감을 고칠 수 있어요.","Can you fix it?","이거 고칠 수 있어?"],
+["float","뜨다, 떠다니다","Boats float on the water.","배는 물 위에 떠요.","Look, it can float!","봐, 이거 뜬다!"],
+["fold","접다","Fold the paper in half.","종이를 반으로 접으세요.","Fold it like this.","이렇게 접어 봐."],
+["follow","따라가다","Follow the arrows to the exit.","화살표를 따라 출구로 가세요.","Follow me, please.","나를 따라와 줘."],
+["full","가득 찬, 배부른","My backpack is full of books.","내 가방은 책으로 가득 차 있어요.","I am so full!","나 너무 배불러!"],
+["grab","움켜잡다","Grab my hand and hold on.","내 손을 잡고 꽉 붙잡아.","Grab your bag!","가방 챙겨!"],
+["hang","걸다, 매달리다","Hang your coat on the hook.","코트를 고리에 걸어 두세요.","Hang it up here.","여기에 걸어 놔."],
+["hide","숨다, 숨기다","Let's hide behind the big tree.","큰 나무 뒤에 숨자.","You hide, I count!","너는 숨어, 내가 셀게!"],
+["hold","잡다, 들다","Hold the railing on the stairs.","계단에서 난간을 잡으세요.","Hold this for me.","이것 좀 들어 줘."],
+["hop","깡충 뛰다","Rabbits hop across the field.","토끼들이 들판을 깡충깡충 뛰어가요.","Hop like a bunny!","토끼처럼 깡충 뛰어 봐!"],
+["hug","안다, 포옹하다","Give your grandma a big hug.","할머니를 꼭 안아 드리세요.","I want a hug.","안아 주세요."],
+["hunt","사냥하다, 찾아다니다","Owls hunt at night.","부엉이는 밤에 사냥해요.","Let's hunt for treasure!","보물을 찾아보자!"],
+["hurt","다치다, 아프다","Did you hurt your knee?","무릎을 다쳤어?","My tummy hurts.","배가 아파요."],
+["kick","차다","Kick the ball into the goal!","공을 골대 안으로 차 넣어!","Kick it to me!","나한테 차 줘!"],
+["knock","두드리다, 노크하다","Knock on the door before entering.","들어가기 전에 문을 두드리세요.","Knock three times.","세 번 노크해."],
+["land","착륙하다, 내려앉다","The plane will land soon.","비행기가 곧 착륙할 거예요.","Birds land on trees.","새들은 나무에 내려앉아."],
+["lift","들어 올리다","Can you lift this heavy box?","이 무거운 상자를 들 수 있어?","Lift it up high!","높이 들어 올려 봐!"],
+["loud","시끄러운, 큰 소리의","The thunder was very loud.","천둥소리가 아주 컸어요.","That is too loud!","그거 너무 시끄러워!"],
+["low","낮은","The bird flew low over the grass.","새가 풀밭 위를 낮게 날았어요.","The table is low.","그 탁자는 낮아."],
+["march","행진하다","The band will march in the parade.","악단이 퍼레이드에서 행진할 거예요.","March like soldiers!","군인처럼 행진해 보자!"],
+["mix","섞다","Mix the eggs and the flour.","달걀과 밀가루를 섞으세요.","Mix the colors together.","색깔들을 섞어 봐."],
+["near","가까운, 근처에","The park is near my house.","공원은 우리 집 근처에 있어요.","Come near me.","내 가까이 와."],
+["noisy","시끄러운","The cafeteria is noisy at lunch.","급식실은 점심시간에 시끄러워요.","It is too noisy!","너무 시끄러워!"],
+["pack","(짐을) 싸다","Pack your bag for the trip.","여행 갈 짐을 싸세요.","Pack your lunch box.","도시락을 챙겨."],
+["pick","고르다, 따다","Pick a card, any card!","카드를 골라 봐, 아무거나!","Pick your favorite one.","네가 좋아하는 걸 골라."],
+["point","가리키다","Point to the answer on the board.","칠판에서 정답을 가리켜 보세요.","Point at the star.","별을 가리켜 봐."],
+["pour","붓다, 따르다","Pour the milk into the cup.","우유를 컵에 따르세요.","Pour some water, please.","물 좀 따라 주세요."],
+["press","누르다","Press the button to start.","시작하려면 버튼을 누르세요.","Press it gently.","살살 눌러 봐."],
+["pull","당기다","Pull the door to open it.","문을 당겨서 여세요.","Pull it harder!","더 세게 당겨!"],
+["push","밀다","Push the cart to the car.","카트를 차까지 밀고 가세요.","Don't push me!","밀지 마!"],
+["quick","빠른","Take a quick shower before bed.","자기 전에 빨리 샤워하세요.","Be quick, please!","빨리 서둘러 줘!"],
+["quiet","조용한","Please be quiet in the library.","도서관에서는 조용히 해 주세요.","Stay quiet now.","이제 조용히 하자."],
+["reach","닿다, 손을 뻗다","I can't reach the top shelf.","맨 위 선반에 손이 안 닿아요.","Can you reach it?","거기 손 닿아?"],
+["rest","쉬다, 휴식","Rest for a while after running.","달리기 후에는 잠시 쉬세요.","Let's rest here.","여기서 쉬자."],
+["roll","구르다, 굴리다","Roll the dice and move your piece.","주사위를 굴리고 말을 움직이세요.","Roll the ball slowly.","공을 천천히 굴려 봐."],
+["rough","거친","The tree bark feels rough.","나무껍질은 거칠거칠해요.","This rock is rough.","이 돌은 거칠어."],
+["round","둥근","The full moon is big and round.","보름달은 크고 둥글어요.","The ball is round.","공은 둥글어."],
+["rush","서두르다, 급히 가다","Don't rush. We have time.","서두르지 마. 우리 시간 있어.","Why the big rush?","왜 그렇게 서둘러?"],
+["shake","흔들다","Shake the juice before you drink it.","마시기 전에 주스를 흔드세요.","Shake it well!","잘 흔들어 봐!"],
+["shout","소리치다","Don't shout inside the house.","집 안에서 소리치지 마세요.","Don't shout at me.","나한테 소리치지 마."],
+["skip","깡충깡충 뛰다, 건너뛰다","Let's skip to the playground.","놀이터까지 깡충깡충 뛰어가자.","Skip this one.","이건 건너뛰자."],
+["slide","미끄러지다, 미끄럼틀","Penguins slide on the ice.","펭귄은 얼음 위에서 미끄러져요.","Let's ride the slide!","미끄럼틀 타자!"],
+["smell","냄새 맡다, 냄새","I smell fresh cookies!","갓 구운 쿠키 냄새가 나!","Smell this flower.","이 꽃 냄새 맡아 봐."],
+["smooth","매끄러운","The baby's skin is very smooth.","아기 피부는 아주 매끄러워요.","This stone is smooth.","이 돌은 매끈매끈해."],
+["soft","부드러운","My pillow is soft and fluffy.","내 베개는 부드럽고 폭신해요.","The blanket is soft.","이불이 부드러워."],
+["spin","돌다, 돌리다","Tops spin round and round.","팽이는 빙글빙글 돌아요.","Spin around once!","한 바퀴 돌아 봐!"],
+["splash","(물을) 튀기다","Don't splash water on me!","나한테 물 튀기지 마!","Splash! Into the pool!","첨벙! 수영장 속으로!"],
+["sweep","쓸다, 청소하다","Sweep the floor with a broom.","빗자루로 바닥을 쓰세요.","Let's sweep the floor.","바닥을 쓸자."],
+["throw","던지다","Throw the ball to first base!","1루로 공을 던져!","Throw it here!","여기로 던져!"],
+["tie","묶다","Tie your shoelaces before running.","달리기 전에 신발 끈을 묶으세요.","Tie it tight.","꽉 묶어."],
+["touch","만지다","Please do not touch the paintings.","그림을 만지지 마세요.","Don't touch that!","그거 만지지 마!"],
+["wave","손을 흔들다, 파도","Wave goodbye to your friends.","친구들에게 손을 흔들어 인사하세요.","Wave to the camera!","카메라에 손 흔들어!"],
+["wild","야생의, 거친","Wild animals live in the forest.","야생 동물은 숲에 살아요.","Tigers are wild animals.","호랑이는 야생 동물이야."],
+["wrap","싸다, 포장하다","Let's wrap the birthday present.","생일 선물을 포장하자.","Wrap it in paper.","종이로 싸 봐."]
+],
+2:[
+["amaze","놀라게 하다","Magic tricks always amaze me.","마술은 항상 나를 놀라게 해요.","You amaze me!","넌 정말 놀라워!"],
+["attention","주의, 집중","Pay attention to the teacher.","선생님 말씀에 집중하세요.","Attention, please!","주목해 주세요!"],
+["brave","용감한","The brave firefighter saved the cat.","용감한 소방관이 고양이를 구했어요.","You are so brave!","너 정말 용감하다!"],
+["calm","침착한, 고요한","Take a deep breath and stay calm.","심호흡을 하고 침착하세요.","Stay calm, everyone.","모두 침착하세요."],
+["celebrate","축하하다, 기념하다","We celebrate my birthday with cake.","우리는 케이크로 내 생일을 축하해요.","Let's celebrate tonight!","오늘 밤 축하 파티 하자!"],
+["chilly","쌀쌀한","Wear a jacket. It is chilly outside.","재킷 입어. 밖이 쌀쌀해.","The morning is chilly.","아침엔 쌀쌀해."],
+["clever","영리한","The clever fox found a way out.","영리한 여우가 빠져나갈 길을 찾았어요.","What a clever idea!","정말 영리한 생각이야!"],
+["cozy","아늑한","My bed is warm and cozy.","내 침대는 따뜻하고 아늑해요.","This room is cozy.","이 방은 아늑해."],
+["curious","궁금해하는, 호기심 많은","Cats are curious about everything.","고양이는 모든 것을 궁금해해요.","I am so curious!","나 너무 궁금해!"],
+["damage","손상, 망가뜨리다","The storm can damage the roof.","폭풍은 지붕을 망가뜨릴 수 있어요.","Don't damage the book.","책을 망가뜨리지 마."],
+["decide","결정하다","Let's decide where to eat.","어디서 먹을지 정하자.","You decide this time.","이번엔 네가 정해."],
+["describe","묘사하다, 설명하다","Can you describe your dream house?","네가 꿈꾸는 집을 설명해 줄래?","Describe it to me.","나한테 설명해 줘."],
+["discover","발견하다","Scientists discover new stars every year.","과학자들은 매년 새로운 별을 발견해요.","What did you discover?","뭘 발견했어?"],
+["dull","지루한, 무딘","The movie was long and dull.","그 영화는 길고 지루했어요.","This pencil is dull.","이 연필은 뭉툭해."],
+["eager","간절히 바라는, 열심인","I am eager to open my presents.","나는 선물을 빨리 열어 보고 싶어요.","I am eager to start!","빨리 시작하고 싶어!"],
+["enormous","거대한","An enormous whale swam by our boat.","거대한 고래가 우리 배 옆을 지나갔어요.","That cake is enormous!","저 케이크 엄청 크다!"],
+["fierce","사나운","A fierce tiger guards the jungle.","사나운 호랑이가 정글을 지켜요.","Lions look so fierce.","사자는 정말 사나워 보여."],
+["fragile","깨지기 쉬운","Be careful. The vase is fragile.","조심해. 그 꽃병은 깨지기 쉬워.","This cup is fragile.","이 컵은 깨지기 쉬워."],
+["gather","모이다, 모으다","Let's gather sticks for the campfire.","모닥불에 쓸 나뭇가지를 모으자.","Gather around, everyone!","모두 모여 봐!"],
+["gentle","다정한, 부드러운","Be gentle with the little puppy.","작은 강아지를 살살 다뤄 주세요.","Be gentle, please.","살살 해 줘."],
+["giggle","킥킥 웃다","The funny joke made us giggle.","웃긴 농담에 우리는 킥킥 웃었어요.","Why do you giggle?","왜 킥킥 웃어?"],
+["gloomy","우울한, 어둑한","The sky looks gloomy before rain.","비 오기 전에 하늘이 어둑해 보여요.","What a gloomy day.","정말 우중충한 날이야."],
+["glow","빛나다, 은은한 빛","Fireflies glow in the dark.","반딧불이는 어둠 속에서 빛나요.","The stars glow bright.","별들이 환하게 빛나."],
+["grin","활짝 웃다","He had a big grin on his face.","그는 얼굴에 함박웃음을 지었어요.","Look at that grin!","저 활짝 웃는 얼굴 봐!"],
+["grumpy","심술 난, 짜증 난","I feel grumpy without breakfast.","아침을 안 먹으면 짜증이 나요.","Don't be grumpy!","심술부리지 마!"],
+["harvest","수확, 수확하다","Farmers harvest rice in the fall.","농부들은 가을에 쌀을 수확해요.","It is harvest time!","수확할 시간이야!"],
+["imitate","흉내 내다","Parrots imitate people talking.","앵무새는 사람 말을 흉내 내요.","Imitate my voice!","내 목소리를 흉내 내 봐!"],
+["insist","고집하다, 우기다","She will insist on going first.","그녀는 먼저 가겠다고 고집할 거예요.","I insist. Please try!","꼭 해 봐. 정말이야!"],
+["invent","발명하다","Who did invent the light bulb?","전구는 누가 발명했을까요?","Let's invent a game!","우리 게임을 만들어 보자!"],
+["leap","뛰어오르다","Frogs leap from leaf to leaf.","개구리는 잎에서 잎으로 뛰어올라요.","Leap over the puddle!","웅덩이를 뛰어넘어 봐!"],
+["lonely","외로운","The puppy felt lonely at home.","강아지는 집에서 외로움을 느꼈어요.","Are you lonely today?","오늘 외로워?"],
+["moist","촉촉한","The chocolate cake is soft and moist.","초콜릿 케이크가 부드럽고 촉촉해요.","The soil is moist.","흙이 촉촉해."],
+["neat","깔끔한, 정돈된","Keep your desk neat and clean.","책상을 깔끔하게 정리하세요.","Your room is neat!","네 방 깔끔하다!"],
+["nervous","긴장한, 불안한","I feel nervous before a test.","나는 시험 전에 긴장돼요.","Don't be nervous.","긴장하지 마."],
+["nibble","조금씩 먹다","Hamsters nibble on tiny seeds.","햄스터는 작은 씨앗을 조금씩 갉아 먹어요.","Just nibble a little.","조금만 먹어 봐."],
+["notice","알아차리다","Did you notice my new haircut?","내 새 머리 스타일 알아봤어?","Did you notice that?","그거 눈치챘어?"],
+["ordinary","평범한, 보통의","It was just an ordinary Monday.","그저 평범한 월요일이었어요.","It looks ordinary to me.","내가 보기엔 평범한데."],
+["pale","창백한, 연한","You look pale. Are you sick?","너 창백해 보여. 아파?","I like pale blue.","나는 연한 파란색이 좋아."],
+["patient","참을성 있는","Be patient. The bus will come.","조금만 참아. 버스는 올 거야.","Please be patient.","조금만 기다려 줘."],
+["peek","살짝 엿보다","No peeking! Don't peek at the gift.","훔쳐보기 없기! 선물을 엿보지 마.","Take a quick peek.","살짝만 봐 봐."],
+["pleasant","즐거운, 쾌적한","We had a pleasant walk in the park.","우리는 공원에서 기분 좋게 산책했어요.","What a pleasant day!","정말 기분 좋은 날이야!"],
+["praise","칭찬, 칭찬하다","The coach gave us praise after the win.","코치님이 승리 후 우리를 칭찬해 주셨어요.","Great job! High praise!","잘했어! 최고의 칭찬이야!"],
+["protect","보호하다","Helmets protect your head.","헬멧은 머리를 보호해 줘요.","I will protect you.","내가 널 지켜 줄게."],
+["rare","드문, 희귀한","Snow is rare in this warm city.","이 따뜻한 도시에서 눈은 드물어요.","This card is rare!","이 카드는 희귀해!"],
+["respect","존중, 존경하다","Show respect to your teachers.","선생님을 존중하세요.","Respect each other, okay?","서로 존중하자, 알겠지?"],
+["ripe","익은","The bananas are ripe and sweet.","바나나가 잘 익어서 달아요.","This peach is ripe.","이 복숭아는 잘 익었어."],
+["scatter","흩뿌리다, 흩어지다","The wind will scatter the leaves.","바람이 나뭇잎을 흩날릴 거예요.","Don't scatter your toys.","장난감을 어지르지 마."],
+["search","찾다, 수색하다","Let's search for the missing sock.","없어진 양말을 찾아보자.","Search under the bed.","침대 밑을 찾아봐."],
+["shiver","(추워서) 떨다","We shiver in the cold wind.","우리는 찬 바람에 몸을 떨어요.","Brrr, I shiver!","부들부들, 추워서 떨려!"],
+["shy","수줍은","The shy boy hid behind his mom.","수줍은 아이가 엄마 뒤에 숨었어요.","Don't be shy!","부끄러워하지 마!"],
+["sneak","살금살금 가다","Let's sneak past the sleeping dog.","자고 있는 개 옆을 살금살금 지나가자.","Sneak in quietly.","조용히 살금살금 들어가."],
+["sob","흐느껴 울다","She began to sob at the sad movie.","그녀는 슬픈 영화를 보고 흐느끼기 시작했어요.","Please don't sob.","제발 울지 마."],
+["sort","분류하다, 종류","Sort the blocks by color.","블록을 색깔별로 나누세요.","Sort them by size.","크기별로 나눠 봐."],
+["sparkle","반짝이다","Diamonds sparkle in the light.","다이아몬드는 빛을 받으면 반짝여요.","Your eyes sparkle!","네 눈이 반짝반짝해!"],
+["spoil","망치다, 상하다","Milk can spoil in the hot sun.","우유는 뜨거운 햇볕에 상할 수 있어요.","Don't spoil the surprise!","깜짝 선물을 망치지 마!"],
+["sprout","싹, 싹이 트다","Beans sprout in just a few days.","콩은 며칠 만에 싹이 터요.","Look, a tiny sprout!","봐, 작은 새싹이야!"],
+["steep","가파른","The hill is too steep for bikes.","그 언덕은 자전거 타기엔 너무 가팔라요.","This road is steep.","이 길은 가파르네."],
+["stretch","늘이다, 스트레칭하다","Stretch your arms before swimming.","수영 전에 팔을 쭉 펴세요.","Stretch up high!","위로 쭉 뻗어 봐!"],
+["sturdy","튼튼한","This sturdy chair never wobbles.","이 튼튼한 의자는 절대 흔들리지 않아요.","The bridge is sturdy.","그 다리는 튼튼해."],
+["tidy","깔끔한, 정리하다","Tidy your room before dinner.","저녁 먹기 전에 방을 정리하렴.","Keep it tidy, please.","깨끗하게 정리해 줘."],
+["timid","소심한, 겁 많은","The timid mouse hid in the hole.","겁 많은 쥐가 구멍에 숨었어요.","Don't be timid. Try!","겁내지 말고 해 봐!"],
+["trap","덫, 가두다","The spider web is a trap for bugs.","거미줄은 벌레를 잡는 덫이에요.","It is a trap!","그건 함정이야!"],
+["valuable","귀중한","Time with family is valuable.","가족과 보내는 시간은 소중해요.","This coin is valuable.","이 동전은 값진 거야."],
+["vast","광활한, 어마어마한","The ocean is vast and deep.","바다는 광활하고 깊어요.","Space is so vast.","우주는 정말 넓어."],
+["wander","돌아다니다, 헤매다","We like to wander around the market.","우리는 시장을 이리저리 구경하는 걸 좋아해요.","Don't wander off alone.","혼자 돌아다니지 마."],
+["whisper","속삭이다","Whisper the secret in my ear.","비밀을 내 귀에 속삭여 줘.","Whisper it to me.","살짝 속삭여 줘."],
+["wise","지혜로운","The wise owl gave good advice.","지혜로운 부엉이가 좋은 조언을 해 줬어요.","That was a wise choice.","그건 현명한 선택이었어."],
+["wonder","궁금해하다, 경이","I wonder what is inside the box.","상자 안에 뭐가 있는지 궁금해요.","I wonder why.","왜인지 궁금해."],
+["yawn","하품하다","I always yawn when I am sleepy.","나는 졸리면 항상 하품을 해요.","A big yawn! Bedtime!","크게 하품! 잘 시간이야!"],
+["damp","축축한","My towel is still damp.","내 수건이 아직 축축해요.","The grass is damp.","잔디가 축축해."],
+["drip","뚝뚝 떨어지다","Raindrops drip from the roof.","빗방울이 지붕에서 뚝뚝 떨어져요.","Drip, drip, drip!","뚝, 뚝, 뚝!"],
+["fluffy","폭신폭신한, 솜털 같은","The fluffy cloud looks like cotton candy.","폭신한 구름이 솜사탕처럼 보여요.","Your dog is fluffy!","네 강아지 복슬복슬해!"],
+["mild","온화한, 순한","The weather is mild in spring.","봄에는 날씨가 온화해요.","I like mild food.","나는 안 매운 음식이 좋아."],
+["plenty","충분한 양, 풍부함","We have plenty of snacks for everyone.","모두를 위한 간식이 충분히 있어요.","We have plenty of time.","우리 시간 충분해."],
+["silly","우스꽝스러운, 바보 같은","We made silly faces for the photo.","우리는 사진 찍을 때 웃긴 표정을 지었어요.","Don't be silly!","바보같이 굴지 마!"]
+],
+3:[
+["arrange","정리하다, 배열하다","Arrange the books from big to small.","책을 큰 것부터 작은 것 순서로 놓으세요.","Arrange them in order.","순서대로 놓아 봐."],
+["avoid","피하다","Avoid the puddles on the sidewalk.","보도의 물웅덩이를 피하세요.","Avoid the red zone!","빨간 구역을 피해!"],
+["bold","대담한, 용감한","It was a bold move to go first.","먼저 나선 것은 대담한 행동이었어요.","That was so bold!","그거 정말 대담했어!"],
+["bloom","꽃이 피다","Cherry trees bloom in April.","벚나무는 4월에 꽃이 펴요.","The roses bloom now.","장미가 지금 피고 있어."],
+["brief","짧은, 간단한","The coach gave a brief speech.","코치님이 짧은 연설을 했어요.","Keep it brief, please.","짧게 말해 줘."],
+["cling","매달리다, 꼭 붙다","Baby koalas cling to their moms.","아기 코알라는 엄마에게 꼭 매달려요.","Wet clothes cling to you.","젖은 옷은 몸에 달라붙어."],
+["comfort","위로하다, 편안함","A warm hug can comfort a sad friend.","따뜻한 포옹은 슬픈 친구를 위로해 줘요.","This blanket gives comfort.","이 담요는 포근해."],
+["crumble","부스러지다","Old cookies crumble easily.","오래된 쿠키는 쉽게 부스러져요.","The walls may crumble.","벽이 무너질지도 몰라."],
+["dangle","매달리다, 달랑거리다","Keys dangle from his backpack.","열쇠가 그의 가방에 달랑달랑 매달려 있어요.","My feet dangle here.","내 발이 대롱대롱 떠 있어."],
+["dart","쏜살같이 달리다","Fish dart away from the net.","물고기들이 그물을 피해 쏜살같이 달아나요.","Watch the squirrels dart!","다람쥐가 휙 달리는 것 봐!"],
+["dawn","새벽","We woke up at dawn to fish.","우리는 낚시하러 새벽에 일어났어요.","The sky glows at dawn.","새벽엔 하늘이 빛나."],
+["delicate","섬세한, 여린","Butterfly wings are very delicate.","나비 날개는 아주 여려요.","Be careful. It is delicate.","조심해. 그건 약해."],
+["disturb","방해하다","Do not disturb the sleeping baby.","자는 아기를 방해하지 마세요.","Please do not disturb.","방해하지 말아 주세요."],
+["drift","떠다니다, 떠내려가다","Clouds drift slowly across the sky.","구름이 하늘을 천천히 떠다녀요.","The boat may drift away.","배가 떠내려갈지도 몰라."],
+["drowsy","졸린","Warm milk makes me drowsy.","따뜻한 우유를 마시면 졸려요.","I feel so drowsy.","나 너무 졸려."],
+["dusk","해 질 녘","Bats fly out at dusk.","박쥐들은 해 질 녘에 날아 나와요.","We play until dusk.","우린 해 질 때까지 놀아."],
+["examine","자세히 살펴보다","The doctor will examine your ear.","의사 선생님이 귀를 살펴볼 거예요.","Examine it closely.","자세히 살펴봐."],
+["exclaim","외치다, 소리치다","We exclaim with joy at fireworks.","우리는 불꽃놀이에 기뻐서 소리쳐요.","Wow! What an exclaim!","와! 정말 큰 함성이야!"],
+["fetch","가져오다","My dog can fetch the ball.","우리 개는 공을 물어 올 수 있어요.","Fetch the ball, buddy!","공 가져와, 친구!"],
+["flee","달아나다","Deer flee when they hear noise.","사슴은 소리가 나면 달아나요.","The birds flee fast.","새들이 빨리 달아나."],
+["flutter","펄럭이다, 팔랑거리다","Butterflies flutter over the flowers.","나비들이 꽃 위에서 팔랑거려요.","The flags flutter high.","깃발이 높이 펄럭여."],
+["fond","좋아하는","I am fond of chocolate ice cream.","나는 초콜릿 아이스크림을 아주 좋아해요.","I am fond of you.","나는 네가 참 좋아."],
+["frown","찡그리다, 찌푸림","Why the frown? Smile instead!","왜 찡그려? 대신 웃어 봐!","Don't frown at me.","나한테 인상 쓰지 마."],
+["gaze","응시하다, 바라보다","We gaze at the stars at night.","우리는 밤에 별을 바라봐요.","Gaze at the moon.","달을 바라봐."],
+["glance","힐끗 보다","Take a glance at the clock.","시계를 힐끗 보세요.","Just a quick glance!","딱 한 번만 힐끗!"],
+["gleam","희미하게 빛나다","The gold coins gleam in the cave.","금화들이 동굴 안에서 반짝여요.","Her eyes gleam happily.","그녀의 눈이 반짝반짝 빛나."],
+["glide","미끄러지듯 가다","Eagles glide on the wind.","독수리는 바람을 타고 미끄러지듯 날아요.","Skaters glide on ice.","스케이터는 얼음 위를 미끄러져."],
+["grasp","꽉 잡다, 이해하다","Grasp the rope with both hands.","두 손으로 밧줄을 꽉 잡으세요.","Grasp it tightly!","꽉 잡아!"],
+["greedy","욕심 많은","The greedy dragon kept all the gold.","욕심 많은 용은 금을 다 가졌어요.","Don't be greedy!","욕심부리지 마!"],
+["growl","으르렁거리다","Bears growl when they are angry.","곰은 화가 나면 으르렁거려요.","My tummy growls. Lunch!","배에서 꼬르륵! 점심시간!"],
+["harsh","가혹한, 거친","The desert has a harsh climate.","사막의 기후는 혹독해요.","The wind is harsh today.","오늘 바람이 매섭네."],
+["hatch","알에서 나오다, 부화하다","Baby chicks hatch from eggs.","병아리는 알에서 부화해요.","The eggs will hatch soon!","알이 곧 부화할 거야!"],
+["heal","낫다, 치유하다","Cuts heal faster with a bandage.","상처는 밴드를 붙이면 더 빨리 나아요.","Your knee will heal.","네 무릎은 나을 거야."],
+["hollow","속이 빈","Owls live in a hollow tree.","부엉이는 속이 빈 나무에 살아요.","The log is hollow.","그 통나무는 속이 비었어."],
+["howl","울부짖다","Wolves howl at the full moon.","늑대들은 보름달을 보고 울부짖어요.","Hear the wind howl!","바람이 윙윙거리는 소리 들어 봐!"],
+["jagged","뾰족뾰족한, 들쭉날쭉한","Be careful of the jagged rocks.","뾰족뾰족한 바위를 조심하세요.","The edge is jagged.","가장자리가 뾰족뾰족해."],
+["lean","기울이다, 기대다","Do not lean on the glass door.","유리문에 기대지 마세요.","Lean on me.","나한테 기대."],
+["limp","절뚝거리다","The player began to limp after the fall.","그 선수는 넘어진 뒤 절뚝거리기 시작했어요.","Why do you limp?","왜 절뚝거려?"],
+["lively","활기찬","The market is lively on weekends.","시장은 주말에 활기가 넘쳐요.","What a lively puppy!","정말 활발한 강아지네!"],
+["mend","고치다, 수선하다","Grandma can mend the torn shirt.","할머니는 찢어진 셔츠를 고칠 수 있어요.","Let's mend it together.","같이 고쳐 보자."],
+["mighty","힘센, 강력한","The mighty elephant pushed the log.","힘센 코끼리가 통나무를 밀었어요.","What a mighty jump!","엄청 힘찬 점프야!"],
+["murmur","중얼거리다, 웅성거림","We heard the murmur of the stream.","우리는 시냇물이 졸졸거리는 소리를 들었어요.","Don't murmur. Speak up!","웅얼거리지 말고 크게 말해!"],
+["nudge","슬쩍 찌르다, 쿡 찌르다","Give me a nudge when it starts.","시작하면 나를 슬쩍 쳐 줘.","A little nudge, please.","살짝 밀어 줘."],
+["obey","(말을) 따르다, 순종하다","Good dogs obey their owners.","착한 개는 주인의 말을 잘 따라요.","Obey the safety rules.","안전 규칙을 지켜."],
+["odd","이상한, 홀수의","That is an odd place for a sock.","양말이 있기엔 이상한 곳이네.","How odd is that!","그거 참 이상하다!"],
+["pause","잠시 멈추다","Pause the video for a second.","영상을 잠깐 멈춰 줘.","Let's pause here.","여기서 잠깐 멈추자."],
+["peculiar","특이한, 이상한","The soup has a peculiar smell.","그 수프에서 특이한 냄새가 나요.","What a peculiar hat!","정말 특이한 모자네!"],
+["perch","(새가) 앉다, 횃대","Sparrows perch on the fence.","참새들이 울타리에 앉아 있어요.","Birds perch up high.","새들은 높은 곳에 앉아."],
+["plead","간청하다, 애원하다","The kids plead for five more minutes.","아이들이 5분만 더 달라고 애원해요.","I plead for one more!","한 번만 더, 제발!"],
+["pounce","덮치다, 확 덮치다","Cats pounce on moving toys.","고양이는 움직이는 장난감을 확 덮쳐요.","Watch the kitten pounce!","새끼 고양이가 덮치는 것 봐!"],
+["prowl","살금살금 돌아다니다","Tigers prowl through the tall grass.","호랑이는 키 큰 풀숲을 살금살금 다녀요.","Cats prowl at night.","고양이는 밤에 어슬렁거려."],
+["remain","남다, 계속 ~이다","Please remain in your seats.","자리에 그대로 계세요.","Two cookies remain.","쿠키가 두 개 남았어."],
+["rustle","바스락거리다","Leaves rustle in the wind.","나뭇잎이 바람에 바스락거려요.","I hear a rustle!","바스락 소리가 들려!"],
+["scold","야단치다, 꾸짖다","Mom will scold us for the mess.","엄마가 어질러 놨다고 야단치실 거야.","Please don't scold me.","저 혼내지 마세요."],
+["scowl","노려보다, 인상 쓰다","He wore a scowl after losing.","그는 지고 나서 인상을 썼어요.","Don't scowl at me!","나한테 인상 쓰지 마!"],
+["seize","붙잡다, 움켜쥐다","Seize the rope before it falls!","떨어지기 전에 밧줄을 잡아!","Seize the chance!","기회를 잡아!"],
+["shallow","얕은","Kids swim in the shallow pool.","아이들은 얕은 수영장에서 수영해요.","The water is shallow.","물이 얕아."],
+["sigh","한숨 쉬다, 한숨","I sigh when homework is long.","숙제가 많으면 한숨이 나와요.","A big sigh of relief!","휴, 안도의 한숨!"],
+["slither","스르르 기어가다","Snakes slither through the grass.","뱀은 풀숲을 스르르 기어가요.","Snakes slither, they don't walk.","뱀은 걷지 않고 기어가."],
+["snatch","낚아채다","Seagulls snatch fries from tourists.","갈매기들이 관광객의 감자튀김을 낚아채요.","Don't snatch my snack!","내 간식 뺏지 마!"],
+["soar","높이 날다, 치솟다","Eagles soar above the mountains.","독수리는 산 위로 높이 날아올라요.","Watch the kite soar!","연이 솟아오르는 것 봐!"],
+["sprint","전력 질주하다","Sprint to the finish line!","결승선까지 전력 질주해!","Ready? Sprint now!","준비됐지? 지금 달려!"],
+["startle","깜짝 놀라게 하다","Loud pops startle my little brother.","큰 펑 소리는 내 동생을 깜짝 놀라게 해요.","Don't startle the cat!","고양이를 놀라게 하지 마!"],
+["steady","안정된, 흔들리지 않는","Keep the ladder steady for me.","사다리를 흔들리지 않게 잡아 줘.","Slow and steady wins.","천천히 꾸준히 하면 이겨."],
+["steer","조종하다, 방향을 잡다","Steer the bike around the cone.","자전거로 콘을 돌아서 가세요.","Steer to the left!","왼쪽으로 핸들 꺾어!"],
+["swarm","떼, 떼 지어 다니다","A swarm of bees flew past us.","벌 떼가 우리 옆을 지나갔어요.","Bees swarm around flowers.","벌들이 꽃 주위에 몰려들어."],
+["sway","흔들리다","Palm trees sway in the breeze.","야자수가 산들바람에 흔들려요.","The bridge may sway.","다리가 흔들릴 수 있어."],
+["tender","부드러운, 다정한","The steak is tender and juicy.","스테이크가 부드럽고 육즙이 많아요.","This meat is tender.","이 고기 부드러워."],
+["tremble","떨다, 떨리다","My hands tremble before a big game.","큰 경기 전에는 손이 떨려요.","Why do you tremble?","왜 떨고 있어?"],
+["trudge","터벅터벅 걷다","We trudge home through deep snow.","우리는 깊은 눈을 헤치며 터벅터벅 집에 가요.","We trudge up the hill.","우리는 언덕을 터벅터벅 올라가."],
+["tug","잡아당기다","Give the rope a strong tug.","밧줄을 세게 잡아당겨 봐.","Tug it this way!","이쪽으로 당겨!"],
+["vanish","사라지다","Magicians make rabbits vanish.","마술사는 토끼를 사라지게 해요.","Watch the coin vanish!","동전이 사라지는 걸 봐!"],
+["weary","지친, 피곤한","The weary hikers finally reached camp.","지친 등산객들이 드디어 캠프에 도착했어요.","I feel weary today.","오늘 좀 지쳤어."],
+["wobble","뒤뚱거리다, 흔들리다","New skaters wobble a lot.","처음 타는 스케이터는 많이 휘청거려요.","The table wobbles a bit.","탁자가 조금 흔들려."],
+["squirm","꿈틀거리다","Worms squirm in the wet soil.","지렁이는 젖은 흙에서 꿈틀거려요.","Don't squirm. Sit still!","꼼지락대지 말고 가만히!"]
+],
+4:[
+["abandon","버리다, 포기하다","Never abandon your teammates.","팀 동료를 절대 버리지 마세요.","Don't abandon the game!","게임을 포기하지 마!"],
+["alert","경계하는, 알림","Stay alert when crossing the street.","길을 건널 때는 주의를 기울이세요.","Stay alert, everyone!","모두 정신 바짝 차려!"],
+["ancient","고대의, 아주 오래된","We saw ancient pots at the museum.","우리는 박물관에서 고대 항아리를 봤어요.","This map is ancient!","이 지도는 엄청 오래됐어!"],
+["annoy","짜증 나게 하다","Mosquito bites annoy me all summer.","모기 물린 데가 여름 내내 짜증 나게 해요.","Stop! You annoy me!","그만해! 짜증 나!"],
+["anxious","불안한, 초조한","I feel anxious before big tests.","나는 큰 시험 전에 불안해요.","Don't feel anxious.","불안해하지 마."],
+["approach","다가가다, 접근하다","Winter is starting to approach.","겨울이 다가오기 시작해요.","Approach the dog slowly.","개한테 천천히 다가가."],
+["astonish","깜짝 놀라게 하다","The magic tricks astonish everyone.","마술은 모든 사람을 깜짝 놀라게 해요.","Your skills astonish me!","네 실력은 정말 놀라워!"],
+["attempt","시도하다, 시도","He will attempt a backflip today.","그는 오늘 백플립을 시도할 거예요.","Nice attempt! Try again!","좋은 시도야! 다시 해 봐!"],
+["boast","자랑하다, 뽐내다","Good players don't boast about winning.","좋은 선수는 이긴 것을 자랑하지 않아요.","Don't boast too much.","너무 자랑하지 마."],
+["brilliant","눈부신, 아주 뛰어난","What a brilliant idea for the project!","프로젝트에 정말 훌륭한 아이디어야!","That was brilliant!","그거 정말 훌륭했어!"],
+["capture","붙잡다, 포획하다","The net can capture small fish.","그물로 작은 물고기를 잡을 수 있어요.","Capture the flag!","깃발을 빼앗아라!"],
+["cautious","조심스러운","Be cautious on the icy road.","얼어붙은 길에서는 조심하세요.","Be cautious out there.","밖에서 조심해."],
+["coax","달래다, 구슬리다","We coax the kitten out with treats.","우리는 간식으로 새끼 고양이를 달래서 나오게 해요.","Coax him gently.","살살 달래 봐."],
+["commotion","소동, 소란","What is all this commotion about?","이게 다 무슨 소동이야?","Such a big commotion!","엄청난 소동이네!"],
+["conquer","정복하다, 이겨 내다","You can conquer your fear of heights.","너는 높은 곳에 대한 두려움을 이겨 낼 수 있어.","Conquer the mountain!","저 산을 정복하자!"],
+["cower","(겁먹고) 움츠리다","Puppies cower during loud thunder.","강아지들은 큰 천둥소리에 움츠려요.","Don't cower. Be brave!","움츠리지 마. 용감하게!"],
+["deceive","속이다","Don't let tricks deceive your eyes.","속임수에 눈이 속지 않게 하세요.","Looks can deceive you.","겉모습은 널 속일 수 있어."],
+["dense","빽빽한, 밀집한","The dense forest blocks the sunlight.","빽빽한 숲이 햇빛을 가려요.","The fog is dense.","안개가 자욱해."],
+["dread","몹시 두려워하다","I dread going to the dentist.","나는 치과 가는 게 정말 무서워요.","I dread Monday mornings.","월요일 아침이 너무 싫어."],
+["drought","가뭄","The long drought dried up the river.","오랜 가뭄으로 강이 말라 버렸어요.","The drought lasted months.","가뭄이 몇 달 계속됐어."],
+["eerie","으스스한","The empty house felt eerie at night.","빈집은 밤에 으스스했어요.","What an eerie sound!","정말 으스스한 소리야!"],
+["envy","부러워하다, 부러움","I envy your cool new bike.","네 멋진 새 자전거가 부러워.","I envy you a little.","네가 조금 부러워."],
+["errand","심부름","Dad sent me on an errand to the store.","아빠가 가게에 심부름을 보내셨어요.","Just one quick errand!","금방 하는 심부름 하나야!"],
+["exhausted","기진맥진한","We were exhausted after the long hike.","긴 등산 후에 우리는 기진맥진했어요.","I am totally exhausted.","나 완전 지쳤어."],
+["feast","잔치, 성찬","We had a big feast on New Year.","우리는 새해에 큰 잔치를 벌였어요.","What a delicious feast!","정말 맛있는 잔치야!"],
+["feeble","연약한, 아주 약한","The feeble kitten needed warm milk.","연약한 새끼 고양이는 따뜻한 우유가 필요했어요.","His voice was feeble.","그의 목소리는 힘이 없었어."],
+["ferocious","사나운, 흉포한","A ferocious storm hit the coast.","사나운 폭풍이 해안을 강타했어요.","What a ferocious roar!","엄청 사나운 포효야!"],
+["flimsy","조잡한, 약한","The flimsy umbrella broke in the wind.","약한 우산이 바람에 부러졌어요.","This box is flimsy.","이 상자는 약해 빠졌어."],
+["fortunate","운이 좋은","We were fortunate to see the rainbow.","무지개를 본 우리는 운이 좋았어요.","You are so fortunate!","넌 정말 운이 좋아!"],
+["frantic","정신없는, 필사적인","There was a frantic search for the keys.","열쇠를 찾느라 정신없이 뒤졌어요.","Don't get frantic. Breathe.","허둥대지 말고 숨을 쉬어."],
+["frigid","몹시 추운","The frigid wind froze my ears.","매서운 바람에 귀가 얼었어요.","The water is frigid!","물이 얼음장같이 차가워!"],
+["glimpse","힐끗 봄, 언뜻 보다","We caught a glimpse of the deer.","우리는 사슴을 언뜻 보았어요.","Just a quick glimpse!","살짝만 봤어!"],
+["gratitude","감사","Write a card to show your gratitude.","감사한 마음을 담아 카드를 쓰세요.","My heart is full of gratitude.","마음 깊이 감사해요."],
+["grumble","투덜거리다","Don't grumble about small chores.","작은 집안일에 투덜대지 마세요.","No grumble, just do it!","투덜대지 말고 그냥 하자!"],
+["hesitate","망설이다","Don't hesitate to ask questions.","질문하는 것을 망설이지 마세요.","Why do you hesitate?","왜 머뭇거려?"],
+["hoist","들어 올리다, 게양하다","Sailors hoist the flag every morning.","선원들은 매일 아침 깃발을 올려요.","Hoist the sail up!","돛을 올려라!"],
+["humble","겸손한","Stay humble even when you win.","이겨도 겸손하게 행동하세요.","Be humble and kind.","겸손하고 친절하게."],
+["jealous","질투하는","Don't be jealous of your friend's toys.","친구의 장난감을 질투하지 마세요.","Are you jealous now?","너 지금 질투하는 거야?"],
+["lurk","숨어 있다, 도사리다","Crocodiles lurk under the water.","악어는 물속에 숨어 있어요.","Monsters lurk in stories.","괴물은 이야기 속에 숨어 있지."],
+["mischief","장난, 짓궂음","The twins are always up to mischief.","그 쌍둥이는 늘 장난칠 궁리를 해요.","No more mischief today!","오늘은 장난 그만!"],
+["numb","감각이 없는","My fingers went numb in the snow.","눈 속에서 손가락에 감각이 없어졌어요.","My toes are numb!","발가락에 감각이 없어!"],
+["opponent","상대, 적수","Shake hands with your opponent after the game.","경기 후에 상대와 악수하세요.","Respect your opponent.","상대를 존중해."],
+["plentiful","풍부한","Apples are plentiful in autumn.","가을에는 사과가 풍성해요.","The fish are plentiful here.","여긴 물고기가 많아."],
+["ponder","곰곰이 생각하다","Take time to ponder the riddle.","수수께끼를 곰곰이 생각해 보세요.","Let me ponder it.","곰곰이 생각해 볼게."],
+["quarrel","말다툼, 다투다","Friends sometimes quarrel over games.","친구들은 가끔 게임 때문에 다퉈요.","Don't quarrel over snacks!","간식 때문에 싸우지 마!"],
+["quiver","떨다, 떨림","The leaves quiver in the cold wind.","나뭇잎이 찬 바람에 파르르 떨려요.","His lips began to quiver.","그의 입술이 떨리기 시작했어."],
+["reluctant","꺼리는, 내키지 않는","He was reluctant to leave the pool.","그는 수영장에서 나가기 싫어했어요.","I am reluctant to go.","나는 가기가 좀 그래."],
+["resemble","닮다","You really resemble your father.","너는 아빠를 정말 닮았구나.","You resemble your mom.","너는 엄마를 닮았어."],
+["restless","가만히 못 있는, 들썩이는","The class got restless before lunch.","점심시간 전에 아이들이 들썩거렸어요.","I feel restless today.","오늘 좀이 쑤셔."],
+["roam","돌아다니다, 배회하다","Buffalo roam across the wide plains.","버팔로는 넓은 평원을 돌아다녀요.","Lions roam the savanna.","사자는 초원을 돌아다녀."],
+["scarce","부족한, 드문","Water is scarce in the desert.","사막에서는 물이 부족해요.","Snacks are scarce here!","여기 간식이 부족해!"],
+["scent","향기, 냄새","Dogs follow a scent with their noses.","개는 코로 냄새를 따라가요.","I love this scent.","이 향기 정말 좋아."],
+["scurry","종종걸음 치다","Mice scurry across the kitchen floor.","쥐들이 부엌 바닥을 쪼르르 달려가요.","The ants scurry away.","개미들이 쪼르르 도망가."],
+["shabby","낡은, 허름한","He wore a shabby old coat.","그는 낡고 허름한 코트를 입었어요.","The tent looks shabby.","그 텐트는 낡아 보여."],
+["shatter","산산조각 나다","Glass can shatter into tiny pieces.","유리는 산산조각 날 수 있어요.","Careful! It may shatter!","조심해! 깨질 수 있어!"],
+["sly","교활한","The sly fox tricked the crow.","교활한 여우가 까마귀를 속였어요.","What a sly smile!","정말 능청스러운 미소야!"],
+["splendid","정말 멋진, 훌륭한","The fireworks were simply splendid.","불꽃놀이가 정말 멋졌어요.","What a splendid day!","정말 멋진 날이야!"],
+["stagger","비틀거리다","The tired runner began to stagger.","지친 주자가 비틀거리기 시작했어요.","Don't stagger. Hold on!","비틀대지 말고 잡아!"],
+["summon","소환하다, 부르다","The king will summon his knights.","왕이 기사들을 소집할 거예요.","Summon all your courage!","네 용기를 모두 끌어모아!"],
+["tattered","너덜너덜한","The pirate flag was tattered and old.","해적 깃발은 낡고 너덜너덜했어요.","My old shoes are tattered.","내 헌 신발이 너덜너덜해."],
+["thorough","철저한, 꼼꼼한","Do a thorough check of your bag.","가방을 꼼꼼히 확인하세요.","Be thorough this time.","이번엔 꼼꼼하게 해."],
+["urgent","긴급한","This is an urgent message for you.","이건 너에게 온 긴급 메시지야.","It is urgent. Hurry!","급한 일이야. 서둘러!"],
+["venture","(위험을 무릅쓰고) 가다, 모험","Explorers venture into unknown lands.","탐험가들은 미지의 땅으로 나아가요.","Let's venture outside!","밖으로 모험을 떠나자!"],
+["weep","(눈물 흘리며) 울다","She began to weep at the sad ending.","그녀는 슬픈 결말에 울기 시작했어요.","Please don't weep.","제발 울지 마."],
+["wilt","시들다","Flowers wilt without any water.","꽃은 물이 없으면 시들어요.","The plants wilt in heat.","식물은 더위에 시들어."],
+["wither","시들다, 말라 죽다","Leaves wither and fall in autumn.","잎은 가을에 시들어 떨어져요.","Old roses wither fast.","오래된 장미는 금방 시들어."],
+["crafty","교묘한, 약삭빠른","The crafty raccoon opened the trash can.","약삭빠른 너구리가 쓰레기통을 열었어요.","That was a crafty plan!","그거 참 교묘한 계획이었어!"],
+["dainty","앙증맞은, 섬세한","The dainty teacup had tiny flowers.","앙증맞은 찻잔에 작은 꽃무늬가 있었어요.","What dainty little cookies!","정말 앙증맞은 쿠키들이야!"],
+["gnaw","갉아 먹다","Beavers gnaw on tree trunks.","비버는 나무줄기를 갉아 먹어요.","Puppies gnaw on bones.","강아지는 뼈다귀를 갉아."],
+["hasty","성급한","Don't make a hasty decision.","성급한 결정을 하지 마세요.","No hasty answers, okay?","성급하게 답하지 말자, 알겠지?"],
+["moan","신음하다, 끙끙거리다","He let out a moan after the shot.","그는 주사를 맞고 끙 소리를 냈어요.","Stop that moan!","그만 끙끙대!"],
+["prickly","가시가 있는, 따가운","Cactus plants are green and prickly.","선인장은 초록색이고 가시가 있어요.","The bush is prickly!","그 덤불은 따가워!"],
+["snug","포근한, 아늑한","The bear is snug in its winter den.","곰은 겨울 굴 안에서 포근하게 지내요.","I feel snug in bed.","침대 속이 포근해."],
+["swipe","휙 긋다, 밀다","Swipe the screen to see more photos.","화면을 밀어서 사진을 더 보세요.","Swipe left to skip.","왼쪽으로 밀어서 넘겨."],
+["treasure","보물, 소중히 여기다","The pirates buried their treasure here.","해적들이 여기에 보물을 묻었어요.","I treasure this gift.","이 선물 정말 소중해."]
+],
+5:[
+["abundant","풍부한","The garden has abundant tomatoes this year.","올해 정원에 토마토가 아주 풍성해요.","Fish are abundant here.","여긴 물고기가 아주 많아."],
+["assure","장담하다, 안심시키다","I assure you the ride is safe.","그 놀이기구는 안전하다고 장담해.","I assure you, it works.","장담하는데 이거 돼."],
+["banish","추방하다, 쫓아내다","The king decided to banish the villain.","왕은 악당을 추방하기로 했어요.","Banish those bad thoughts!","나쁜 생각은 쫓아 버려!"],
+["barren","척박한, 불모의","Nothing grows on the barren land.","척박한 땅에서는 아무것도 자라지 않아요.","The desert looks barren.","사막은 황량해 보여."],
+["bewilder","어리둥절하게 하다","The maze can bewilder even adults.","그 미로는 어른도 헷갈리게 해요.","These rules bewilder me.","이 규칙들은 날 헷갈리게 해."],
+["budge","꿈쩍하다","The heavy rock would not budge.","그 무거운 바위는 꿈쩍도 안 했어요.","It will not budge!","이거 꿈쩍도 안 해!"],
+["burden","짐, 부담","A heavy backpack is a burden on hikes.","무거운 가방은 등산할 때 짐이 돼요.","Don't carry that burden alone.","그 짐을 혼자 지지 마."],
+["colossal","거대한","A colossal statue stands in the harbor.","거대한 동상이 항구에 서 있어요.","What a colossal wave!","엄청나게 큰 파도야!"],
+["compassion","연민, 따뜻한 마음","Show compassion to hurt animals.","다친 동물에게 따뜻한 마음을 베푸세요.","Compassion makes us kind.","따뜻한 마음이 우릴 친절하게 해."],
+["conceal","숨기다","Clouds conceal the mountain top.","구름이 산꼭대기를 가리고 있어요.","Conceal the gift well!","선물을 잘 숨겨!"],
+["cunning","교활한, 꾀 많은","The cunning cat opened the door by itself.","꾀 많은 고양이가 혼자 문을 열었어요.","What a cunning trick!","정말 교묘한 속임수야!"],
+["defiant","반항적인","The defiant puppy refused to sit.","반항적인 강아지가 앉기를 거부했어요.","Don't be so defiant.","너무 반항하지 마."],
+["dignity","품위, 존엄","Lose the game, but keep your dignity.","경기에 져도 품위는 지키세요.","Walk out with dignity.","당당하게 걸어 나가."],
+["dismal","우울한, 음침한","The dismal weather lasted all week.","우중충한 날씨가 일주일 내내 계속됐어요.","What a dismal morning.","정말 칙칙한 아침이야."],
+["distinct","뚜렷한, 확실히 다른","Zebras have distinct black and white stripes.","얼룩말은 뚜렷한 흑백 줄무늬가 있어요.","Each voice is distinct.","목소리가 저마다 달라."],
+["dwell","살다, 거주하다","Hobbits dwell in cozy round houses.","호빗들은 아늑한 둥근 집에 살아요.","Owls dwell in trees.","부엉이는 나무에 살아."],
+["dwindle","점점 줄어들다","Our snacks dwindle fast on trips.","여행 가면 간식이 금방 줄어들어요.","The candles dwindle down.","촛불이 점점 잦아들어."],
+["elegant","우아한","The swan looks elegant on the lake.","백조는 호수 위에서 우아해 보여요.","What an elegant dress!","정말 우아한 드레스야!"],
+["endure","견디다","Camels endure the desert heat well.","낙타는 사막의 더위를 잘 견뎌요.","We can endure this!","우린 견딜 수 있어!"],
+["falter","머뭇거리다, 흔들리다","Her voice did not falter on stage.","무대에서 그녀의 목소리는 흔들리지 않았어요.","Don't falter now. Go!","지금 흔들리지 마. 가!"],
+["feat","위업, 대단한 일","Climbing that wall is quite a feat.","저 벽을 오르는 건 정말 대단한 일이에요.","What an amazing feat!","정말 대단한 일이야!"],
+["flourish","번성하다, 잘 자라다","Plants flourish in the warm greenhouse.","식물은 따뜻한 온실에서 잘 자라요.","Your talents will flourish.","네 재능은 활짝 필 거야."],
+["forbid","금지하다","The rules forbid running by the pool.","규칙상 수영장 옆에서 뛰는 것은 금지예요.","I forbid you to peek!","훔쳐보기 금지야!"],
+["fury","분노, 격노","The storm hit the coast with fury.","폭풍이 맹렬하게 해안을 강타했어요.","His eyes were full of fury.","그의 눈은 분노로 가득했어."],
+["genuine","진짜의, 진심의","Is this a genuine gold coin?","이거 진짜 금화예요?","Her smile is genuine.","그녀의 미소는 진심이야."],
+["hazard","위험 (요소)","Wet floors are a slipping hazard.","젖은 바닥은 미끄러질 위험이 있어요.","Watch out! Fire hazard!","조심해! 화재 위험!"],
+["hideous","흉측한, 몹시 못생긴","The monster mask looks hideous.","그 괴물 가면은 흉측해 보여요.","What a hideous bug!","정말 흉측한 벌레야!"],
+["hoard","비축하다, 쌓아 두다","Squirrels hoard nuts for the winter.","다람쥐는 겨울에 대비해 도토리를 모아 둬요.","Don't hoard the candy!","사탕을 혼자 쟁여 두지 마!"],
+["immense","엄청난, 어마어마한","The blue whale is an immense animal.","흰긴수염고래는 어마어마하게 큰 동물이에요.","The joy was immense.","기쁨이 어마어마했어."],
+["inquire","묻다, 문의하다","Let's inquire about the museum hours.","박물관 운영 시간을 문의해 보자.","May I inquire your name?","성함을 여쭤봐도 될까요?"],
+["jubilant","기뻐하는, 환호하는","The jubilant fans cheered all night.","환호하는 팬들이 밤새 응원했어요.","The whole team was jubilant!","팀 전체가 기뻐 날뛰었어!"],
+["keen","열정적인, 예리한","She is keen on learning the piano.","그녀는 피아노 배우기에 열심이에요.","Eagles have keen eyes.","독수리는 눈이 아주 예리해."],
+["linger","오래 머무르다","The smell of cookies can linger for hours.","쿠키 냄새는 몇 시간이나 남아 있을 수 있어요.","Don't linger too long.","너무 오래 머물지 마."],
+["loathe","몹시 싫어하다","I loathe cleaning my messy closet.","나는 지저분한 옷장 정리를 정말 싫어해요.","I loathe rainy Mondays.","비 오는 월요일 정말 싫어."],
+["lofty","아주 높은, 원대한","Lofty mountains surround the village.","높은 산들이 마을을 둘러싸고 있어요.","What a lofty goal!","정말 원대한 목표야!"],
+["magnificent","장엄한, 웅장한","The palace hall was magnificent.","궁전의 홀은 웅장했어요.","What a magnificent view!","정말 장관이야!"],
+["marvel","경탄하다, 놀라운 것","We marvel at the giant dinosaur bones.","우리는 거대한 공룡 뼈에 감탄해요.","Marvel at the stars!","별을 보고 감탄해 봐!"],
+["meager","빈약한, 메마른","The lost hikers had meager supplies.","길 잃은 등산객들은 물자가 빈약했어요.","Our snacks are meager today.","오늘 간식이 좀 부족하네."],
+["mimic","흉내 내다","Mockingbirds mimic other bird songs.","흉내지빠귀는 다른 새의 노래를 흉내 내요.","Mimic my dance moves!","내 춤 동작을 따라 해 봐!"],
+["mourn","애도하다, 슬퍼하다","We mourn the loss of our old tree.","우리는 오래된 나무를 잃은 것을 슬퍼해요.","They mourn together quietly.","그들은 조용히 함께 슬퍼해."],
+["nimble","날렵한, 재빠른","The nimble goat jumped between rocks.","날렵한 염소가 바위 사이를 뛰어다녔어요.","Your fingers are nimble!","네 손가락 정말 재빠르다!"],
+["obstacle","장애물","Jump over every obstacle on the course.","코스의 모든 장애물을 뛰어넘으세요.","One more obstacle left!","장애물 하나만 더 남았어!"],
+["peril","(큰) 위험","The sailors faced peril at sea.","선원들은 바다에서 큰 위험에 맞닥뜨렸어요.","Danger! Ship in peril!","위험해! 배가 위기야!"],
+["persist","끈질기게 계속하다","Persist, and you will solve the puzzle.","끈기 있게 하면 퍼즐을 풀 수 있어.","Persist! Never give up!","끝까지 해! 포기하지 마!"],
+["plunge","뛰어들다, 급락하다","Divers plunge into the deep sea.","다이버들이 깊은 바다로 뛰어들어요.","Plunge into the pool!","수영장으로 풍덩 뛰어들어!"],
+["precious","귀중한, 소중한","Clean water is precious everywhere.","깨끗한 물은 어디서나 귀해요.","You are precious to me.","너는 나에게 소중해."],
+["quench","(갈증을) 풀다, (불을) 끄다","Cold water can quench your thirst.","시원한 물은 갈증을 풀어 줘요.","Quench your thirst first.","먼저 목부터 축여."],
+["radiant","빛나는, 환한","Her radiant smile lit up the room.","그녀의 환한 미소가 방을 밝혔어요.","The sun is radiant today.","오늘 햇살이 눈부셔."],
+["reveal","드러내다, 밝히다","The curtain rose to reveal the stage.","막이 오르며 무대가 드러났어요.","Reveal your secret card!","네 비밀 카드를 공개해!"],
+["savor","음미하다","Savor each bite of the chocolate cake.","초콜릿 케이크를 한 입 한 입 음미하세요.","Savor the moment!","이 순간을 음미해!"],
+["scheme","계략, 계획","The villains made a scheme to steal gold.","악당들이 금을 훔칠 계략을 짰어요.","What a sneaky scheme!","정말 교활한 계략이야!"],
+["seldom","좀처럼 ~않는","It seldom snows in this warm city.","이 따뜻한 도시에는 좀처럼 눈이 안 와요.","I seldom eat spicy food.","나는 매운 걸 잘 안 먹어."],
+["shrewd","약삭빠른, 영리한","The shrewd trader made a good deal.","영리한 상인이 좋은 거래를 했어요.","That was a shrewd move.","그건 영리한 수였어."],
+["sincere","진심 어린","Please accept my sincere thanks.","저의 진심 어린 감사를 받아 주세요.","My apology is sincere.","내 사과는 진심이야."],
+["solemn","엄숙한","The ceremony began with solemn music.","의식은 엄숙한 음악으로 시작됐어요.","Make a solemn promise.","엄숙하게 약속해."],
+["solitary","혼자 하는, 외딴","Tigers live a solitary life.","호랑이는 혼자서 살아가요.","A solitary tree stands there.","외딴 나무 한 그루가 서 있어."],
+["stern","엄격한","The stern coach made us run laps.","엄격한 코치님이 우리에게 트랙을 돌게 했어요.","His face looks stern.","그의 얼굴이 엄해 보여."],
+["strive","노력하다, 분투하다","Strive to do your best every day.","매일 최선을 다하려고 노력하세요.","Strive for your dream!","꿈을 향해 노력해!"],
+["summit","정상, 꼭대기","We reached the summit before noon.","우리는 정오 전에 정상에 도착했어요.","The summit is close!","정상이 가까워!"],
+["thrive","번창하다, 잘 자라다","Pandas thrive on fresh bamboo.","판다는 신선한 대나무를 먹고 잘 자라요.","Plants thrive in sunlight.","식물은 햇빛 속에서 쑥쑥 자라."],
+["tranquil","고요한, 평온한","The tranquil lake mirrored the sky.","고요한 호수가 하늘을 비췄어요.","The forest is tranquil.","숲이 고요해."],
+["triumph","승리, 대성공","The team shouted in triumph.","팀은 승리의 함성을 질렀어요.","What a great triumph!","정말 멋진 승리야!"],
+["vivid","생생한, 선명한","I had a vivid dream about flying.","나는 하늘을 나는 생생한 꿈을 꿨어요.","The colors are vivid!","색깔이 정말 선명해!"],
+["wary","경계하는, 조심하는","Be wary of strangers online.","온라인에서 낯선 사람을 경계하세요.","Stay wary and safe.","조심하고 안전하게 있어."],
+["wretched","비참한, 형편없는","The wretched weather ruined our picnic.","형편없는 날씨가 소풍을 망쳤어요.","I feel wretched today.","오늘 기분이 엉망이야."],
+["yearn","갈망하다, 그리워하다","Sailors yearn for home on long trips.","선원들은 긴 항해에서 집을 그리워해요.","I yearn for summer break.","여름 방학이 너무 기다려져."],
+["ambition","야망, 꿈","Her ambition is to become an astronaut.","그녀의 꿈은 우주 비행사가 되는 거예요.","Dream big with ambition!","야망을 갖고 크게 꿈꿔!"],
+["dedicate","바치다, 전념하다","Athletes dedicate hours to practice.","운동선수들은 연습에 많은 시간을 바쳐요.","I dedicate this song to you.","이 노래를 너에게 바칠게."],
+["gracious","친절한, 정중한","Be a gracious winner and loser.","이겨도 져도 품위 있게 행동하세요.","What a gracious host!","정말 친절한 주인이야!"],
+["ordeal","시련, 고된 일","The blizzard hike was a real ordeal.","눈보라 속 등산은 정말 시련이었어요.","What an ordeal that was!","정말 고생스러운 일이었어!"],
+["resent","분하게 여기다","Don't resent your friend for winning.","친구가 이겼다고 억울해하지 마세요.","I resent unfair rules.","불공평한 규칙은 억울해."],
+["treacherous","위험한, 배신하는","The icy road is treacherous at night.","얼어붙은 길은 밤에 아주 위험해요.","The cliff path is treacherous.","절벽 길은 위험천만해."],
+["vow","맹세하다, 맹세","Knights vow to protect the kingdom.","기사들은 왕국을 지키겠다고 맹세해요.","I vow to practice daily!","매일 연습하기로 맹세할게!"],
+["majestic","장엄한, 위풍당당한","The majestic eagle circled the canyon.","위풍당당한 독수리가 협곡 위를 맴돌았어요.","What a majestic mountain!","정말 장엄한 산이야!"],
+["astound","경악하게 하다","The final scores will astound you.","최종 점수를 보면 깜짝 놀랄 거예요.","These facts astound me!","이 사실들 정말 놀라워!"]
+]
+};
+/* ═══════════ 상태 (v2) ═══════════ */
+let S = null;
+function defaultState(){ return {
+  v:2, name:"", level:2, placed:false,
+  money:0, earned:0, streak:0, best:0, lastDone:null,
+  rate:0.85, mute:false, voiceName:"", lastBoss:null, ttsHQ:true, dstats:{},
+  learned:{},   /* word -> {lv, box, next, date} */
+  day:null,     /* {date, sessions:[], reviewCleared, reviewBonusGiven} */
+  buys:[], log:[]
+};}
+function save(){ Store.save(S); }
+
+let WIDX = {};
+function buildIndex(){ WIDX={}; for(const lv in WORDS){ WORDS[lv].forEach(a=>{ WIDX[a[0]]={w:a[0],k:a[1],e:a[2],t:a[3],s:a[4],st:a[5],lv:Number(lv)}; }); } }
+
+function updateMoney(){ $("#moneyVal").textContent = comma(S.money); }
+function addMoney(n, el, label){
+  S.money += n; S.earned += n; updateMoney(); bumpMoney(); Sfx.coin();
+  if(el){ const r = el.getBoundingClientRect(); coinFly((label||"") + "+" + comma(n), r.left + r.width/2, r.top); }
+  save();
+}
+function dispStreak(){
+  if(!S.lastDone) return 0;
+  const t = todayStr();
+  return (S.lastDone===t || S.lastDone===addDays(t,-1)) ? S.streak : 0;
+}
+function totalLearned(){ return Object.keys(S.learned).length; }
+function inDayWords(w){ return S.day && S.day.sessions.some(ss=>ss.words.some(x=>x.w===w)); }
+function unlearnedPool(){
+  const out=[];
+  for(let lv=S.level; lv<=5; lv++) WORDS[lv].forEach(a=>{ if(!S.learned[a[0]] && !inDayWords(a[0])) out.push({w:a[0],k:a[1],e:a[2],t:a[3],s:a[4],st:a[5],lv}); });
+  for(let lv=S.level-1; lv>=1; lv--) WORDS[lv].forEach(a=>{ if(!S.learned[a[0]] && !inDayWords(a[0])) out.push({w:a[0],k:a[1],e:a[2],t:a[3],s:a[4],st:a[5],lv}); });
+  return out;
+}
+function newSession(){
+  const pool = unlearnedPool();
+  if(!pool.length) return null;
+  const words = pool.slice(0, DAILY_N).map(x=>Object.assign({},x,{got:false,missed:false}));
+  return { words, seen:0, seenAll:false, exIdx:0, exDone:false, spIdx:0, spStep:0, reps:0, spDone:false, quizDone:false, earned:0, perfect:true };
+}
+function pickDay(){
+  const t = todayStr();
+  if (S.day && S.day.date===t) return;
+  S.day = { date:t, sessions:[], reviewCleared:false, reviewBonusGiven:false };
+  const ses = newSession(); if(ses) S.day.sessions.push(ses);
+  if (dueReviews().length===0){ S.day.reviewCleared = true; S.day.reviewBonusGiven = true; }
+  save();
+}
+function curSession(){
+  if(!S.day) return null;
+  for(const ss of S.day.sessions){ if(!ss.quizDone) return ss; }
+  return S.day.sessions[S.day.sessions.length-1] || null;
+}
+function dayEarned(){ return S.day ? S.day.sessions.reduce((a,b)=>a+(b.earned||0),0) : 0; }
+function dueReviews(){
+  const t = todayStr(), out=[];
+  for(const w in S.learned){
+    const r = S.learned[w];
+    if(r.next && r.next<=t && WIDX[w]) out.push(Object.assign({}, WIDX[w], {ref:r}));
+  }
+  return out;
+}
+function weekSatStr(){
+  const d=new Date(); const day=d.getDay();
+  const diff = (day===0) ? -1 : (6-day);
+  const sat=new Date(d); sat.setDate(d.getDate()+diff);
+  return todayStr(sat);
+}
+function bossPool(){
+  const t=todayStr(), weekAgo=addDays(t,-7);
+  const arr=Object.keys(S.learned).map(w=>WIDX[w]?Object.assign({},WIDX[w],{ref:S.learned[w]}):null).filter(Boolean);
+  let recent=arr.filter(x=>x.ref.date && x.ref.date>weekAgo);
+  if(recent.length<5) recent=arr.sort((a,b)=>(b.ref.date||"").localeCompare(a.ref.date||"")).slice(0,10);
+  return shuffle(recent).slice(0,20);
+}
+function bossAvailable(){
+  const day=new Date().getDay();
+  if(day!==6 && day!==0) return false;
+  if(S.lastBoss && S.lastBoss>=weekSatStr()) return false;
+  return bossPool().length>=5;
+}
+function drillPool(){
+  return Object.keys(S.learned)
+    .map(w=>WIDX[w]?Object.assign({},WIDX[w],{ref:S.learned[w]}):null)
+    .filter(x=>x && (x.ref.miss||0)>=2)
+    .sort((a,b)=>(b.ref.miss||0)-(a.ref.miss||0))
+    .slice(0,10);
+}
+function unlearnedIn(lv){ return WORDS[lv].filter(a=>!S.learned[a[0]]); }
+function levelUpCheck(){
+  let upped = 0;
+  while(S.level<5 && unlearnedIn(S.level).length===0){ S.level++; upped++; }
+  if(upped>0){
+    addMoney(REWARD.LEVELUP*upped);
+    confetti(); Sfx.tada();
+    openModal('<div class="center"><div class="bigemo">🎊</div>'
+      +'<h3 style="text-align:center">레벨 업!</h3>'
+      +'<p class="sub" style="text-align:center;margin:8px 0 16px">이제 <b>Lv.'+S.level+' · '+LV_NAME[S.level]+'</b> 단계야!<br>보너스 <b>영머니 '+comma(REWARD.LEVELUP*upped)+'원</b>을 받았어!</p>'
+      +'<button class="btn yellow" onclick="closeModal()">최고야! 🙌</button></div>');
+    save();
+  }
+}
+
+/* ═══════════ 화면 전환 ═══════════ */
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+  $("#scr-"+id).classList.add("on");
+  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz") ? "home" : id;
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===tab));
+  window.scrollTo(0,0);
+}
+function go(tab){
+  stopListen();
+  if(!S.placed && tab!=="store"){ renderWelcome(); show("welcome"); return; }
+  if(tab==="home"){ pickDay(); renderHome(); show("home"); }
+  else if(tab==="store"){ renderStore("전체"); show("store"); }
+  else if(tab==="review"){ renderReview(); show("review"); }
+  else if(tab==="log"){ renderLog(); show("log"); }
+}
+function stageBar(stage){
+  const names=["① 단어","② 예문","③ 말하기","④ 퀴즈"];
+  let h='<div class="stagebar">';
+  names.forEach((n,i)=>{ h+='<div class="stg '+(i<stage?"done":(i===stage?"now":""))+'">'+n+'</div>'; });
+  return h+'</div>';
+}
+
+/* ═══════════ 시작 화면 ═══════════ */
+function renderWelcome(){
+  $("#scr-welcome").innerHTML =
+   '<div class="card center" style="padding:28px 20px">'
+   +'<div class="bigemo">🏪</div>'
+   +'<h2 style="font-size:23px;margin-bottom:8px">영어 편의점에 온 걸 환영해!</h2>'
+   +'<p class="sub" style="margin-bottom:18px">매일 새 단어 <b>10개</b>를 배우고 퀴즈까지 끝내면<br><b>영머니 500원+보너스</b>! 더 배우면 더 벌 수 있어.<br>모은 영머니로 편의점에서 진짜 간식을 골라 봐 🍦🍫</p>'
+   +'<input type="text" id="nmInput" maxlength="10" placeholder="이름을 알려 줘!" style="margin-bottom:12px" value="'+esc(S.name)+'">'
+   +'<button class="btn" onclick="beginPlacement()">내 영어 레벨 알아보기 🚀</button>'
+   +'<p class="sub" style="margin-top:12px;font-size:12px">퀴즈 15개로 미국 초등 기준 레벨을 찾아 줄게.<br>다 풀면 시작 보너스 영머니 300원!</p>'
+   +'</div>';
+}
+function beginPlacement(){
+  const nm = $("#nmInput") ? $("#nmInput").value.trim() : "";
+  S.name = nm || S.name || "친구"; save();
+  ac(); startPlacement();
+}
+
+/* ═══════════ 레벨 테스트 ═══════════ */
+let P = null;
+function startPlacement(){
+  const qs=[];
+  for(let lv=1; lv<=5; lv++){
+    shuffle(WORDS[lv]).slice(0,3).forEach(a=>qs.push({w:a[0], k:a[1], lv}));
+  }
+  P = {qs, i:0, score:{1:0,2:0,3:0,4:0,5:0}, lock:false};
+  renderPQ(); show("place");
+}
+function renderPQ(){
+  const q = P.qs[P.i];
+  const dist = shuffle(WORDS[q.lv].filter(a=>a[0]!==q.w)).slice(0,3).map(a=>a[1]);
+  P.opts = shuffle([q.k].concat(dist));
+  P.correct = P.opts.indexOf(q.k);
+  P.lock = false;
+  let html = '<div class="learnhead"><span class="lvbadge">레벨 테스트 '+(P.i+1)+' / '+P.qs.length+'</span></div>'
+   +'<div class="card qbox"><div class="qtype">이 단어의 뜻은 뭘까?</div>'
+   +'<div class="qword">'+esc(q.w)+'</div>'
+   +'<button class="spk" onclick="speak(P.qs[P.i].w)">🔊 발음 듣기</button></div>'
+   +'<div class="opts">';
+  P.opts.forEach((o,idx)=>{ html += '<button class="opt" id="popt'+idx+'" onclick="pAnswer('+idx+')">'+esc(o)+'</button>'; });
+  html += '</div><button class="btn ghost sm" style="margin-top:14px" onclick="pAnswer(-1)">아직 몰라요 😅</button><div class="qfeed" id="pFeed"></div>';
+  $("#scr-place").innerHTML = html;
+  speak(q.w);
+}
+function pAnswer(idx){
+  if(P.lock) return; P.lock = true;
+  const q = P.qs[P.i];
+  const right = (idx === P.correct);
+  if(right){ P.score[q.lv]++; Sfx.ok(); const b=$("#popt"+idx); if(b) b.classList.add("ok"); }
+  else{ Sfx.bad(); if(idx>=0){ const b=$("#popt"+idx); if(b) b.classList.add("bad"); } const c=$("#popt"+P.correct); if(c) c.classList.add("ok"); }
+  const pf = $("#pFeed");
+  if(pf) pf.innerHTML = (right ? '<span class="good">정답! 🎉</span>' : '<span class="oops">정답: <b>'+esc(P.opts[P.correct])+'</b></span>')
+    + '<button class="btn" style="margin-top:12px" onclick="pNext()">다음 ▶</button>';
+}
+function pNext(){ P.i++; if(P.i < P.qs.length) renderPQ(); else finishPlacement(); }
+function finishPlacement(){
+  let lvl = 1;
+  for(let l=1; l<=5; l++){ if(P.score[l]>=2) lvl=l; else break; }
+  S.level = lvl;
+  const first = !S.placed;
+  S.placed = true;
+  if(first){ S.money += REWARD.PLACE; S.earned += REWARD.PLACE; }
+  logEv("place",{lv:lvl});
+  updateMoney(); save(); pickDay();
+  confetti(); Sfx.tada();
+  $("#scr-place").innerHTML =
+   '<div class="card center" style="padding:28px 20px">'
+   +'<div class="bigemo">🎉</div>'
+   +'<p class="sub">'+esc(S.name)+'의 영어 레벨은</p>'
+   +'<div class="lvresult">Lv.'+lvl+'</div>'
+   +'<span class="lvbadge" style="font-size:15px">'+LV_NAME[lvl]+' 수준</span>'
+   +'<p class="sub" style="margin:12px 0 18px">'+(first ? '시작 보너스 <b>영머니 '+comma(REWARD.PLACE)+'원</b> 지급 완료!<br>' : '')+'이제 매일 이 레벨의 새 단어 10개로<br>영머니를 모아 보자 💪</p>'
+   +'<button class="btn" onclick="go(\'home\')">시작하기</button></div>';
+}
+
+/* ═══════════ 홈 ═══════════ */
+function renderHome(){
+  pickDay();
+  const due = dueReviews().length;
+  const stk = dispStreak();
+  const s = curSession();
+  let mission = "";
+  if(!S.day.reviewCleared && due>0){
+    mission = '<div class="card mission lockcard"><div class="mtitle">🔒 먼저 복습부터!</div>'
+      +'<div class="mdesc">어제까지 배운 단어 <b>'+due+'개</b>를 복습해야<br>오늘의 새 단어가 열려요. 다 맞히면 <b>+'+REWARD.REVIEW_ALL+'</b> 보너스!</div>'
+      +'<button class="btn" onclick="startQuiz(\'review\')">복습 시작 🔁</button></div>';
+  } else if(!s){
+    mission = '<div class="card mission center"><div class="bigemo">🏆</div><div class="mtitle">모든 단어를 마스터했어!</div>'
+      +'<div class="mdesc">단어장 '+totalLearned()+'개 전부 정복! 복습으로 실력을 지키자.</div></div>';
+  } else if(!s.quizDone){
+    let stage, cta, prog;
+    if(!s.seenAll){ stage=0; cta='<button class="btn" onclick="startLearn()">'+(s.seen>0?"이어서 배우기 ("+s.seen+"/"+s.words.length+")":"단어 배우기 시작 ✏️")+'</button>'; prog=s.seen; }
+    else if(!s.exDone){ stage=1; cta='<button class="btn" onclick="startEx()">예문 연습 ('+s.exIdx+'/'+s.words.length+')</button>'; prog=s.exIdx; }
+    else if(!s.spDone){ stage=2; cta='<button class="btn" onclick="startSpeak()">말하기 연습 ('+s.spIdx+'/'+s.words.length+')</button>'; prog=s.spIdx; }
+    else { stage=3; const gotN=s.words.filter(x=>x.got).length; cta='<button class="btn yellow" onclick="startQuiz(\'daily\')">퀴즈 시작 ('+gotN+'/'+s.words.length+')</button>'; prog=gotN; }
+    const isExtra = S.day.sessions.indexOf(s)>0;
+    mission = '<div class="card mission"><div class="mtitle">'+(isExtra?"🔥 추가 학습 중!":"📚 오늘의 단어 "+s.words.length+"개")+'</div>'
+      +'<div class="mdesc">4단계를 끝내면 단어당 <b>'+REWARD.WORD+'원</b>'+(isExtra?"":" — 하루 10개면 <b>500원</b>+보너스")+'!</div>'
+      + stageBar(stage)
+      +'<div class="pbar"><i style="width:'+Math.round(prog/s.words.length*100)+'%"></i></div>'
+      + cta + '</div>';
+  } else {
+    const more = unlearnedPool().length>0;
+    mission = '<div class="card mission center"><div class="bigemo">✅</div><div class="mtitle">오늘 미션 완료!</div>'
+      +'<div class="mdesc">오늘 번 영머니 <b>'+comma(dayEarned())+'원</b> 🎉'
+      +(more?'<br>더 배우면 단어당 50원을 더 벌 수 있어!':'')+'</div>'
+      +(more?'<button class="btn yellow" onclick="addExtra()">🔥 더 배우기 (+10단어)</button>':'')
+      +'<button class="btn ghost sm" style="margin-top:8px" onclick="startLearn()">오늘 단어 다시 보기</button></div>';
+  }
+  let bossCard = "";
+  if(S.day.reviewCleared && bossAvailable()){
+    bossCard = '<div class="card" style="background:#2E2A4A;border-color:#1F1C36"><div class="mtitle" style="color:#FFD64D">👾 주말 보스 퀴즈 등장!</div>'
+     +'<div class="mdesc" style="color:#D8D4F0">이번 주에 배운 단어 종합 시험! 깨면 <b style="color:#FFD64D">+'+REWARD.BOSS_CLEAR+'</b>, 한 번에 다 맞히면 <b style="color:#FFD64D">+'+REWARD.BOSS_PERFECT+'</b> 추가!</div>'
+     +'<button class="btn yellow" onclick="startQuiz(\'boss\')">보스전 시작 ⚔️</button></div>';
+  }
+  let drillCard = "";
+  const dp = drillPool();
+  if(S.day.reviewCleared && dp.length>=3){
+    drillCard = '<div class="card"><div class="mtitle">🎯 오답 집중 훈련</div>'
+     +'<div class="mdesc">자주 틀린 단어 <b>'+dp.length+'개</b>를 다시 잡자! 끝까지 맞히면 <b>+'+REWARD.DRILL_CLEAR+'</b> 보너스.</div>'
+     +'<button class="btn" onclick="startQuiz(\'drill\')">훈련 시작</button></div>';
+  }
+  let reviewCard = "";
+  if(S.day.reviewCleared && due>0){
+    reviewCard = '<div class="card"><div class="mtitle">🔁 복습할 단어 '+due+'개</div>'
+      +'<div class="mdesc">복습 퀴즈를 맞히면 단어당 <b>영머니 '+REWARD.REVIEW+'원</b>!</div>'
+      +'<button class="btn" onclick="startQuiz(\'review\')">복습 퀴즈 시작</button></div>';
+  }
+  $("#scr-home").innerHTML =
+   '<div class="hello">안녕, '+esc(S.name)+'! 👋<small>'+todayStr()+'</small></div>'
+   +'<span class="lvbadge">Lv.'+S.level+' · '+LV_NAME[S.level]+'</span> '
+   +'<span class="streak">🔥 연속 '+stk+'일째</span>'
+   +'<div class="statrow">'
+   +'<div class="statbox"><b>'+totalLearned()+'</b><span>배운 단어</span></div>'
+   +'<div class="statbox"><b>'+comma(S.earned)+'</b><span>모은 영머니</span></div>'
+   +'<div class="statbox"><b>'+S.best+'</b><span>최고 연속일</span></div>'
+   +'</div>'
+   + mission + bossCard + reviewCard + drillCard
+   +'<div class="card" style="display:flex;align-items:center;gap:12px">'
+   +'<span style="font-size:32px">🏪</span><div style="flex:1"><div style="font-size:16px">영어 편의점</div>'
+   +'<div class="sub" style="font-size:13px">잔액 '+comma(S.money)+'원으로 뭘 살 수 있을까?</div></div>'
+   +'<button class="btn sm" style="width:auto" onclick="go(\'store\')">구경</button></div>';
+}
+function addExtra(){
+  const ses = newSession();
+  if(!ses){ renderHome(); return; }
+  S.day.sessions.push(ses); save();
+  startLearn();
+}
+/* ═══════════ 1단계: 단어 카드 ═══════════ */
+let L = null;
+function startLearn(){
+  const s = curSession();
+  if(!s || !s.words.length){ go("home"); return; }
+  const start = s.seenAll ? 0 : Math.min(s.seen, s.words.length-1);
+  L = {i:start};
+  renderCard(); show("learn");
+}
+function renderCard(){
+  const s = curSession(), len = s.words.length;
+  if(L.i>=len) L.i=len-1;
+  const cur = s.words[L.i];
+  L.cur = cur;
+  s.seen = Math.max(s.seen, L.i+1);
+  if(s.seen>=len) s.seenAll = true;
+  save();
+  let dots = "";
+  for(let i=0;i<len;i++){ dots += '<i class="'+(i<L.i?"done":(i===L.i?"now":""))+'"></i>'; }
+  const lastBtn = (L.i===len-1)
+    ? (s.exDone ? '<button class="btn" onclick="go(\'home\')">홈으로</button>'
+                : '<button class="btn yellow" onclick="startEx()">예문 연습 가기 ✏️</button>')
+    : '<button class="btn" onclick="nextCard()">다음 ▶</button>';
+  $("#scr-learn").innerHTML =
+   '<div class="learnhead"><button class="minibtn" onclick="go(\'home\')">← 홈</button><div class="dots">'+dots+'</div></div>'
+   + stageBar(0)
+   +'<div class="scene"><div class="flip" id="flipCard" onclick="flipIt()">'
+   +'<div class="face front"><span class="wordno">단어 '+(L.i+1)+' / '+len+'</span>'
+   +'<div class="word">'+esc(cur.w)+'</div>'
+   +'<button class="spk" onclick="event.stopPropagation();speak(L.cur.w)">🔊 발음 듣기</button>'
+   +'<div class="hint">카드를 누르면 뜻이 보여요 👆</div></div>'
+   +'<div class="face back"><span class="wordno">단어 '+(L.i+1)+' / '+len+'</span>'
+   +'<div style="font-size:20px;color:var(--sub)">'+esc(cur.w)+'</div>'
+   +'<div class="meaning">'+esc(cur.k)+'</div>'
+   +'<div class="ex">'+esc(cur.e)+'</div>'
+   +'<div class="ext">'+esc(cur.t)+'</div>'
+   +'<button class="spk" style="margin-top:12px" onclick="event.stopPropagation();speak(L.cur.e)">🔊 예문 듣기</button></div>'
+   +'</div></div>'
+   +'<div class="center"><button class="knowbtn" onclick="knowIt()">이 단어는 이미 알아요 ✔ (새 단어로 바꾸기)</button></div>'
+   +'<div class="btnrow">'
+   +'<button class="btn ghost" style="flex:0 0 30%" onclick="prevCard()" '+(L.i===0?"disabled":"")+'>◀ 이전</button>'
+   + lastBtn + '</div>';
+  speak(cur.w);
+}
+function flipIt(){ $("#flipCard").classList.toggle("on"); Sfx.flip(); }
+function nextCard(){ const s=curSession(); if(L.i < s.words.length-1){ L.i++; renderCard(); } }
+function prevCard(){ if(L.i > 0){ L.i--; renderCard(); } }
+function knowIt(){
+  const s = curSession(), cur = s.words[L.i];
+  const t = todayStr();
+  S.learned[cur.w] = {lv:cur.lv, box:3, next:addDays(t, BOX_GAP[3]), date:t, miss:0};
+  logEv("know",{w:cur.w});
+  const pool = unlearnedPool();
+  if(pool.length){
+    s.words[L.i] = Object.assign({}, pool[0], {got:false,missed:false});
+    openModal('<div class="center"><div class="bigemo">👍</div><h3 style="text-align:center">좋아, 아는 단어는 넘어가자!</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px"><b>'+esc(cur.w)+'</b>는 아는 단어로 저장했어.<br>대신 새 단어 <b>'+esc(pool[0].w)+'</b>가 나왔어!</p>'
+     +'<button class="btn" onclick="closeModal()">새 단어 보기</button></div>');
+  } else {
+    s.words.splice(L.i,1);
+    if(!s.words.length){ s.seenAll=true; s.exDone=true; s.spDone=true; s.quizDone=true; save(); go("home"); return; }
+    if(s.seen>s.words.length) s.seen=s.words.length;
+  }
+  save(); renderCard();
+}
+
+/* ═══════════ 2단계: 예문 연습 (빈칸 채우기) ═══════════ */
+function startEx(){
+  const s = curSession();
+  if(!s){ go("home"); return; }
+  if(!s.seenAll){ startLearn(); return; }
+  renderEx(); show("learn");
+}
+function renderEx(){
+  const s = curSession();
+  if(s.exIdx >= s.words.length){ s.exDone = true; save(); startSpeak(); return; }
+  const w = s.words[s.exIdx];
+  const others = shuffle(WORDS[w.lv].filter(a=>a[0]!==w.w)).slice(0,3).map(a=>a[0]);
+  EXQ = { w, opts: shuffle([w.w].concat(others)) };
+  EXQ.correct = EXQ.opts.indexOf(w.w);
+  EXQ.lock = false;
+  const blanked = esc(w.e).replace(new RegExp(w.w,"i"), '<span class="blank" id="exBlank">____</span>');
+  let html = '<div class="learnhead"><button class="minibtn" onclick="go(\'home\')">← 홈</button>'
+   +'<span class="lvbadge">예문 연습 '+(s.exIdx+1)+' / '+s.words.length+'</span></div>'
+   + stageBar(1)
+   +'<div class="card qbox"><div class="qtype">빈칸에 들어갈 단어는?</div>'
+   +'<div class="ex" style="font-size:19px;line-height:1.5;margin:6px 0">'+blanked+'</div>'
+   +'<div class="ext">'+esc(w.t)+'</div>'
+   +'<button class="spk" onclick="speak(EXQ.w.e)">🔊 문장 듣기</button></div>'
+   +'<div class="opts">';
+  EXQ.opts.forEach((o,idx)=>{ html += '<button class="opt" id="xopt'+idx+'" onclick="exAnswer('+idx+')">'+esc(o)+'</button>'; });
+  html += '</div><div class="qfeed" id="xFeed"></div>';
+  $("#scr-learn").innerHTML = html;
+}
+let EXQ = null;
+function exAnswer(idx){
+  if(EXQ.lock) return; EXQ.lock = true;
+  const s = curSession();
+  const right = (idx===EXQ.correct);
+  const bl = $("#exBlank"); if(bl) bl.textContent = EXQ.w.w;
+  const nb = '<button class="btn" style="margin-top:12px" onclick="exNext()">다음 ▶</button>';
+  if(right){
+    Sfx.ok(); const b=$("#xopt"+idx); if(b) b.classList.add("ok");
+    $("#xFeed").innerHTML = '<span class="good">딩동댕! 🎉</span>' + nb;
+    speak(EXQ.w.e);
+  } else {
+    Sfx.bad(); const b=$("#xopt"+idx); if(b) b.classList.add("bad");
+    const c=$("#xopt"+EXQ.correct); if(c) c.classList.add("ok");
+    $("#xFeed").innerHTML = '<span class="oops">정답은 <b>'+esc(EXQ.w.w)+'</b>! 문장을 다시 들어 보자</span>' + nb;
+    speak(EXQ.w.e);
+  }
+  save();
+}
+function exNext(){ const s=curSession(); s.exIdx++; save(); renderEx(); }
+
+/* ═══════════ 3단계: 듣고 따라 말하기 ═══════════ */
+let SP = {fails:0};
+function startSpeak(){
+  const s = curSession();
+  if(!s){ go("home"); return; }
+  if(!s.exDone){ startEx(); return; }
+  SP.fails = 0;
+  renderSpeak(); show("learn");
+}
+function renderSpeak(){
+  stopListen();
+  const s = curSession();
+  if(s.spIdx >= s.words.length){ s.spDone = true; save(); startQuiz("daily"); return; }
+  const w = s.words[s.spIdx];
+  const noMic = (micState==="no");
+  let body = "";
+  if(s.spStep===0){
+    body = '<div class="card qbox"><div class="qtype">🎧 잘 듣고 단어를 똑같이 따라 말해 봐!</div>'
+     +'<div class="qword">'+esc(w.w)+'</div><div class="qmean" style="font-size:15px;color:var(--sub)">'+esc(w.k)+'</div>'
+     +'<button class="spk" onclick="speakCurWord()">🔊 다시 듣기</button></div>'
+     + micArea(noMic, "단어를 말하면 자동으로 확인해 줘요");
+  } else if(s.spStep===1){
+    let dots=""; for(let i=0;i<3;i++) dots += '<i class="'+(i<s.reps?"on":"")+'"></i>';
+    body = '<div class="card qbox"><div class="qtype">🗣️ 이 문장을 3번 듣고 따라 말하자!</div>'
+     +'<div class="saybox">'+esc(w.s)+'</div><div class="ext">'+esc(w.st)+'</div>'
+     +'<div class="repdots">'+dots+'</div></div>'
+     +'<button class="btn yellow" id="repBtn" onclick="repOnce()">🔊 듣고 따라 말하기 ('+s.reps+'/3)</button>'
+     +'<p class="sub center" style="font-size:12px;margin-top:8px">소리가 나오면 큰 소리로 똑같이 따라 해!</p>';
+  } else {
+    body = '<div class="card qbox"><div class="qtype">🎤 이제 혼자서 문장을 말해 보자!</div>'
+     +'<div class="saybox">'+esc(w.s)+'</div><div class="ext">'+esc(w.st)+'</div>'
+     +'<button class="spk" onclick="speakCurSent()">🔊 한 번 더 듣기</button></div>'
+     + micArea(noMic, "문장을 말하면 자동으로 확인해 줘요");
+  }
+  $("#scr-learn").innerHTML =
+   '<div class="learnhead"><button class="minibtn" onclick="go(\'home\')">← 홈</button>'
+   +'<span class="lvbadge">말하기 '+(s.spIdx+1)+' / '+s.words.length+'</span></div>'
+   + stageBar(2) + body;
+  if(s.spStep===0) speak(w.w);
+  if(s.spStep===2) speak(w.s);
+}
+function micArea(noMic, tip){
+  if(noMic){
+    return '<div class="center"><p class="sub" style="font-size:13px;margin:6px 0">🎙️ 이 화면에서는 마이크를 쓸 수 없어서<br><b>스스로 체크 모드</b>로 진행해요. 크게 따라 말한 뒤 눌러 줘!</p>'
+     +'<button class="btn" onclick="speakPass()">큰 소리로 따라 말했어요 ✔</button></div>';
+  }
+  return '<div class="center"><button class="micbtn" id="micBtn" onclick="micGo()">🎤</button>'
+   +'<p class="sub" style="font-size:13px">마이크를 누르고 말해 봐! '+tip+'</p>'
+   +'<div class="heard" id="heard"></div>'
+   +(SP.fails>=2 ? '<button class="knowbtn" onclick="speakPass()">잘 안 돼요 → 직접 체크하고 넘어가기</button>' : '')
+   +'</div>';
+}
+function speakCurWord(){ const s=curSession(); speak(s.words[s.spIdx].w); }
+function speakCurSent(){ const s=curSession(); speak(s.words[s.spIdx].s); }
+function repOnce(){
+  const s = curSession(), w = s.words[s.spIdx];
+  const btn = $("#repBtn"); if(btn){ btn.disabled = true; btn.style.opacity=.6; }
+  speak(w.s);
+  setTimeout(()=>{
+    s.reps++;
+    if(s.reps>=3){ s.spStep=2; }
+    save(); renderSpeak();
+  }, Math.max(2200, w.s.length*100));
+}
+function micGo(){
+  const s = curSession(), w = s.words[s.spIdx];
+  stopAudio();
+  const btn = $("#micBtn"); if(btn) btn.classList.add("listening");
+  const hd = $("#heard"); if(hd) hd.textContent = "듣고 있어요... 말해 봐! 🎙️";
+  listen(tr=>{
+    const b = $("#micBtn"); if(b) b.classList.remove("listening");
+    const h = $("#heard");
+    if(tr===null){ renderSpeak(); return; }
+    if(tr===""){ SP.fails++; if(h) h.textContent = "잘 안 들렸어. 한 번 더 크게! 🙉"; if(SP.fails===2) renderSpeak(); return; }
+    const pass = (s.spStep===0) ? saidWord(tr, w.w) : saidSent(tr, w.s);
+    const heardTxt = tr.split(" | ")[0];
+    if(pass){
+      if(h) h.innerHTML = '👂 '+esc(heardTxt)+' — <b class="good">통과! 🎉</b>';
+      Sfx.ok(); SP.fails=0;
+      setTimeout(speakPass, 800);
+    } else {
+      SP.fails++;
+      if(h) h.innerHTML = '👂 '+esc(heardTxt)+' — 조금 달라! 다시 듣고 도전해 보자 💪';
+      Sfx.bad();
+      if(SP.fails===2) renderSpeak();
+    }
+  });
+}
+function speakPass(){
+  stopListen();
+  const s = curSession();
+  SP.fails = 0;
+  if(s.spStep===0){ s.spStep=1; s.reps=0; }
+  else if(s.spStep===1){ s.spStep=2; }
+  else { s.spIdx++; s.spStep=0; s.reps=0; }
+  save(); renderSpeak();
+}
+/* ═══════════ 4단계: 퀴즈 + 복습 퀴즈 ═══════════ */
+let Q = null;
+function startQuiz(mode){
+  ac(); stopListen();
+  pickDay();
+  let items;
+  if(mode==="daily"){
+    const s = curSession();
+    if(!s){ go("home"); return; }
+    if(!s.seenAll){ startLearn(); return; }
+    if(!s.exDone){ startEx(); return; }
+    if(!s.spDone){ startSpeak(); return; }
+    items = s.words.filter(x=>!x.got);
+    if(!items.length){ if(!s.quizDone){ finishDaily(); } else { go("home"); } return; }
+  } else if(mode==="review"){
+    items = dueReviews();
+    if(!items.length){ go("review"); return; }
+  } else if(mode==="boss"){
+    items = bossPool();
+    if(items.length<5){ go("home"); return; }
+  } else {
+    items = drillPool();
+    if(items.length<3){ go("home"); return; }
+  }
+  Q = {mode, queue:shuffle(items), total:items.length, i:0, lock:false, timer:null, earned:0, right:0, perfect:true};
+  renderQ(); show("quiz");
+}
+function makeOptions(item, type){
+  const pool = (WORDS[item.lv]||WORDS[S.level]).filter(a=>a[0]!==item.w);
+  const dist = shuffle(pool).slice(0,3);
+  if(type==="ke"){
+    const opts = shuffle([item.w].concat(dist.map(a=>a[0])));
+    return {opts, correct:opts.indexOf(item.w)};
+  }
+  const opts = shuffle([item.k].concat(dist.map(a=>a[1])));
+  return {opts, correct:opts.indexOf(item.k)};
+}
+function renderQ(){
+  const item = Q.queue[Q.i];
+  const type = ["ek","ke","listen"][Math.floor(Math.random()*3)];
+  const {opts, correct} = makeOptions(item, type);
+  Q.cur = {item, type, opts, correct};
+  Q.lock = false;
+  let total=Q.total, doneN=Q.right, label="복습 퀴즈";
+  if(Q.mode==="daily"){ const s=curSession(); total=s.words.length; doneN=s.words.filter(x=>x.got).length; label="퀴즈"; }
+  else if(Q.mode==="boss") label="👾 보스 퀴즈";
+  else if(Q.mode==="drill") label="🎯 오답 훈련";
+  let head, body;
+  if(type==="ek"){
+    head = "이 단어의 뜻은?";
+    body = '<div class="qword">'+esc(item.w)+'</div><button class="spk" onclick="speak(Q.cur.item.w)">🔊 듣기</button>';
+  } else if(type==="ke"){
+    head = "영어로 뭘까?";
+    body = '<div class="qmean">'+esc(item.k)+'</div>';
+  } else {
+    head = "잘 듣고 뜻을 골라 봐!";
+    body = '<div class="qword" id="qHidden">🎧</div><button class="spk" onclick="speak(Q.cur.item.w)">🔊 다시 듣기</button>';
+  }
+  let html = '<div class="learnhead"><button class="minibtn" onclick="quitQuiz()">← 나가기</button>'
+   +'<span class="lvbadge">'+label+' · '+doneN+'/'+total+'</span></div>'
+   +(Q.mode==="daily" ? stageBar(3) : '')
+   +'<div class="card qbox"><div class="qtype">'+head+'</div>'+body+'</div><div class="opts">';
+  opts.forEach((o,idx)=>{ html += '<button class="opt" id="qopt'+idx+'" onclick="qAnswer('+idx+',this)">'+esc(o)+'</button>'; });
+  html += '</div><div class="qfeed" id="qFeed"></div>';
+  $("#scr-quiz").innerHTML = html;
+  if(type==="listen") speak(item.w);
+}
+function qExpl(item){
+  return '<div class="card" style="margin-top:10px;padding:12px 14px;text-align:left">'
+   +'<b style="font-size:17px">'+esc(item.w)+'</b> <span class="sub" style="font-size:13px">'+esc(item.k)+'</span>'
+   +'<div class="ex" style="font-size:14px;margin-top:6px">'+esc(item.e)+'</div>'
+   +'<div class="ext">'+esc(item.t)+'</div>'
+   +'<button class="spk" style="margin-top:8px" onclick="speak(WIDX[\''+item.w+'\'].e)">🔊 예문 듣기</button></div>'
+   +'<button class="btn" style="margin-top:12px" onclick="nextQ()">다음 ▶</button>';
+}
+function dstHit(ok){ const D=dst(); D.q++; if(ok) D.r++; }
+function quitQuiz(){
+  if(Q) clearTimeout(Q.timer);
+  go(Q && Q.mode==="review" ? "review" : "home");
+}
+function qAnswer(idx, el){
+  if(Q.lock) return; Q.lock = true;
+  clearTimeout(Q.timer);
+  const {item, type, correct} = Q.cur;
+  const right = (idx===correct);
+  const t = todayStr();
+  if(type==="listen"){ const h=$("#qHidden"); if(h) h.textContent = item.w; }
+  const cb = $("#qopt"+correct);
+  if(right){
+    el.classList.add("ok"); Sfx.ok();
+    if(type==="ke") speak(item.w);
+    Q.right++;
+    dstHit(1); logEv("q",{w:item.w, m:Q.mode, ok:1});
+    let feed = '<span class="good">정답! 🎉</span>';
+    if(Q.mode==="daily"){
+      const s = curSession();
+      item.got = true;
+      const earn = item.missed ? REWARD.RETRY : REWARD.WORD;
+      s.earned += earn;
+      S.learned[item.w] = {lv:item.lv, box:1, next:addDays(t,1), date:t, miss:(item.missed?1:0)};
+      addMoney(earn, el);
+      Q.earned += earn;
+    } else if(Q.mode==="review"){
+      const ref = item.ref;
+      const ob = ref.box||1;
+      ref.box = Math.min(ob+1, 6);
+      ref.next = addDays(t, BOX_GAP[ref.box]);
+      addMoney(REWARD.REVIEW, el);
+      Q.earned += REWARD.REVIEW;
+      if(ref.box>ob) feed = '<span class="good">정답! '+STAGE[ob]+' → '+STAGE[ref.box]+' 자랐어! 🎉</span>';
+    } else if(Q.mode==="boss"){
+      addMoney(REWARD.BOSS_WORD, el);
+      Q.earned += REWARD.BOSS_WORD;
+    } else {
+      const ref = item.ref;
+      if(!item._req){ ref.miss = Math.max(0,(ref.miss||0)-1); }
+      addMoney(REWARD.DRILL_WORD, el);
+      Q.earned += REWARD.DRILL_WORD;
+      feed = '<span class="good">정답! 실수 카운트 -1! 💪</span>';
+    }
+    save();
+    $("#qFeed").innerHTML = feed + qExpl(item);
+  } else {
+    if(el) el.classList.add("bad");
+    if(cb) cb.classList.add("ok");
+    Sfx.bad();
+    dstHit(0); logEv("q",{w:item.w, m:Q.mode, ok:0});
+    if(Q.mode==="daily"){
+      const s = curSession();
+      item.missed = true; s.perfect = false;
+      Q.queue.push(item);
+      $("#qFeed").innerHTML = '<span class="oops">앗! 정답은 <b>'+esc(Q.cur.opts[correct])+'</b> · 이따 다시 나와요</span>';
+    } else if(Q.mode==="review"){
+      const ref = item.ref;
+      ref.box = 1; ref.next = addDays(t,1); ref.miss = (ref.miss||0)+1;
+      $("#qFeed").innerHTML = '<span class="oops">정답은 <b>'+esc(Q.cur.opts[correct])+'</b> · 🌱부터 다시 키우자!</span>';
+    } else {
+      const ref = item.ref;
+      ref.box = 1; ref.next = addDays(t,1); ref.miss = (ref.miss||0)+1;
+      item._req = true; Q.perfect = false;
+      Q.queue.push(item);
+      $("#qFeed").innerHTML = '<span class="oops">정답은 <b>'+esc(Q.cur.opts[correct])+'</b> · 이따 다시!</span>';
+    }
+    save();
+    const qf = $("#qFeed"); if(qf) qf.innerHTML += qExpl(item);
+  }
+}
+function nextQ(){
+  Q.i++;
+  if(Q.i < Q.queue.length){ renderQ(); return; }
+  if(Q.mode==="daily") finishDaily();
+  else if(Q.mode==="review") finishReview();
+  else if(Q.mode==="boss") finishBoss();
+  else finishDrill();
+}
+function finishDaily(){
+  const s = curSession(); if(!s){ go("home"); return; }
+  const t = todayStr();
+  const idx = S.day.sessions.indexOf(s);
+  if(s.quizDone){ go("home"); return; }
+  s.quizDone = true;
+  let bonus = s.perfect ? REWARD.PERFECT : 0;
+  let streakBonus = 0;
+  if(idx===0){
+    bonus += REWARD.DAILY_BONUS;
+    if(S.lastDone === addDays(t,-1)) S.streak++; else if(S.lastDone !== t) S.streak = 1;
+    S.lastDone = t;
+    if(S.streak > S.best) S.best = S.streak;
+    if(S.streak>0 && S.streak%7===0) streakBonus = REWARD.STREAK7;
+  }
+  const tot = bonus + streakBonus;
+  s.earned += tot; S.money += tot; S.earned += tot;
+  const D=dst(); D.w += s.words.length; D.earn += s.earned;
+  logEv("session",{i:idx, n:s.words.length, earn:s.earned, pf:s.perfect?1:0});
+  if(S.log.length && S.log[0].date===t){ S.log[0].n += s.words.length; S.log[0].earn += s.earned; }
+  else { S.log.unshift({date:t, n:s.words.length, earn:s.earned}); if(S.log.length>90) S.log.length=90; }
+  updateMoney(); save();
+  confetti(); Sfx.tada();
+  const more = unlearnedPool().length>0;
+  $("#scr-quiz").innerHTML =
+   '<div class="card center" style="padding:28px 20px"><div class="bigemo">🎉</div>'
+   +'<h2 style="font-size:22px;margin-bottom:6px">'+(idx===0?"오늘 미션 완료!":"추가 학습 완료!")+'</h2>'
+   +(s.perfect ? '<span class="lvbadge" style="background:#FFF4D6;color:#7A5600">💯 한 번에 올 클리어! +'+REWARD.PERFECT+'</span>' : '')
+   +'<div class="statrow" style="margin-top:14px">'
+   +'<div class="statbox"><b>'+s.words.length+'</b><span>외운 단어</span></div>'
+   +'<div class="statbox"><b>+'+comma(s.earned)+'</b><span>이번에 번 영머니</span></div>'
+   +'<div class="statbox"><b>🔥'+S.streak+'</b><span>연속일</span></div></div>'
+   +(streakBonus>0 ? '<p class="sub" style="margin-bottom:10px">🔥 '+S.streak+'일 연속 보너스 +'+comma(streakBonus)+'!</p>' : '')
+   +'<div class="btnrow">'
+   +(more ? '<button class="btn" onclick="addExtra()">🔥 더 배우기 (+10단어)</button>' : '')
+   +'<button class="btn yellow" onclick="go(\'store\')">편의점 가기 🏪</button></div>'
+   +(drillPool().length>=3 ? '<button class="btn ghost sm" style="margin-top:8px" onclick="startQuiz(\'drill\')">🎯 오답 집중 훈련 가기</button>' : '')
+   +'<button class="btn ghost sm" style="margin-top:10px" onclick="go(\'home\')">홈으로</button></div>';
+  levelUpCheck();
+}
+function finishReview(){
+  const remaining = dueReviews().length;
+  let bonusHtml = "";
+  if(remaining===0){
+    S.day.reviewCleared = true;
+    if(!S.day.reviewBonusGiven){
+      S.day.reviewBonusGiven = true;
+      S.money += REWARD.REVIEW_ALL; S.earned += REWARD.REVIEW_ALL;
+      updateMoney(); confetti();
+      dst().earn += REWARD.REVIEW_ALL;
+      bonusHtml = '<p class="sub" style="margin-bottom:10px">🏅 복습 올 클리어 보너스 <b>+'+REWARD.REVIEW_ALL+'</b>!</p>';
+    }
+  }
+  dst().earn += Q.earned; logEv("review",{n:Q.total, ok:Q.right, earn:Q.earned});
+  save(); Sfx.tada();
+  $("#scr-quiz").innerHTML =
+   '<div class="card center" style="padding:28px 20px"><div class="bigemo">🧠</div>'
+   +'<h2 style="font-size:22px;margin-bottom:6px">복습 끝!</h2>'
+   +'<p class="sub" style="margin-bottom:10px">맞힌 단어 <b>'+Q.right+'개</b> · 영머니 <b>+'+comma(Q.earned)+'원</b><br>틀린 단어는 내일 다시 나와요.</p>'
+   + bonusHtml
+   +'<div class="btnrow"><button class="btn yellow" onclick="go(\'home\')">오늘의 새 단어 배우기 📚</button></div>'
+   +'<button class="btn ghost sm" style="margin-top:10px" onclick="go(\'review\')">단어장 보기</button></div>';
+}
+
+function finishBoss(){
+  S.lastBoss = todayStr();
+  const bonus = REWARD.BOSS_CLEAR + (Q.perfect ? REWARD.BOSS_PERFECT : 0);
+  S.money += bonus; S.earned += bonus; updateMoney();
+  dst().earn += bonus + Q.earned; logEv("boss",{n:Q.total, earn:Q.earned+bonus, pf:Q.perfect?1:0});
+  save();
+  confetti(); Sfx.tada();
+  $("#scr-quiz").innerHTML =
+   '<div class="card center" style="padding:28px 20px"><div class="bigemo">👾</div>'
+   +'<h2 style="font-size:22px;margin-bottom:6px">주말 보스 클리어!</h2>'
+   +(Q.perfect ? '<span class="lvbadge" style="background:#FFF4D6;color:#7A5600">💯 퍼펙트! +'+REWARD.BOSS_PERFECT+'</span>' : '')
+   +'<p class="sub" style="margin:12px 0 10px">이번 주 단어 <b>'+Q.total+'개</b> 종합 시험 통과!<br>보스 보너스 <b>+'+comma(bonus)+'</b> · 문제 획득 <b>+'+comma(Q.earned)+'</b></p>'
+   +'<div class="btnrow"><button class="btn yellow" onclick="go(\'store\')">편의점 가기 🏪</button>'
+   +'<button class="btn ghost" onclick="go(\'home\')">홈으로</button></div></div>';
+}
+function finishDrill(){
+  S.money += REWARD.DRILL_CLEAR; S.earned += REWARD.DRILL_CLEAR; updateMoney();
+  dst().earn += Q.earned + REWARD.DRILL_CLEAR; logEv("drill",{n:Q.total, earn:Q.earned+REWARD.DRILL_CLEAR});
+  save();
+  Sfx.tada();
+  $("#scr-quiz").innerHTML =
+   '<div class="card center" style="padding:28px 20px"><div class="bigemo">🎯</div>'
+   +'<h2 style="font-size:22px;margin-bottom:6px">오답 훈련 완료!</h2>'
+   +'<p class="sub" style="margin:10px 0 10px">헷갈리던 단어 <b>'+Q.total+'개</b>를 다시 잡았어!<br>훈련 보너스 <b>+'+REWARD.DRILL_CLEAR+'</b> · 획득 <b>+'+comma(Q.earned)+'</b><br>맞힌 단어는 실수 카운트가 줄어 목록에서 빠져요.</p>'
+   +'<div class="btnrow"><button class="btn" onclick="go(\'home\')">홈으로</button></div></div>';
+}
+
+/* ═══════════ 편의점 ═══════════ */
+let storeCat = "전체";
+function renderStore(cat){
+  storeCat = cat || storeCat;
+  const cats = ["전체","간식","음료","장난감","굿즈","도서"];
+  let chips = "";
+  cats.forEach(c=>{ chips += '<button class="chip '+(c===storeCat?"on":"")+'" onclick="renderStore(\''+c+'\')">'+c+'</button>'; });
+  const list = STORE_ITEMS.filter(it=>storeCat==="전체"||it.cat===storeCat);
+  let grid = "";
+  list.forEach(it=>{
+    const can = S.money >= it.pr;
+    const lack = can ? "" : comma(it.pr - S.money)+"원만 더!";
+    grid += '<div class="item '+(can?"":"no")+'">'
+      +'<div class="emo">'+it.emo+'</div><div class="nm">'+esc(it.nm)+'</div>'
+      +'<div class="pricetag">'+comma(it.pr)+'원</div>'
+      +'<div class="lack">'+lack+'</div>'
+      +'<button class="btn sm buy '+(can?"yellow":"")+'" onclick="askBuy(\''+it.id+'\')">담기</button></div>';
+  });
+  $("#scr-store").innerHTML =
+   '<div class="store2"><div class="s-sign">🏪 영어 편의점<small>ENGLISH STORE · OPEN 24H</small></div>'
+   +'<div class="s-awn"></div><div class="s-awn2"></div>'
+   +'<div class="s-body"><div class="s-door"></div>'
+   +'<div class="s-win"><i>🍦</i><i>🍫</i><i>🧸</i><i>🥤</i><i>🍭</i><i>🎁</i><i>📚</i><i>🪀</i><i>🃏</i><i>🍪</i></div></div></div>'
+   +'<div class="clawcard"><div class="clawbox">🧸🐰🦖</div>'
+   +'<div style="flex:1"><div style="font-size:16px">🕹️ 인형뽑기</div>'
+   +'<div style="font-size:12px;opacity:.95">1회 1,000원 · 꽝 없음! 뭐가 나올까?</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="askClaw()">뽑기!</button></div>'
+   +'<div class="chips">'+chips+'</div>'
+   +'<div class="grid">'+grid+'</div>'
+   +'<p class="sub" style="margin-top:14px;font-size:12px">※ 간식은 2025~26 편의점 실제가, 장난감·굿즈는 시중가 기준.<br>여기서 산 물건은 부모님이 진짜로 사 주시는 약속이에요!</p>';
+}
+const CLAW_PRIZES = [["✨","반짝 스티커",30],["🐰","캐릭터 지우개",22],["🦖","미니 피규어",18],["🫧","슬라임",12],["🔑","캐릭터 키링",10],["🧸","미니 인형",6],["🐻","점보 인형",2]];
+function askClaw(){
+  if(S.money < 1000){
+    openModal('<div class="center"><div class="bigemo">🥲</div><h3 style="text-align:center">영머니가 부족해!</h3><p class="sub" style="text-align:center;margin:8px 0 16px">뽑기 1회는 1,000원 · 지금 '+comma(S.money)+'원<br>단어 공부하고 다시 오자!</p><button class="btn" onclick="closeModal()">알겠어!</button></div>');
+    return;
+  }
+  openModal('<div class="center"><div class="clawbox" style="margin:0 auto;width:84px;height:96px;font-size:18px">🧸🐰🦖</div><h3 style="text-align:center;margin-top:12px">인형뽑기 1회 = 1,000원</h3><p class="sub" style="text-align:center;margin:6px 0 16px">내 영머니 '+comma(S.money)+'원 · 꽝은 없어!</p><div class="btnrow"><button class="btn yellow" onclick="doClaw()">뽑는다! 🦾</button><button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
+}
+function doClaw(){
+  S.money -= 1000; updateMoney(); logEv("claw",{}); save();
+  openModal('<div class="center"><div class="clawbox clawshake" style="margin:0 auto;width:84px;height:96px;font-size:18px">🧸🐰🦖</div><p class="sub" style="margin-top:14px">두구두구두구... 🥁</p></div>');
+  setTimeout(()=>{
+    const total = CLAW_PRIZES.reduce((a,b)=>a+b[2],0);
+    let r = Math.random()*total, prize = CLAW_PRIZES[0];
+    for(const p of CLAW_PRIZES){ if(r < p[2]){ prize = p; break; } r -= p[2]; }
+    S.buys.unshift({id:"claw", nm:"인형뽑기 🎁 "+prize[1], emo:prize[0], pr:1000, date:todayStr(), given:false});
+    logEv("clawwin",{w:prize[1]}); save(); confetti(); Sfx.tada();
+    openModal('<div class="center"><div class="bigemo">'+prize[0]+'</div><h3 style="text-align:center">'+prize[1]+' 당첨! 🎉</h3><p class="sub" style="text-align:center;margin:8px 0 16px">영수증에 담겼어! 부모님께 보여 드리면<br>진짜 선물로 받을 수 있어.</p><div class="btnrow"><button class="btn yellow" onclick="closeModal();askClaw()">한 번 더!</button><button class="btn ghost" onclick="closeModal()">그만 뽑기</button></div></div>');
+  }, 2000);
+}
+function askBuy(id){
+  const it = STORE_ITEMS.find(x=>x.id===id);
+  if(!it || S.money < it.pr) return;
+  openModal('<div class="center"><div class="bigemo">'+it.emo+'</div>'
+   +'<h3 style="text-align:center">'+esc(it.nm)+'</h3>'
+   +'<p class="sub" style="text-align:center;margin:8px 0 16px">가격 <b>'+comma(it.pr)+'원</b> · 내 영머니 '+comma(S.money)+'원<br>구매하면 잔액은 '+comma(S.money-it.pr)+'원이 돼요.</p>'
+   +'<div class="btnrow"><button class="btn yellow" onclick="doBuy(\''+it.id+'\')">살래요!</button>'
+   +'<button class="btn ghost" onclick="closeModal()">고민해 볼래요</button></div></div>');
+}
+function doBuy(id){
+  const it = STORE_ITEMS.find(x=>x.id===id);
+  if(!it || S.money < it.pr){ closeModal(); return; }
+  S.money -= it.pr;
+  S.buys.unshift({id:it.id, nm:it.nm, emo:it.emo, pr:it.pr, date:todayStr(), given:false});
+  logEv("buy",{item:it.id, pr:it.pr});
+  updateMoney(); save(); Sfx.tada(); confetti();
+  openModal('<div class="center"><div class="bigemo">🛍️</div>'
+   +'<h3 style="text-align:center">구매 완료!</h3>'
+   +'<p class="sub" style="text-align:center;margin:8px 0 16px"><b>'+esc(it.nm)+'</b>이(가) 영수증에 담겼어요.<br>부모님께 영수증을 보여 드리면<br>진짜 간식으로 바꿔 주실 거예요! 🧾</p>'
+   +'<div class="btnrow"><button class="btn" onclick="closeModal();go(\'log\')">영수증 보기</button>'
+   +'<button class="btn ghost" onclick="closeModal();renderStore()">더 구경하기</button></div></div>');
+}
+/* ═══════════ 기록 (영수증 + 학습 기록) ═══════════ */
+function renderLog(){
+  const ds = S.dstats || {};
+  const t = todayStr();
+  let bars = "";
+  for(let i=13;i>=0;i--){
+    const d = addDays(t,-i), v = ds[d];
+    const w = v ? (v.w||0) : 0;
+    const h = w>0 ? Math.min(64, 6 + w*5) : ((v && ((v.q||0)>0||(v.min||0)>0)) ? 5 : 2);
+    bars += '<div class="db'+(i===0?" today":"")+'"><i style="height:'+h+'px"></i><span>'+Number(d.slice(8))+'</span></div>';
+  }
+  let tq=0, tr=0, wk=0;
+  for(const d in ds){ tq += ds[d].q||0; tr += ds[d].r||0; }
+  for(let i=6;i>=0;i--){ const v = ds[addDays(t,-i)]; if(v) wk += v.min||0; }
+  const acc = tq ? Math.round(tr/tq*100) : 0;
+  const mastered = Object.keys(S.learned).filter(w=>(S.learned[w].box||1)>=6).length;
+  let lvbars = "";
+  for(let l=1;l<=5;l++){
+    const done = WORDS[l].filter(a=>S.learned[a[0]]).length;
+    lvbars += '<div class="lvbar"><b>Lv.'+l+' '+LV_NAME[l]+'</b><div class="pbar"><i style="width:'+Math.round(done/WORDS[l].length*100)+'%"></i></div><span>'+done+'/'+WORDS[l].length+'</span></div>';
+  }
+  const weak = Object.keys(S.learned)
+    .map(w=>WIDX[w] ? {w, k:WIDX[w].k, miss:(S.learned[w].miss||0), box:Math.min(S.learned[w].box||1,6)} : null)
+    .filter(x=>x && x.miss>0).sort((a,b)=>b.miss-a.miss).slice(0,8);
+  let weakRows = "";
+  weak.forEach(x=>{ weakRows += '<div class="rline"><span class="remo">'+STAGE[x.box]+'</span><div class="rnm">'+esc(x.w)+'<small>'+esc(x.k)+'</small></div><span class="rpr" style="color:var(--red)">실수 '+x.miss+'번</span></div>'; });
+  let loglines = "";
+  if(S.log.length===0){ loglines = '<p class="sub" style="padding:8px 2px">아직 기록이 없어요. 오늘 첫 미션을 완료해 보자!</p>'; }
+  else S.log.slice(0,10).forEach(l=>{
+    loglines += '<div class="rline"><span class="remo">📅</span><div class="rnm">'+l.date+'<small>단어 '+l.n+'개 완료</small></div><span class="rpr" style="color:var(--green)">+'+comma(l.earn)+'</span></div>';
+  });
+  let rlines = "";
+  if(S.buys.length===0){
+    rlines = '<p class="sub center" style="padding:14px 0">아직 산 물건이 없어요.<br>영머니를 모아 첫 쇼핑을 해 보자! 🛍️</p>';
+  } else {
+    S.buys.forEach((b,i)=>{
+      rlines += '<div class="rline"><span class="remo">'+b.emo+'</span>'
+        +'<div class="rnm">'+esc(b.nm)+'<small>'+b.date+'</small></div>'
+        +'<span class="rpr">'+comma(b.pr)+'원</span>'
+        +'<button class="givebtn '+(b.given?"done":"")+'" onclick="toggleGiven('+i+')">'+(b.given?"✅ 받았어요":"전달 대기")+'</button></div>';
+    });
+  }
+  const spent = S.buys.reduce((a,b)=>a+b.pr,0);
+  $("#scr-log").innerHTML =
+   '<h2 class="sec">📊 '+esc(S.name||"나")+'의 대시보드'+(SESSION ? ' <span class="sub" style="font-size:11px">☁️ '+esc(SESSION.uid)+'</span>' : '')+'</h2>'
+   +'<div class="statrow">'
+   +'<div class="statbox"><b>'+totalLearned()+'</b><span>배운 단어</span></div>'
+   +'<div class="statbox"><b>'+mastered+'</b><span>마스터 👑</span></div>'
+   +'<div class="statbox"><b>'+(tq ? acc+"%" : "-")+'</b><span>퀴즈 정답률</span></div></div>'
+   +'<div class="card"><div class="mtitle" style="font-size:15px">최근 14일 학습량 <span class="sub" style="font-size:11px">막대 = 그날 외운 단어</span></div>'
+   +'<div class="dashbars">'+bars+'</div>'
+   +'<p class="sub" style="font-size:12px;margin-top:6px">이번 주 공부 시간 약 <b>'+Math.round(wk)+'분</b> · 🔥 연속 '+dispStreak()+'일째</p></div>'
+   +'<div class="card"><div class="mtitle" style="font-size:15px">레벨별 진행률</div>'+lvbars+'</div>'
+   +(weakRows ? '<div class="card"><div class="mtitle" style="font-size:15px">🎯 자주 틀리는 단어</div>'+weakRows+'</div>' : '')
+   +'<div class="card"><div class="mtitle" style="font-size:15px">최근 완료 기록</div>'+loglines+'</div>'
+   +'<h2 class="sec">🧾 쇼핑 영수증 <span class="sub" style="font-size:12px">(부모님 확인용)</span></h2>'
+   +'<div class="receipt"><h4>ENGLISH STORE ★ 영어 편의점</h4><div class="rsub">사 주신 뒤 [전달 대기]를 눌러 완료 표시해 주세요</div>'
+   + rlines
+   +'<div class="rline" style="border-bottom:none"><div class="rnm"><b>총 사용 영머니</b></div><span class="rpr"><b>'+comma(spent)+'원</b></span></div></div>';
+}
+function toggleGiven(i){ if(S.buys[i]){ S.buys[i].given = !S.buys[i].given; save(); renderLog(); } }
+
+/* ═══════════ 복습 · 단어장 ═══════════ */
+function renderReview(){
+  const due = dueReviews();
+  const learnedList = Object.keys(S.learned)
+    .map(w=>WIDX[w]).filter(Boolean)
+    .sort((a,b)=>(S.learned[b.w].date||"").localeCompare(S.learned[a.w].date||""));
+  let top;
+  if(due.length>0){
+    const locked = S.day && !S.day.reviewCleared;
+    top = '<div class="card'+(locked?' lockcard':'')+'"><div class="mtitle">'+(locked?"🔒 복습 먼저 끝내자!":"🔁 오늘 복습할 단어 "+due.length+"개")+'</div>'
+     +'<div class="mdesc">'+(locked?"복습 <b>"+due.length+"개</b>를 끝내야 오늘의 새 단어가 열려요.<br>":"")+'맞히면 단어당 <b>+'+REWARD.REVIEW+'</b>, 오늘 복습을 모두 끝내면 <b>+'+REWARD.REVIEW_ALL+'</b> 보너스!</div>'
+     +'<button class="btn" onclick="startQuiz(\'review\')">복습 퀴즈 시작</button></div>';
+  } else {
+    top = '<div class="card center"><div style="font-size:34px">😎</div><div class="mtitle">오늘 복습은 끝!</div>'
+     +'<div class="mdesc">외운 단어는 1일 → 3일 → 7일 → 14일 뒤에 다시 나와요.</div></div>';
+  }
+  let rows = "";
+  if(learnedList.length===0){
+    rows = '<p class="sub" style="padding:10px 2px">아직 배운 단어가 없어요. 오늘의 단어부터 시작해 보자!</p>';
+  } else {
+    const dueSet = {};
+    due.forEach(d=>{ dueSet[d.w]=true; });
+    learnedList.forEach(x=>{
+      const bx = Math.min(S.learned[x.w].box||1, 6);
+      rows += '<div class="wrow"><span style="font-size:17px;flex:0 0 24px;text-align:center">'+STAGE[bx]+'</span><button class="wspk" onclick="speak(\''+x.w+'\')">🔊</button>'
+        +'<span class="wen">'+esc(x.w)+'</span>'
+        +(dueSet[x.w] ? '<span class="duetag">복습!</span>' : '')
+        +'<span class="wko">'+esc(x.k)+'</span></div>';
+    });
+  }
+  const grown = learnedList.filter(x=>(S.learned[x.w].box||1)>=6).length;
+  const legend = learnedList.length ? '<div class="card" style="padding:10px 14px;font-size:12.5px;color:var(--sub);line-height:1.7">복습 퀴즈를 맞힐 때마다 단어가 자라요! 🌱→🌿→🪴→🌲→🌳→👑<br>틀리면 🌱부터 다시 · <b>👑 마스터 '+grown+'개</b></div>' : '';
+  $("#scr-review").innerHTML = top + legend
+   +'<h2 class="sec">📖 내 단어장 <span class="lvbadge">'+learnedList.length+'개</span></h2>'
+   +'<div class="card" style="padding:6px 14px">'+rows+'</div>';
+}
+
+/* ═══════════ 모달 · 설정 ═══════════ */
+function openModal(html){ $("#modalBox").innerHTML = html; $("#modalBg").classList.add("on"); }
+function closeModal(){ $("#modalBg").classList.remove("on"); }
+$("#modalBg").addEventListener("click", e=>{ if(e.target.id==="modalBg") closeModal(); });
+
+let VLIST = [];
+function openSettings(){
+  loadVoices();
+  VLIST = enVoices();
+  const modeTxt = storageMode==="server" ? "☁️ 서버(구글시트)에 자동 저장" : (storageMode==="server-off" ? "⚠️ 서버 연결 끊김 · 기기에 임시 저장" : (storageMode==="claude" ? "Claude 계정에 자동 저장" : (storageMode==="local" ? "이 기기 브라우저에 저장" : "저장 안 됨(체험 모드)")));
+  const micTxt = micState==="no" ? "사용 불가 · 자가 체크 모드" : (micState==="ok" ? "정상 작동 중 🎤" : "첫 사용 때 권한을 물어봐요");
+  let lvBtns = "";
+  for(let l=1;l<=5;l++){ lvBtns += '<button class="minibtn '+(S.level===l?"on":"")+'" onclick="setLv('+l+')">'+l+'</button>'; }
+  let vopts = '<option value="">자동 추천</option>';
+  VLIST.forEach((v,i)=>{ vopts += '<option value="'+i+'" '+(S.voiceName===v.name?"selected":"")+'>'+esc(v.name)+'</option>'; });
+  openModal('<h3>⚙️ 설정 <span class="sub" style="font-size:12px">(부모님과 함께)</span></h3>'
+   +'<div class="setrow"><span>이름</span><div style="display:flex;gap:6px;flex:1;max-width:220px">'
+   +'<input type="text" id="setNm" maxlength="10" value="'+esc(S.name)+'">'
+   +'<button class="minibtn" onclick="setName()">저장</button></div></div>'
+   +'<div class="setrow"><span>레벨 (미국 G1~G4)</span><div class="mini">'+lvBtns+'</div></div>'
+   +'<div class="setrow"><span>발음 음성</span><div style="display:flex;gap:6px;flex:1;max-width:230px;align-items:center">'
+   +'<select id="voiceSel" onchange="setVoice()" style="flex:1;font-family:inherit;font-size:13px;padding:8px;border-radius:10px;border:2px solid var(--line)">'+vopts+'</select>'
+   +'<button class="minibtn" onclick="speak(\'Hello! Nice to meet you. I am your English voice.\')">▶</button></div></div>'
+   +'<div class="setrow"><span></span><button class="minibtn" onclick="openVoiceGuide()">🌟 더 좋은 발음 만들기 (음성 설치법)</button></div>'
+   +(SESSION && SESSION.tts ? '<div class="setrow"><span>원어민 음성 (서버 AI)</span><button class="minibtn '+(S.ttsHQ!==false?"on":"")+'" onclick="toggleHQ()">'+(S.ttsHQ!==false?"켜짐":"꺼짐")+'</button></div>' : '')
+   +'<div class="setrow"><span>말하기 마이크</span><span class="sub" style="font-size:12px">'+micTxt+'</span></div>'
+   +'<div class="setrow"><span>발음 속도</span><div class="mini">'
+   +'<button class="minibtn '+(S.rate===0.7?"on":"")+'" onclick="setRate(0.7)">느리게</button>'
+   +'<button class="minibtn '+(S.rate===0.85?"on":"")+'" onclick="setRate(0.85)">보통</button>'
+   +'<button class="minibtn '+(S.rate===1.0?"on":"")+'" onclick="setRate(1.0)">빠르게</button></div></div>'
+   +'<div class="setrow"><span>효과음</span><button class="minibtn '+(S.mute?"":"on")+'" onclick="toggleMute()">'+(S.mute?"꺼짐":"켜짐")+'</button></div>'
+   +'<div class="setrow"><span>레벨 테스트 다시 보기</span><button class="minibtn" onclick="closeModal();startPlacement()">시작</button></div>'
+   +(SERVER_URL ? '<div class="setrow"><span>계정</span>'+(SESSION ? '<div class="mini"><span class="sub" style="font-size:12px;align-self:center">'+esc(SESSION.uid)+' ☁️</span><button class="minibtn" onclick="logout()">로그아웃</button></div>' : '<button class="minibtn" onclick="closeModal();renderAuth();show(\'auth\')">로그인 / 가입</button>')+'</div>' : '')
+   +'<div class="setrow"><span>저장 위치</span><span class="sub" style="font-size:12px">'+modeTxt+'</span></div>'
+   +'<div style="margin-top:16px"><button class="btn red sm" onclick="askReset()">데이터 전체 초기화</button></div>');
+}
+function setVoice(){
+  const v = $("#voiceSel").value;
+  S.voiceName = (v==="") ? "" : (VLIST[Number(v)] ? VLIST[Number(v)].name : "");
+  save(); speak("Hello! I am your new voice. Let's learn together!");
+}
+function openVoiceGuide(){
+  openModal('<h3>🌟 더 좋은 발음 만들기</h3>'
+   +'<p class="sub" style="font-size:13px;margin:8px 0 12px">이 앱은 기기에 설치된 영어 음성을 사용해요.<br>고품질 음성을 설치하면 발음이 훨씬 자연스러워져요!</p>'
+   +'<div class="card" style="padding:12px 14px;margin-bottom:10px"><b>🍎 아이폰 · 아이패드</b>'
+   +'<p class="sub" style="font-size:13px;margin-top:6px">설정 → 손쉬운 사용 → 콘텐츠 말하기 → 음성 → 영어 →<br><b>Ava / Samantha / Zoe (프리미엄·고급)</b> 다운로드<br>→ 이 앱 설정의 [발음 음성]에서 그 음성 선택</p></div>'
+   +'<div class="card" style="padding:12px 14px;margin-bottom:10px"><b>🤖 갤럭시 · 안드로이드</b>'
+   +'<p class="sub" style="font-size:13px;margin-top:6px">설정 → 일반(일반 관리) → 텍스트 음성 변환(TTS) →<br>기본 엔진을 <b>Google 음성 서비스</b>로 → 영어(미국) 음성 데이터 설치.<br>크롬 브라우저에서는 <b>Google US English</b>가 가장 자연스러워요.</p></div>'
+   +'<p class="sub" style="font-size:12px">💡 설치 후 이 앱을 다시 열고, 설정 → 발음 음성에서<br>여러 음성을 ▶로 들어 보고 제일 좋은 걸 고르세요.</p>'
+   +'<button class="btn" style="margin-top:10px" onclick="openSettings()">← 설정으로 돌아가기</button>');
+}
+function setName(){ const v=$("#setNm").value.trim(); if(v){ S.name=v; save(); if(S.placed){ renderHome(); } } closeModal(); }
+function setLv(l){ S.level=l; save(); openSettings(); if(S.placed) renderHome(); }
+function setRate(r){ S.rate=r; save(); openSettings(); speak("Hello! Nice to meet you."); }
+function toggleMute(){ S.mute=!S.mute; save(); openSettings(); }
+function toggleHQ(){ S.ttsHQ = (S.ttsHQ===false); save(); openSettings(); speak("Hello! This is my natural voice. Nice to meet you!"); }
+function askReset(){
+  openModal('<div class="center"><div class="bigemo">🗑️</div><h3 style="text-align:center">정말 처음부터 다시 할까요?</h3>'
+   +'<p class="sub" style="text-align:center;margin:8px 0 16px">영머니, 배운 단어, 영수증이 모두 사라져요.<br>되돌릴 수 없어요!</p>'
+   +'<div class="btnrow"><button class="btn red" onclick="doReset()">네, 초기화할래요</button>'
+   +'<button class="btn ghost" onclick="closeModal()">취소</button></div></div>');
+}
+function doReset(){
+  S = defaultState(); save(); updateMoney(); closeModal();
+  renderWelcome(); show("welcome");
+}
+
+/* ═══════════ 시작 ═══════════ */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.addEventListener("click", ()=>{ ac(); go(b.dataset.go); });
+});
+$("#gearBtn").addEventListener("click", openSettings);
+
+/* ═══════════ 로그인 / 가입 ═══════════ */
+let AUTHMODE = "login";
+function renderAuth(){
+  $("#scr-auth").innerHTML =
+   '<div class="card center" style="padding:26px 20px">'
+   +'<div class="bigemo">🏪</div>'
+   +'<h2 style="font-size:23px;margin-bottom:4px">영어 편의점</h2>'
+   +'<p class="sub" style="margin-bottom:16px">영어 단어를 외우고 영머니로 쇼핑하자!</p>'
+   +'<div class="authtab">'
+   +'<button class="'+(AUTHMODE==="login"?"on":"")+'" onclick="AUTHMODE=\'login\';renderAuth()">로그인</button>'
+   +'<button class="'+(AUTHMODE==="signup"?"on":"")+'" onclick="AUTHMODE=\'signup\';renderAuth()">처음이에요 (가입)</button></div>'
+   +'<input type="text" id="auId" maxlength="12" placeholder="아이디 (영문·숫자 3~12자)" autocapitalize="off" style="margin-bottom:10px">'
+   +(AUTHMODE==="signup" ? '<input type="text" id="auName" maxlength="10" placeholder="이름 (별명도 좋아요)" style="margin-bottom:10px">' : '')
+   +'<input type="password" id="auPin" maxlength="6" inputmode="numeric" placeholder="비밀번호 (숫자 4~6자리)" style="margin-bottom:12px">'
+   +'<button class="btn" id="auBtn" onclick="doAuth()">'+(AUTHMODE==="signup"?"가입하고 시작하기 🚀":"로그인")+'</button>'
+   +'<div class="autherr" id="auErr"></div>'
+   +'<button class="knowbtn" onclick="guestMode()">서버 없이 이 기기에서만 해볼래요 (게스트)</button>'
+   +'</div>';
+}
+function auErr(m){ const el=$("#auErr"); if(el) el.textContent=m; }
+async function doAuth(){
+  const uid = (($("#auId")||{}).value||"").trim().toLowerCase();
+  const pin = (($("#auPin")||{}).value||"").trim();
+  if(!/^[a-z0-9]{3,12}$/.test(uid)){ auErr("아이디는 영문·숫자 3~12자로 해 줘!"); return; }
+  if(!/^\d{4,6}$/.test(pin)){ auErr("비밀번호는 숫자 4~6자리!"); return; }
+  const btn=$("#auBtn"); if(btn){ btn.disabled=true; btn.textContent="연결 중..."; }
+  try{
+    if(AUTHMODE==="signup"){
+      const name = (($("#auName")||{}).value||"").trim() || uid;
+      const j = await api("signup", {uid, pin, name});
+      SESSION = {uid, name, token:j.token, tts:!!j.tts};
+    } else {
+      const j = await api("login", {uid, pin});
+      SESSION = {uid, name:j.name||uid, token:j.token, tts:!!j.tts};
+    }
+    saveSession(); logEv("login",{});
+    await bootUser();
+  }catch(e){
+    const msg = {
+      "dup":"이미 있는 아이디예요. 로그인 해 볼까?",
+      "nouser":"없는 아이디예요. 가입부터 해 줘!",
+      "badpin":"비밀번호가 틀렸어요!",
+      "badid":"아이디는 영문·숫자 3~12자!",
+      "no-server":"서버 주소가 아직 설정되지 않았어요."
+    }[e.message] || "연결 실패! 인터넷을 확인해 줘. (claude.ai 미리보기에서는 서버가 차단돼요 — GitHub Pages나 브라우저에서 열어 주세요)";
+    auErr(msg);
+    if(btn){ btn.disabled=false; btn.textContent = (AUTHMODE==="signup"?"가입하고 시작하기 🚀":"로그인"); }
+  }
+}
+function guestMode(){ SESSION=null; saveSession(); bootUser(); }
+function logout(){ SESSION=null; saveSession(); syncState="idle"; updateSyncDot(); closeModal(); renderAuth(); show("auth"); }
+
+/* ═══════════ 부팅 ═══════════ */
+async function bootUser(){
+  let loaded = null;
+  try{ loaded = await Store.load(); }catch(e){}
+  S = defaultState();
+  if(loaded){
+    for(const k in loaded){ if(k!=="_migrated" && k in S) S[k]=loaded[k]; }
+    if(loaded._migrated){ S.placed=false; S.learned={}; S.day=null; S.level=2; }
+  }
+  if(SESSION && !S.name) S.name = SESSION.name || "";
+  buildIndex();
+  if(storageMode==="none") $("#saveWarn").style.display="block";
+  updateMoney(); updateSyncDot(); startTimeTracker();
+  if(SESSION) flushServer();
+  if(!S.placed){ renderWelcome(); show("welcome"); }
+  else {
+    pickDay();
+    if(!S.day.reviewCleared && dueReviews().length>0){ renderReview(); show("review"); }
+    else { renderHome(); show("home"); }
+  }
+}
+(function init(){
+  loadSession();
+  if(SERVER_URL && !SESSION){ renderAuth(); show("auth"); return; }
+  bootUser();
+})();
+</script>
+</body>
+</html>
