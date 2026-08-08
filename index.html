@@ -583,7 +583,8 @@ async function speakServer(text, rate){
 
 /* ═══════════ 말하기 인식 (마이크 안 되면 자가 체크로 자동 전환) ═══════════ */
 const SRCls = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-let micState = SRCls ? "unknown" : "no";  /* unknown | ok | no */
+const CANREC = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+let micState = CANREC ? "unknown" : "no";  /* unknown | ok | no */
 let recNow = null;
 function listen(cb){
   if(!SRCls || micState==="no"){ cb(null); return; }
@@ -1163,6 +1164,7 @@ function show(id){
 }
 function go(tab){
   stopListen();
+  try{ recStop(); }catch(e){}
   if(!S.placed && tab!=="store"){ renderWelcome(); show("welcome"); return; }
   if(tab==="home"){ pickDay(); renderHome(); show("home"); }
   else if(tab==="store"){ renderStore("전체"); show("store"); }
@@ -1481,16 +1483,64 @@ function renderSpeak(){
   if(s.spStep===0) speak(w.w);
   if(s.spStep===2) speak(w.s);
 }
+let REC = {mr:null, chunks:[], url:null, busy:false, t:null};
+async function recStart(){
+  if(REC.busy) return;
+  stopAudio(); stopListen();
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const mr = new MediaRecorder(stream);
+    REC.mr = mr; REC.chunks = []; REC.busy = true;
+    mr.ondataavailable = e=>{ if(e.data && e.data.size) REC.chunks.push(e.data); };
+    mr.onstop = ()=>{
+      try{ stream.getTracks().forEach(t=>t.stop()); }catch(e){}
+      if(REC.url){ try{ URL.revokeObjectURL(REC.url); }catch(e){} }
+      const blob = new Blob(REC.chunks, {type: mr.mimeType || "audio/mp4"});
+      REC.url = URL.createObjectURL(blob);
+      REC.busy = false; micState = "ok";
+      renderRecUI("done");
+      setTimeout(playMyVoice, 250);
+    };
+    mr.start();
+    renderRecUI("rec");
+    REC.t = setTimeout(()=>{ try{ if(mr.state==="recording") mr.stop(); }catch(e){} }, 7000);
+  }catch(e){
+    REC.busy = false; micState = "no";
+    renderSpeak();
+  }
+}
+function recStop(){ clearTimeout(REC.t); try{ if(REC.mr && REC.mr.state==="recording") REC.mr.stop(); }catch(e){} }
+function playMyVoice(){
+  if(!REC.url) return;
+  stopAudio();
+  const a = new Audio(REC.url); CURA = a;
+  a.play().catch(()=>{});
+}
+function recAreaHtml(state){
+  const s = curSession();
+  const isWord = (s && s.spStep===0);
+  if(state==="rec"){
+    return '<button class="micbtn listening" onclick="recStop()">⏹</button>'
+     +'<p class="sub" style="font-size:13px">말하는 중... 🎙️ 다 말했으면 버튼을 눌러!<br>(7초 뒤 자동으로 멈춰요)</p>';
+  }
+  if(state==="done"){
+    return '<p class="sub" style="font-size:13px;margin-bottom:10px">녹음 완료! 내 발음과 원어민을 번갈아 듣고 비교해 봐 👂</p>'
+     +'<div class="btnrow" style="margin-bottom:10px">'
+     +'<button class="btn ghost sm" onclick="playMyVoice()">▶ 내 발음</button>'
+     +'<button class="btn ghost sm" onclick="'+(isWord?"speakCurWord()":"speakCurSent()")+'">🔊 원어민</button></div>'
+     +'<button class="btn yellow" onclick="speakPass()">비슷하게 말했어! 다음 ▶</button>'
+     +'<button class="knowbtn" onclick="recStart()">🔁 한 번 더 녹음하기</button>';
+  }
+  return '<button class="micbtn" onclick="recStart()">🎤</button>'
+   +'<p class="sub" style="font-size:13px">버튼을 누르고 '+(isWord?"단어":"문장")+'을 크게 말해 봐!<br>끝나면 내 목소리를 바로 들을 수 있어 👂</p>';
+}
+function renderRecUI(state){ const el = $("#recArea"); if(el) el.innerHTML = recAreaHtml(state); }
 function micArea(noMic, tip){
   if(noMic){
-    return '<div class="center"><p class="sub" style="font-size:13px;margin:6px 0">🎙️ 이 화면에서는 마이크를 쓸 수 없어서<br><b>스스로 체크 모드</b>로 진행해요. 크게 따라 말한 뒤 눌러 줘!</p>'
+    return '<div class="center"><p class="sub" style="font-size:13px;margin:6px 0">🎙️ 이 기기에서는 마이크를 쓸 수 없어서<br><b>스스로 체크 모드</b>로 진행해요. 크게 따라 말한 뒤 눌러 줘!</p>'
      +'<button class="btn" onclick="speakPass()">큰 소리로 따라 말했어요 ✔</button></div>';
   }
-  return '<div class="center"><button class="micbtn" id="micBtn" onclick="micGo()">🎤</button>'
-   +'<p class="sub" style="font-size:13px">마이크를 누르고 말해 봐! '+tip+'</p>'
-   +'<div class="heard" id="heard"></div>'
-   +(SP.fails>=2 ? '<button class="knowbtn" onclick="speakPass()">잘 안 돼요 → 직접 체크하고 넘어가기</button>' : '')
-   +'</div>';
+  return '<div class="center" id="recArea">'+recAreaHtml("idle")+'</div>';
 }
 function speakCurWord(){ const s=curSession(); speak(s.words[s.spIdx].w); }
 function speakCurSent(){ const s=curSession(); speak(s.words[s.spIdx].s); }
