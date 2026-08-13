@@ -325,6 +325,28 @@ nav button.on .ni{transform:scale(1.12)}
 .lvbar b{flex:0 0 76px;font-size:12px;font-weight:normal;color:var(--sub)}
 .lvbar .pbar{flex:1;margin:0}
 .lvbar span{flex:0 0 46px;font-size:11px;color:var(--sub);text-align:right}
+
+/* ── v4: 인형뽑기 기계 연출 · 관리자 상점 편집 ── */
+.clawstage{position:relative;height:265px;background:linear-gradient(#FFE7F0,#FFD1E0 72%,#F2A9C3 72%);border:4px solid #C23A68;border-radius:16px;overflow:hidden}
+.cs-rail{position:absolute;top:10px;left:8px;right:8px;height:8px;background:#8E2A4C;border-radius:4px}
+.cs-arm{position:absolute;top:14px;left:50%;width:34px;margin-left:-17px;transition:left 1.1s ease-in-out;z-index:3}
+.cs-rope{width:4px;background:#8E2A4C;margin:0 auto;height:12px;transition:height .8s ease-in-out}
+.cs-claw{font-size:30px;text-align:center;transform:scaleY(-1);filter:drop-shadow(0 2px 2px rgba(0,0,0,.2));transition:transform .25s}
+.cs-claw.closed{transform:scaleY(-1) scale(.8)}
+.cs-held{text-align:center;font-size:26px;height:30px;line-height:30px}
+.cs-held.dropping{animation:csdrop .7s ease-in forwards}
+@keyframes csdrop{to{transform:translateY(160px);opacity:0}}
+.cs-pile i{font-style:normal;position:absolute;bottom:36px;font-size:27px;filter:drop-shadow(0 2px 1px rgba(0,0,0,.15))}
+.cs-chute{position:absolute;left:10px;bottom:2px;width:52px;height:30px;background:#8E2A4C;color:#fff;border-radius:8px 8px 0 0;text-align:center;font-size:10px;line-height:30px;letter-spacing:1px;z-index:2}
+.cs-glass{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.35) 0 16%,transparent 16% 100%);pointer-events:none;z-index:4}
+.cs-msg{text-align:center;font-size:15px;margin-top:12px;min-height:22px;color:var(--sub)}
+.admrow{display:flex;gap:6px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line)}
+.admrow input{font-family:inherit;font-size:14px;border:2px solid var(--line);border-radius:10px;padding:8px 6px;background:#fff;color:var(--ink);min-width:0}
+.admrow .a-emo{flex:0 0 46px;text-align:center;padding:8px 2px}
+.admrow .a-nm{flex:1 1 auto}
+.admrow .a-pr{flex:0 0 68px;text-align:right}
+.admrow .a-cat{flex:0 0 62px;padding:8px 4px}
+.admdel{flex:0 0 30px;border:none;background:#FFECE7;color:var(--red-dk);border-radius:8px;padding:8px 0;cursor:pointer;font-size:13px}
 </style>
 </head>
 <body>
@@ -346,6 +368,7 @@ nav button.on .ni{transform:scale(1.12)}
     <div class="screen" id="scr-store"></div>
     <div class="screen" id="scr-review"></div>
     <div class="screen" id="scr-log"></div>
+    <div class="screen" id="scr-admin"></div>
   </main>
   <nav id="nav">
     <button data-go="home" class="on"><span class="ni">🏠</span>홈</button>
@@ -406,6 +429,26 @@ const STORE_ITEMS = [
   {id:"stickerbook", cat:"도서", nm:"스티커북", emo:"📖", pr:6000},
   {id:"comic", cat:"도서", nm:"만화책", emo:"📚", pr:10000},
 ];
+
+/* ═══════════ 상점 목록: 서버(구글시트 '상점' 탭)가 있으면 그걸 쓰고, 없으면 위 기본값 ═══════════ */
+let ITEMS = STORE_ITEMS.slice();
+function applyItems(arr){
+  if(Array.isArray(arr) && arr.length){
+    const ok = arr.filter(it=>it && it.nm && Number(it.pr)>0)
+      .map((it,i)=>({id:String(it.id||"c"+i), cat:String(it.cat||"기타"), nm:String(it.nm), emo:String(it.emo||"🎁"), pr:Number(it.pr)}));
+    if(ok.length){ ITEMS = ok; return true; }
+  }
+  return false;
+}
+function loadItemsCache(){ try{ applyItems(JSON.parse(localStorage.getItem("ecvs-items")||"null")); }catch(e){} }
+async function loadItemsServer(){
+  if(!SERVER_URL) return;
+  try{
+    const j = await api("items", {});
+    if(j.items === null){ try{ localStorage.removeItem("ecvs-items"); }catch(e){} ITEMS = STORE_ITEMS.slice(); }
+    else if(applyItems(j.items)){ try{ localStorage.setItem("ecvs-items", JSON.stringify(j.items)); }catch(e){} }
+  }catch(e){}
+}
 
 /* ═══════════ 서버 연결 설정 ═══════════
    ▼ 아래 따옴표 안에 Apps Script 웹앱 배포 URL을 붙여넣으세요. (설치가이드.md 참고)
@@ -644,7 +687,7 @@ function todayStr(d){ const x=d||new Date(); return x.getFullYear()+"-"+String(x
 function addDays(ds, n){ const d=new Date(ds+"T00:00:00"); d.setDate(d.getDate()+n); return todayStr(d); }
 function comma(n){ return (n||0).toLocaleString("ko-KR"); }
 function shuffle(a){ const b=a.slice(); for(let i=b.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; } return b; }
-function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function coinFly(txt, x, y){
   const el=document.createElement("div"); el.className="coinfly"; el.textContent=txt;
   el.style.left=(x-40)+"px"; el.style.top=(y-20)+"px";
@@ -1158,7 +1201,7 @@ function levelUpCheck(){
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
   $("#scr-"+id).classList.add("on");
-  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz") ? "home" : id;
+  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz") ? "home" : (id==="admin" ? "store" : id);
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===tab));
   window.scrollTo(0,0);
 }
@@ -1837,10 +1880,11 @@ function finishDrill(){
 let storeCat = "전체";
 function renderStore(cat){
   storeCat = cat || storeCat;
-  const cats = ["전체","간식","음료","장난감","굿즈","도서"];
+  const cats = ["전체"].concat(ITEMS.map(it=>it.cat).filter((c,i,a)=>a.indexOf(c)===i));
+  if(cats.indexOf(storeCat)<0) storeCat = "전체";
   let chips = "";
-  cats.forEach(c=>{ chips += '<button class="chip '+(c===storeCat?"on":"")+'" onclick="renderStore(\''+c+'\')">'+c+'</button>'; });
-  const list = STORE_ITEMS.filter(it=>storeCat==="전체"||it.cat===storeCat);
+  cats.forEach(c=>{ chips += '<button class="chip '+(c===storeCat?"on":"")+'" onclick="renderStore(\''+esc(c)+'\')">'+esc(c)+'</button>'; });
+  const list = ITEMS.filter(it=>storeCat==="전체"||it.cat===storeCat);
   let grid = "";
   list.forEach(it=>{
     const can = S.money >= it.pr;
@@ -1858,34 +1902,79 @@ function renderStore(cat){
    +'<div class="s-win"><i>🍦</i><i>🍫</i><i>🧸</i><i>🥤</i><i>🍭</i><i>🎁</i><i>📚</i><i>🪀</i><i>🃏</i><i>🍪</i></div></div></div>'
    +'<div class="clawcard"><div class="clawbox">🧸🐰🦖</div>'
    +'<div style="flex:1"><div style="font-size:16px">🕹️ 인형뽑기</div>'
-   +'<div style="font-size:12px;opacity:.95">1회 1,000원 · 꽝 없음! 뭐가 나올까?</div></div>'
+   +'<div style="font-size:12px;opacity:.95">1회 1,000원 · 꽝 없음!<br>최대 3,000원짜리 상품까지!</div></div>'
    +'<button class="btn sm yellow" style="width:auto" onclick="askClaw()">뽑기!</button></div>'
    +'<div class="chips">'+chips+'</div>'
    +'<div class="grid">'+grid+'</div>'
    +'<p class="sub" style="margin-top:14px;font-size:12px">※ 간식은 2025~26 편의점 실제가, 장난감·굿즈는 시중가 기준.<br>여기서 산 물건은 부모님이 진짜로 사 주시는 약속이에요!</p>';
 }
-const CLAW_PRIZES = [["✨","반짝 스티커",30],["🐰","캐릭터 지우개",22],["🦖","미니 피규어",18],["🫧","슬라임",12],["🔑","캐릭터 키링",10],["🧸","미니 인형",6],["🐻","점보 인형",2]];
+/* 뽑기 경품 = 상점 목록 중 3,000원 이하 전부. 싼 건 자주, 비싼 건 가끔 (꽝 없음) */
+function clawPool(){ return ITEMS.filter(it=>it && it.pr>0 && it.pr<=3000); }
+function clawWeight(pr){ return pr<=1000?30 : pr<=1500?22 : pr<=2000?12 : pr<=2500?6 : 4; }
+function pickClawPrize(){
+  const pool = clawPool();
+  if(!pool.length) return null;
+  const draw = ()=>{
+    let tot = 0; pool.forEach(it=>{ tot += clawWeight(it.pr); });
+    let r = Math.random()*tot;
+    for(const it of pool){ const w = clawWeight(it.pr); if(r < w) return it; r -= w; }
+    return pool[pool.length-1];
+  };
+  let p = draw();
+  /* 직전에 나온 상품이 또 나오면 한 번 다시 뽑기 (같은 것만 계속 나오는 느낌 방지) */
+  if(S.lastClaw && p.id===S.lastClaw && pool.length>1) p = draw();
+  return p;
+}
 function askClaw(){
   if(S.money < 1000){
     openModal('<div class="center"><div class="bigemo">🥲</div><h3 style="text-align:center">영머니가 부족해!</h3><p class="sub" style="text-align:center;margin:8px 0 16px">뽑기 1회는 1,000원 · 지금 '+comma(S.money)+'원<br>단어 공부하고 다시 오자!</p><button class="btn" onclick="closeModal()">알겠어!</button></div>');
     return;
   }
-  openModal('<div class="center"><div class="clawbox" style="margin:0 auto;width:84px;height:96px;font-size:18px">🧸🐰🦖</div><h3 style="text-align:center;margin-top:12px">인형뽑기 1회 = 1,000원</h3><p class="sub" style="text-align:center;margin:6px 0 16px">내 영머니 '+comma(S.money)+'원 · 꽝은 없어!</p><div class="btnrow"><button class="btn yellow" onclick="doClaw()">뽑는다! 🦾</button><button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
+  openModal('<div class="center"><div class="clawbox" style="margin:0 auto;width:84px;height:96px;font-size:18px">🧸🐰🦖</div><h3 style="text-align:center;margin-top:12px">인형뽑기 1회 = 1,000원</h3><p class="sub" style="text-align:center;margin:6px 0 16px">내 영머니 '+comma(S.money)+'원 · 꽝은 없어!<br>최대 3,000원짜리 상품이 걸려 있어 👀</p><div class="btnrow"><button class="btn yellow" onclick="doClaw()">뽑는다! 🦾</button><button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
 }
 function doClaw(){
+  const prize = pickClawPrize();
+  if(!prize){ closeModal(); return; }
   S.money -= 1000; updateMoney(); logEv("claw",{}); save();
-  openModal('<div class="center"><div class="clawbox clawshake" style="margin:0 auto;width:84px;height:96px;font-size:18px">🧸🐰🦖</div><p class="sub" style="margin-top:14px">두구두구두구... 🥁</p></div>');
+  const slots = [14,28,42,56,70,84];
+  const slotIdx = 1 + Math.floor(Math.random()*4);
+  const pool = clawPool();
+  let pile = "";
+  slots.forEach((x,i)=>{
+    const emo = (i===slotIdx) ? prize.emo : pool[Math.floor(Math.random()*pool.length)].emo;
+    pile += '<i id="csIt'+i+'" style="left:'+x+'%;transform:translateX(-50%)">'+emo+'</i>';
+  });
+  openModal('<div class="center"><h3 style="text-align:center;margin-bottom:10px">🕹️ 인형뽑기</h3>'
+   +'<div class="clawstage"><div class="cs-rail"></div>'
+   +'<div class="cs-arm" id="csArm" style="left:50%"><div class="cs-rope" id="csRope"></div><div class="cs-claw" id="csClaw">🦾</div><div class="cs-held" id="csHeld"></div></div>'
+   +'<div class="cs-pile">'+pile+'</div>'
+   +'<div class="cs-chute">OUT</div><div class="cs-glass"></div></div>'
+   +'<div class="cs-msg" id="csMsg">집게가 움직인다...</div></div>');
+  const arm=$("#csArm"), rope=$("#csRope"), claw=$("#csClaw"), held=$("#csHeld");
+  const setMsg = t=>{ const m=$("#csMsg"); if(m) m.textContent = t; };
+  tone(180,0,.35,"sawtooth",.05);
+  setTimeout(()=>{ if(arm) arm.style.left = slots[slotIdx]+"%"; tone(220,0,.9,"sawtooth",.04); }, 400);
+  setTimeout(()=>{ setMsg("내려간다... 두근두근!"); if(rope) rope.style.height="150px"; tone(160,0,.7,"sawtooth",.04); }, 1700);
   setTimeout(()=>{
-    const total = CLAW_PRIZES.reduce((a,b)=>a+b[2],0);
-    let r = Math.random()*total, prize = CLAW_PRIZES[0];
-    for(const p of CLAW_PRIZES){ if(r < p[2]){ prize = p; break; } r -= p[2]; }
-    S.buys.unshift({id:"claw", nm:"인형뽑기 🎁 "+prize[1], emo:prize[0], pr:1000, date:todayStr(), given:false});
-    logEv("clawwin",{w:prize[1]}); save(); confetti(); Sfx.tada();
-    openModal('<div class="center"><div class="bigemo">'+prize[0]+'</div><h3 style="text-align:center">'+prize[1]+' 당첨! 🎉</h3><p class="sub" style="text-align:center;margin:8px 0 16px">영수증에 담겼어! 부모님께 보여 드리면<br>진짜 선물로 받을 수 있어.</p><div class="btnrow"><button class="btn yellow" onclick="closeModal();askClaw()">한 번 더!</button><button class="btn ghost" onclick="closeModal()">그만 뽑기</button></div></div>');
-  }, 2000);
+    if(claw) claw.classList.add("closed");
+    const it=$("#csIt"+slotIdx); if(it) it.style.visibility="hidden";
+    if(held) held.textContent = prize.emo;
+    Sfx.flip(); setMsg("잡았다! 떨어뜨리지 마...");
+  }, 2600);
+  setTimeout(()=>{ if(rope) rope.style.height="12px"; tone(200,0,.7,"sawtooth",.04); }, 3100);
+  setTimeout(()=>{ if(arm) arm.style.left="14%"; tone(240,0,.8,"sawtooth",.04); setMsg("출구로 간다...!"); }, 4000);
+  setTimeout(()=>{ if(held) held.classList.add("dropping"); tone(320,0,.12,"square",.06); setMsg("나온다!"); }, 5100);
+  setTimeout(()=>{
+    S.lastClaw = prize.id;
+    S.buys.unshift({id:"claw", nm:"인형뽑기 🎁 "+prize.nm, emo:prize.emo, pr:1000, date:todayStr(), given:false});
+    logEv("clawwin",{w:prize.nm}); save(); confetti(); Sfx.tada();
+    openModal('<div class="center"><div class="bigemo">'+prize.emo+'</div><h3 style="text-align:center">'+esc(prize.nm)+' 당첨! 🎉</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px"><b>'+comma(prize.pr)+'원</b>짜리 상품이야!<br>영수증에 담겼어. 부모님께 보여 드리면<br>진짜 선물로 받을 수 있어.</p>'
+     +'<div class="btnrow"><button class="btn yellow" onclick="closeModal();askClaw()">한 번 더! 🦾</button><button class="btn ghost" onclick="closeModal()">그만 뽑기</button></div></div>');
+  }, 5800);
 }
 function askBuy(id){
-  const it = STORE_ITEMS.find(x=>x.id===id);
+  const it = ITEMS.find(x=>x.id===id);
   if(!it || S.money < it.pr) return;
   openModal('<div class="center"><div class="bigemo">'+it.emo+'</div>'
    +'<h3 style="text-align:center">'+esc(it.nm)+'</h3>'
@@ -1894,7 +1983,7 @@ function askBuy(id){
    +'<button class="btn ghost" onclick="closeModal()">고민해 볼래요</button></div></div>');
 }
 function doBuy(id){
-  const it = STORE_ITEMS.find(x=>x.id===id);
+  const it = ITEMS.find(x=>x.id===id);
   if(!it || S.money < it.pr){ closeModal(); return; }
   S.money -= it.pr;
   S.buys.unshift({id:it.id, nm:it.nm, emo:it.emo, pr:it.pr, date:todayStr(), given:false});
@@ -1968,6 +2057,68 @@ function renderLog(){
 }
 function toggleGiven(i){ if(S.buys[i]){ S.buys[i].given = !S.buys[i].given; save(); renderLog(); } }
 
+/* ═══════════ 관리자: 상점 목록·가격 편집 (관리자 계정으로 로그인 시 설정에 나타남) ═══════════ */
+let ADM = null;
+function openAdmin(){
+  if(!SESSION || !SESSION.admin){ go("store"); return; }
+  ADM = ITEMS.map(it=>Object.assign({},it));
+  renderAdmin(); show("admin");
+}
+function admCollect(){
+  if(!ADM) return;
+  ADM.forEach((it,i)=>{
+    const e=$("#admE"+i), n=$("#admN"+i), p=$("#admP"+i), c=$("#admC"+i);
+    if(e) it.emo = e.value.trim() || "🎁";
+    if(n) it.nm = n.value.trim();
+    if(p) it.pr = parseInt(String(p.value).replace(/[^0-9]/g,""),10) || 0;
+    if(c) it.cat = c.value.trim() || "기타";
+  });
+}
+function renderAdmin(msg){
+  let rows = "";
+  ADM.forEach((it,i)=>{
+    rows += '<div class="admrow">'
+     +'<input class="a-emo" id="admE'+i+'" maxlength="4" value="'+esc(it.emo)+'">'
+     +'<input class="a-nm" id="admN'+i+'" maxlength="20" placeholder="상품 이름" value="'+esc(it.nm)+'">'
+     +'<input class="a-pr" id="admP'+i+'" inputmode="numeric" value="'+it.pr+'">'
+     +'<input class="a-cat" id="admC'+i+'" maxlength="6" placeholder="분류" value="'+esc(it.cat)+'">'
+     +'<button class="admdel" onclick="admDel('+i+')">✕</button></div>';
+  });
+  $("#scr-admin").innerHTML =
+   '<h2 class="sec">🛠 상점 관리 <span class="sub" style="font-size:12px">(관리자 전용)</span></h2>'
+   +'<div class="card"><p class="sub" style="font-size:13px;margin-bottom:8px">순서: 이모지 · 이름 · 가격(원) · 분류.<br>분류를 새로 적으면(예: 문구류) 상점에 그 칸이 자동으로 생겨요.<br>3,000원 이하 상품은 인형뽑기 경품에도 자동으로 들어가요.</p>'
+   + rows
+   +'<div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" onclick="admAdd()">+ 상품 추가</button>'
+   +'<button class="btn sm" onclick="admSave()">💾 저장</button></div>'
+   +'<button class="knowbtn" onclick="admReset()">기본 상품 36개로 되돌리기</button>'
+   +'<div class="qfeed" id="admFeed">'+(msg||"")+'</div></div>'
+   +'<button class="btn ghost" onclick="go(\'store\')">← 편의점 화면으로</button>';
+}
+function admAdd(){
+  admCollect();
+  ADM.push({id:"c"+Date.now().toString(36)+Math.floor(Math.random()*1000), cat:"간식", nm:"", emo:"🎁", pr:1000});
+  renderAdmin();
+  window.scrollTo(0, document.body.scrollHeight);
+}
+function admDel(i){ admCollect(); ADM.splice(i,1); renderAdmin(); }
+function admReset(){ ADM = STORE_ITEMS.map(it=>Object.assign({},it)); renderAdmin('기본 상품으로 되돌렸어요. <b>저장</b>을 눌러야 적용됩니다.'); }
+async function admSave(){
+  admCollect();
+  const items = ADM.filter(it=>it.nm && it.pr>0);
+  if(!items.length){ renderAdmin('<span class="oops">저장할 상품이 없어요! 이름과 가격을 채워 주세요.</span>'); return; }
+  const fb=$("#admFeed"); if(fb) fb.textContent = "서버에 저장하는 중...";
+  try{
+    await api("saveitems", {uid:SESSION.uid, token:SESSION.token, items});
+    applyItems(items);
+    try{ localStorage.setItem("ecvs-items", JSON.stringify(items)); }catch(e){}
+    ADM = ITEMS.map(it=>Object.assign({},it));
+    renderAdmin('<span class="good">저장 완료 ✅ 아이 기기에서는 앱을 새로 열면 바뀐 상점이 보여요.</span>');
+  }catch(e){
+    const raw = (e && e.message) ? e.message : String(e);
+    renderAdmin('<span class="oops">저장 실패: '+esc(raw==="notadmin"?"관리자 계정이 아니에요":raw)+'</span>');
+  }
+}
+
 /* ═══════════ 복습 · 단어장 ═══════════ */
 function renderReview(){
   const due = dueReviews();
@@ -2038,6 +2189,7 @@ function openSettings(){
    +'<button class="minibtn '+(S.rate===1.0?"on":"")+'" onclick="setRate(1.0)">빠르게</button></div></div>'
    +'<div class="setrow"><span>효과음</span><button class="minibtn '+(S.mute?"":"on")+'" onclick="toggleMute()">'+(S.mute?"꺼짐":"켜짐")+'</button></div>'
    +'<div class="setrow"><span>레벨 테스트 다시 보기</span><button class="minibtn" onclick="closeModal();startPlacement()">시작</button></div>'
+   +(SESSION && SESSION.admin ? '<div class="setrow"><span>🛠 상점 관리 (관리자)</span><button class="minibtn" onclick="closeModal();openAdmin()">열기</button></div>' : '')
    +(SERVER_URL ? '<div class="setrow"><span>계정</span>'+(SESSION ? '<div class="mini"><span class="sub" style="font-size:12px;align-self:center">'+esc(SESSION.uid)+' ☁️</span><button class="minibtn" onclick="logout()">로그아웃</button></div>' : '<button class="minibtn" onclick="closeModal();renderAuth();show(\'auth\')">로그인 / 가입</button>')+'</div>' : '')
    +'<div class="setrow"><span>저장 위치</span><span class="sub" style="font-size:12px">'+modeTxt+'</span></div>'
    +'<div style="margin-top:16px"><button class="btn red sm" onclick="askReset()">데이터 전체 초기화</button></div>');
@@ -2110,10 +2262,10 @@ async function doAuth(){
     if(AUTHMODE==="signup"){
       const name = (($("#auName")||{}).value||"").trim() || uid;
       const j = await api("signup", {uid, pin, name});
-      SESSION = {uid, name, token:j.token, tts:!!j.tts};
+      SESSION = {uid, name, token:j.token, tts:!!j.tts, admin:!!j.admin};
     } else {
       const j = await api("login", {uid, pin});
-      SESSION = {uid, name:j.name||uid, token:j.token, tts:!!j.tts};
+      SESSION = {uid, name:j.name||uid, token:j.token, tts:!!j.tts, admin:!!j.admin};
     }
     saveSession(); logEv("login",{});
     await bootUser();
@@ -2147,6 +2299,7 @@ function logout(){ SESSION=null; saveSession(); syncState="idle"; updateSyncDot(
 
 /* ═══════════ 부팅 ═══════════ */
 async function bootUser(){
+  loadItemsCache(); loadItemsServer();
   let loaded = null;
   try{ loaded = await Store.load(); }catch(e){}
   S = defaultState();
