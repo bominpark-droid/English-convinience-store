@@ -381,7 +381,7 @@ nav button.on .ni{transform:scale(1.12)}
 <script>
 /* ═══════════ 설정/상수 (v2 보상 체계) ═══════════ */
 const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50 };
-const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑"];
+const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑","🎓"];
 const DAILY_N = 10;
 const LV_NAME = ["", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
 const BOX_GAP = [0, 1, 3, 7, 14, 30, 60];
@@ -1099,7 +1099,7 @@ let S = null;
 function defaultState(){ return {
   v:2, name:"", level:2, placed:false,
   money:0, earned:0, streak:0, best:0, lastDone:null,
-  rate:0.85, mute:false, voiceName:"", lastBoss:null, ttsHQ:true, dstats:{},
+  rate:0.85, mute:false, voiceName:"", lastBoss:null, ttsHQ:true, dstats:{}, revCap:20, lastClaw:"",
   learned:{},   /* word -> {lv, box, next, date} */
   day:null,     /* {date, sessions:[], reviewCleared, reviewBonusGiven} */
   buys:[], log:[]
@@ -1136,8 +1136,12 @@ function newSession(){
 }
 function pickDay(){
   const t = todayStr();
-  if (S.day && S.day.date===t) return;
-  S.day = { date:t, sessions:[], reviewCleared:false, reviewBonusGiven:false };
+  if (S.day && S.day.date===t){
+    if(!S.day.revSet){ S.day.revSet = allDue().slice(0, revCap()).map(x=>x.w); save(); }
+    return;
+  }
+  S.day = { date:t, sessions:[], reviewCleared:false, reviewBonusGiven:false, revSet:[] };
+  S.day.revSet = allDue().slice(0, revCap()).map(x=>x.w);
   const ses = newSession(); if(ses) S.day.sessions.push(ses);
   if (dueReviews().length===0){ S.day.reviewCleared = true; S.day.reviewBonusGiven = true; }
   save();
@@ -1148,14 +1152,24 @@ function curSession(){
   return S.day.sessions[S.day.sessions.length-1] || null;
 }
 function dayEarned(){ return S.day ? S.day.sessions.reduce((a,b)=>a+(b.earned||0),0) : 0; }
-function dueReviews(){
+function allDue(){
   const t = todayStr(), out=[];
   for(const w in S.learned){
     const r = S.learned[w];
     if(r.next && r.next<=t && WIDX[w]) out.push(Object.assign({}, WIDX[w], {ref:r}));
   }
+  out.sort((a,b)=>String(a.ref.next).localeCompare(String(b.ref.next)));  /* 오래 밀린 것부터 */
   return out;
 }
+function revCap(){ return S.revCap || 20; }
+/* 오늘 낼 복습 = 그날 아침에 뽑아 고정한 목록(S.day.revSet) 중 아직 안 푼 것 */
+function dueReviews(){
+  const all = allDue();
+  const set = (S.day && S.day.revSet) ? S.day.revSet : null;
+  if(!set) return all.slice(0, revCap());
+  return all.filter(x=>set.indexOf(x.w)>=0);
+}
+function backlogN(){ return Math.max(0, allDue().length - dueReviews().length); }
 function weekSatStr(){
   const d=new Date(); const day=d.getDay();
   const diff = (day===0) ? -1 : (6-day);
@@ -1178,7 +1192,7 @@ function bossAvailable(){
 function drillPool(){
   return Object.keys(S.learned)
     .map(w=>WIDX[w]?Object.assign({},WIDX[w],{ref:S.learned[w]}):null)
-    .filter(x=>x && (x.ref.miss||0)>=2)
+    .filter(x=>x && (x.ref.miss||0)>=2 && (x.ref.box||1)<7)
     .sort((a,b)=>(b.ref.miss||0)-(a.ref.miss||0))
     .slice(0,10);
 }
@@ -1300,12 +1314,14 @@ function finishPlacement(){
 function renderHome(){
   pickDay();
   const due = dueReviews().length;
+  const bl = backlogN();
   const stk = dispStreak();
   const s = curSession();
   let mission = "";
   if(!S.day.reviewCleared && due>0){
     mission = '<div class="card mission lockcard"><div class="mtitle">🔒 먼저 복습부터!</div>'
-      +'<div class="mdesc">어제까지 배운 단어 <b>'+due+'개</b>를 복습해야<br>오늘의 새 단어가 열려요. 다 맞히면 <b>+'+REWARD.REVIEW_ALL+'</b> 보너스!</div>'
+      +'<div class="mdesc">오늘 복습할 단어는 <b>'+due+'개</b>! 이것만 끝내면<br>오늘의 새 단어가 열려요. 다 맞히면 <b>+'+REWARD.REVIEW_ALL+'</b> 보너스!'
+      +(bl>0 ? '<br><span style="font-size:12px">복습은 하루에 '+revCap()+'개까지만 나와요. 오늘 몫만 하면 끝! 😊</span>' : '')+'</div>'
       +'<button class="btn" onclick="startQuiz(\'review\')">복습 시작 🔁</button></div>';
   } else if(!s){
     mission = '<div class="card mission center"><div class="bigemo">🏆</div><div class="mtitle">모든 단어를 마스터했어!</div>'
@@ -1346,7 +1362,7 @@ function renderHome(){
   let reviewCard = "";
   if(S.day.reviewCleared && due>0){
     reviewCard = '<div class="card"><div class="mtitle">🔁 복습할 단어 '+due+'개</div>'
-      +'<div class="mdesc">복습 퀴즈를 맞히면 단어당 <b>영머니 '+REWARD.REVIEW+'원</b>!</div>'
+      +'<div class="mdesc">복습 퀴즈를 맞히면 단어당 <b>영머니 '+REWARD.REVIEW+'원</b>!<br>👑에서 한 번 더 맞히면 <b>🎓 졸업</b> — 다시 안 나와요.</div>'
       +'<button class="btn" onclick="startQuiz(\'review\')">복습 퀴즈 시작</button></div>';
   }
   $("#scr-home").innerHTML =
@@ -1735,11 +1751,17 @@ function qAnswer(idx, el){
     } else if(Q.mode==="review"){
       const ref = item.ref;
       const ob = ref.box||1;
-      ref.box = Math.min(ob+1, 6);
-      ref.next = addDays(t, BOX_GAP[ref.box]);
+      if(ob>=6){
+        ref.box = 7; ref.next = "";   /* 졸업: 다시 안 나옴 */
+        feed = '<span class="good">🎓 졸업! 이 단어는 완전히 외웠어! 이제 복습에 안 나와 🎉</span>';
+        confetti();
+      } else {
+        ref.box = ob+1;
+        ref.next = addDays(t, BOX_GAP[ref.box]);
+        feed = '<span class="good">정답! '+STAGE[ob]+' → '+STAGE[ref.box]+' 자랐어! 🎉</span>';
+      }
       addMoney(REWARD.REVIEW, el);
       Q.earned += REWARD.REVIEW;
-      if(ref.box>ob) feed = '<span class="good">정답! '+STAGE[ob]+' → '+STAGE[ref.box]+' 자랐어! 🎉</span>';
     } else if(Q.mode==="boss"){
       addMoney(REWARD.BOSS_WORD, el);
       Q.earned += REWARD.BOSS_WORD;
@@ -1764,11 +1786,12 @@ function qAnswer(idx, el){
       $("#qFeed").innerHTML = '<span class="oops">앗! 정답은 <b>'+esc(Q.cur.opts[correct])+'</b> · 이따 다시 나와요</span>';
     } else if(Q.mode==="review"){
       const ref = item.ref;
-      ref.box = 1; ref.next = addDays(t,1); ref.miss = (ref.miss||0)+1;
-      $("#qFeed").innerHTML = '<span class="oops">정답은 <b>'+esc(Q.cur.opts[correct])+'</b> · 🌱부터 다시 키우자!</span>';
+      const ob2 = Math.min(ref.box||1, 6);
+      ref.box = Math.max(1, ob2-1); ref.next = addDays(t,1); ref.miss = (ref.miss||0)+1;
+      $("#qFeed").innerHTML = '<span class="oops">정답은 <b>'+esc(Q.cur.opts[correct])+'</b> · '+STAGE[ob2]+' → '+STAGE[ref.box]+' 한 칸만 내려갔어. 내일 다시!</span>';
     } else {
       const ref = item.ref;
-      ref.box = 1; ref.next = addDays(t,1); ref.miss = (ref.miss||0)+1;
+      ref.box = Math.max(1, Math.min(ref.box||1,6)-1); ref.next = addDays(t,1); ref.miss = (ref.miss||0)+1;
       item._req = true; Q.perfect = false;
       Q.queue.push(item);
       $("#qFeed").innerHTML = '<span class="oops">정답은 <b>'+esc(Q.cur.opts[correct])+'</b> · 이따 다시!</span>';
@@ -2011,13 +2034,14 @@ function renderLog(){
   for(let i=6;i>=0;i--){ const v = ds[addDays(t,-i)]; if(v) wk += v.min||0; }
   const acc = tq ? Math.round(tr/tq*100) : 0;
   const mastered = Object.keys(S.learned).filter(w=>(S.learned[w].box||1)>=6).length;
+  const gradN = Object.keys(S.learned).filter(w=>(S.learned[w].box||1)>=7).length;
   let lvbars = "";
   for(let l=1;l<=5;l++){
     const done = WORDS[l].filter(a=>S.learned[a[0]]).length;
     lvbars += '<div class="lvbar"><b>Lv.'+l+' '+LV_NAME[l]+'</b><div class="pbar"><i style="width:'+Math.round(done/WORDS[l].length*100)+'%"></i></div><span>'+done+'/'+WORDS[l].length+'</span></div>';
   }
   const weak = Object.keys(S.learned)
-    .map(w=>WIDX[w] ? {w, k:WIDX[w].k, miss:(S.learned[w].miss||0), box:Math.min(S.learned[w].box||1,6)} : null)
+    .map(w=>WIDX[w] ? {w, k:WIDX[w].k, miss:(S.learned[w].miss||0), box:Math.min(S.learned[w].box||1,7)} : null)
     .filter(x=>x && x.miss>0).sort((a,b)=>b.miss-a.miss).slice(0,8);
   let weakRows = "";
   weak.forEach(x=>{ weakRows += '<div class="rline"><span class="remo">'+STAGE[x.box]+'</span><div class="rnm">'+esc(x.w)+'<small>'+esc(x.k)+'</small></div><span class="rpr" style="color:var(--red)">실수 '+x.miss+'번</span></div>'; });
@@ -2042,11 +2066,12 @@ function renderLog(){
    '<h2 class="sec">📊 '+esc(S.name||"나")+'의 대시보드'+(SESSION ? ' <span class="sub" style="font-size:11px">☁️ '+esc(SESSION.uid)+'</span>' : '')+'</h2>'
    +'<div class="statrow">'
    +'<div class="statbox"><b>'+totalLearned()+'</b><span>배운 단어</span></div>'
-   +'<div class="statbox"><b>'+mastered+'</b><span>마스터 👑</span></div>'
+   +'<div class="statbox"><b>'+mastered+'</b><span>👑 마스터</span></div>'
+   +'<div class="statbox"><b>'+gradN+'</b><span>🎓 졸업</span></div>'
    +'<div class="statbox"><b>'+(tq ? acc+"%" : "-")+'</b><span>퀴즈 정답률</span></div></div>'
    +'<div class="card"><div class="mtitle" style="font-size:15px">최근 14일 학습량 <span class="sub" style="font-size:11px">막대 = 그날 외운 단어</span></div>'
    +'<div class="dashbars">'+bars+'</div>'
-   +'<p class="sub" style="font-size:12px;margin-top:6px">이번 주 공부 시간 약 <b>'+Math.round(wk)+'분</b> · 🔥 연속 '+dispStreak()+'일째</p></div>'
+   +'<p class="sub" style="font-size:12px;margin-top:6px">이번 주 공부 시간 약 <b>'+Math.round(wk)+'분</b> · 🔥 연속 '+dispStreak()+'일째<br>복습 대기 <b>'+comma(allDue().length)+'개</b> (하루 '+revCap()+'개씩 출제 · 설정에서 조절)</p></div>'
    +'<div class="card"><div class="mtitle" style="font-size:15px">레벨별 진행률</div>'+lvbars+'</div>'
    +(weakRows ? '<div class="card"><div class="mtitle" style="font-size:15px">🎯 자주 틀리는 단어</div>'+weakRows+'</div>' : '')
    +'<div class="card"><div class="mtitle" style="font-size:15px">최근 완료 기록</div>'+loglines+'</div>'
@@ -2121,7 +2146,9 @@ async function admSave(){
 
 /* ═══════════ 복습 · 단어장 ═══════════ */
 function renderReview(){
+  pickDay();
   const due = dueReviews();
+  const bl = backlogN();
   const learnedList = Object.keys(S.learned)
     .map(w=>WIDX[w]).filter(Boolean)
     .sort((a,b)=>(S.learned[b.w].date||"").localeCompare(S.learned[a.w].date||""));
@@ -2129,11 +2156,12 @@ function renderReview(){
   if(due.length>0){
     const locked = S.day && !S.day.reviewCleared;
     top = '<div class="card'+(locked?' lockcard':'')+'"><div class="mtitle">'+(locked?"🔒 복습 먼저 끝내자!":"🔁 오늘 복습할 단어 "+due.length+"개")+'</div>'
-     +'<div class="mdesc">'+(locked?"복습 <b>"+due.length+"개</b>를 끝내야 오늘의 새 단어가 열려요.<br>":"")+'맞히면 단어당 <b>+'+REWARD.REVIEW+'</b>, 오늘 복습을 모두 끝내면 <b>+'+REWARD.REVIEW_ALL+'</b> 보너스!</div>'
+     +'<div class="mdesc">'+(locked?"복습 <b>"+due.length+"개</b>를 끝내야 오늘의 새 단어가 열려요.<br>":"")+'맞히면 단어당 <b>+'+REWARD.REVIEW+'</b>, 오늘 복습을 모두 끝내면 <b>+'+REWARD.REVIEW_ALL+'</b> 보너스!'
+     +(bl>0 ? '<br><span style="font-size:12px">복습은 하루 '+revCap()+'개까지만! 나머지는 다음에 천천히 나와요 😊</span>' : '')+'</div>'
      +'<button class="btn" onclick="startQuiz(\'review\')">복습 퀴즈 시작</button></div>';
   } else {
     top = '<div class="card center"><div style="font-size:34px">😎</div><div class="mtitle">오늘 복습은 끝!</div>'
-     +'<div class="mdesc">외운 단어는 1일 → 3일 → 7일 → 14일 뒤에 다시 나와요.</div></div>';
+     +'<div class="mdesc">외운 단어는 1일 → 3일 → 7일 → 14일 → 30일 → 60일 뒤에<br>다시 나오고, 여섯 번 다 맞히면 <b>🎓 졸업</b>이야!</div></div>';
   }
   let rows = "";
   if(learnedList.length===0){
@@ -2142,7 +2170,7 @@ function renderReview(){
     const dueSet = {};
     due.forEach(d=>{ dueSet[d.w]=true; });
     learnedList.forEach(x=>{
-      const bx = Math.min(S.learned[x.w].box||1, 6);
+      const bx = Math.min(S.learned[x.w].box||1, 7);
       rows += '<div class="wrow"><span style="font-size:17px;flex:0 0 24px;text-align:center">'+STAGE[bx]+'</span><button class="wspk" onclick="speak(\''+x.w+'\')">🔊</button>'
         +'<span class="wen">'+esc(x.w)+'</span>'
         +(dueSet[x.w] ? '<span class="duetag">복습!</span>' : '')
@@ -2150,7 +2178,8 @@ function renderReview(){
     });
   }
   const grown = learnedList.filter(x=>(S.learned[x.w].box||1)>=6).length;
-  const legend = learnedList.length ? '<div class="card" style="padding:10px 14px;font-size:12.5px;color:var(--sub);line-height:1.7">복습 퀴즈를 맞힐 때마다 단어가 자라요! 🌱→🌿→🪴→🌲→🌳→👑<br>틀리면 🌱부터 다시 · <b>👑 마스터 '+grown+'개</b></div>' : '';
+  const gradN = learnedList.filter(x=>(S.learned[x.w].box||1)>=7).length;
+  const legend = learnedList.length ? '<div class="card" style="padding:10px 14px;font-size:12.5px;color:var(--sub);line-height:1.7">복습 퀴즈를 맞힐 때마다 단어가 자라요! 🌱→🌿→🪴→🌲→🌳→👑→<b>🎓</b><br>틀리면 <b>한 칸만</b> 내려가요 · 👑 '+grown+'개 · <b>🎓 졸업 '+gradN+'개</b></div>' : '';
   $("#scr-review").innerHTML = top + legend
    +'<h2 class="sec">📖 내 단어장 <span class="lvbadge">'+learnedList.length+'개</span></h2>'
    +'<div class="card" style="padding:6px 14px">'+rows+'</div>';
@@ -2187,6 +2216,10 @@ function openSettings(){
    +'<button class="minibtn '+(S.rate===0.7?"on":"")+'" onclick="setRate(0.7)">느리게</button>'
    +'<button class="minibtn '+(S.rate===0.85?"on":"")+'" onclick="setRate(0.85)">보통</button>'
    +'<button class="minibtn '+(S.rate===1.0?"on":"")+'" onclick="setRate(1.0)">빠르게</button></div></div>'
+   +'<div class="setrow"><span>하루 복습 최대</span><div class="mini">'
+   +'<button class="minibtn '+(revCap()===10?"on":"")+'" onclick="setRevCap(10)">10개</button>'
+   +'<button class="minibtn '+(revCap()===20?"on":"")+'" onclick="setRevCap(20)">20개</button>'
+   +'<button class="minibtn '+(revCap()===30?"on":"")+'" onclick="setRevCap(30)">30개</button></div></div>'
    +'<div class="setrow"><span>효과음</span><button class="minibtn '+(S.mute?"":"on")+'" onclick="toggleMute()">'+(S.mute?"꺼짐":"켜짐")+'</button></div>'
    +'<div class="setrow"><span>레벨 테스트 다시 보기</span><button class="minibtn" onclick="closeModal();startPlacement()">시작</button></div>'
    +(SESSION && SESSION.admin ? '<div class="setrow"><span>🛠 상점 관리 (관리자)</span><button class="minibtn" onclick="closeModal();openAdmin()">열기</button></div>' : '')
@@ -2212,6 +2245,11 @@ function openVoiceGuide(){
 function setName(){ const v=$("#setNm").value.trim(); if(v){ S.name=v; save(); if(S.placed){ renderHome(); } } closeModal(); }
 function setLv(l){ S.level=l; save(); openSettings(); if(S.placed) renderHome(); }
 function setRate(r){ S.rate=r; save(); openSettings(); speak("Hello! Nice to meet you."); }
+function setRevCap(n){
+  S.revCap = n;
+  if(S.day) S.day.revSet = null;
+  pickDay(); save(); openSettings();
+}
 function toggleMute(){ S.mute=!S.mute; save(); openSettings(); }
 function toggleHQ(){ S.ttsHQ = (S.ttsHQ===false); save(); openSettings(); speak("Hello! This is my natural voice. Nice to meet you!"); }
 function askReset(){
