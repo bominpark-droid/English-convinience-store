@@ -383,7 +383,8 @@ nav button.on .ni{transform:scale(1.12)}
 const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50 };
 const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑","🎓"];
 const DAILY_N = 10;
-const LV_NAME = ["", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
+const LV_NAME = ["왕초보 🐥", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
+const LV_MIN = 0, LV_MAX = 5;
 const BOX_GAP = [0, 1, 3, 7, 14, 30, 60];
 
 const STORE_ITEMS = [
@@ -440,11 +441,26 @@ function applyItems(arr){
   }
   return false;
 }
-function loadItemsCache(){ try{ applyItems(JSON.parse(localStorage.getItem("ecvs-items")||"null")); }catch(e){} }
+let ITEMS_FAMILY = false;   /* true = 지금 화면의 상점은 「우리 집 상점」 */
+/* 우리 집 상점은 계정 상태(S.items)에 들어가 서버로 함께 저장된다.
+   저장 칸을 아끼려고 [이모지, 이름, 가격, 분류] 네 칸짜리 줄로 줄여서 넣는다. */
+function packItems(items){ return items.map(it=>[String(it.emo||"🎁"), String(it.nm||""), Number(it.pr)||0, String(it.cat||"기타")]); }
+function unpackItems(arr){
+  if(!Array.isArray(arr)) return null;
+  return arr.map((it,i)=> Array.isArray(it)
+    ? {id:"f"+i, emo:String(it[0]||"🎁"), nm:String(it[1]||""), pr:Number(it[2])||0, cat:String(it[3]||"기타")}
+    : it);   /* 예전에 객체로 저장된 것도 그대로 받아들인다 */
+}
+function applyFamilyItems(){
+  if(S && Array.isArray(S.items) && S.items.length && applyItems(unpackItems(S.items))){ ITEMS_FAMILY = true; return true; }
+  ITEMS_FAMILY = false; return false;
+}
+function loadItemsCache(){ if(ITEMS_FAMILY) return; try{ applyItems(JSON.parse(localStorage.getItem("ecvs-items")||"null")); }catch(e){} }
 async function loadItemsServer(){
-  if(!SERVER_URL) return;
+  if(!SERVER_URL || ITEMS_FAMILY) return;
   try{
     const j = await api("items", {});
+    if(ITEMS_FAMILY) return;
     if(j.items === null){ try{ localStorage.removeItem("ecvs-items"); }catch(e){} ITEMS = STORE_ITEMS.slice(); }
     else if(applyItems(j.items)){ try{ localStorage.setItem("ecvs-items", JSON.stringify(j.items)); }catch(e){} }
     const sc = $("#scr-store");
@@ -731,6 +747,83 @@ function confetti(){
 /* ═══════ 단어 DB v2: 미국 초등 학년 기준 (G1~G4), 각 75개 ═══════
    형식: [단어, 뜻, 예문, 예문해석, 말하기문장(짧고 쉬움), 말하기해석] */
 const WORDS = {
+0:[
+["hello","안녕(만났을 때)","Hello! My name is Mina.","안녕! 내 이름은 미나야.","Hello, teacher!","안녕하세요, 선생님!"],
+["hi","안녕(가볍게)","Hi, how are you?","안녕, 잘 지내?","Hi! I am Jun.","안녕! 나는 준이야."],
+["bye","안녕(헤어질 때)","Bye! See you tomorrow.","안녕! 내일 봐.","Bye, Mom!","엄마, 다녀올게요!"],
+["yes","응, 네","Yes, I like it.","응, 나 그거 좋아해.","Yes, I can do it!","응, 나 할 수 있어!"],
+["no","아니, 아니요","No, thank you.","아니요, 괜찮아요.","No, it is not mine.","아니, 그건 내 거 아니야."],
+["please","~해 주세요","Please give me water.","물 좀 주세요.","One more, please!","하나만 더 주세요!"],
+["thank","고마워하다","Thank you, Mom!","엄마, 고마워요!","Thank you so much!","정말 고마워!"],
+["sorry","미안한","Sorry, I am late.","늦어서 미안해요.","Sorry, my mistake.","미안해, 내 실수야."],
+["name","이름","My name is Jun.","내 이름은 준이야.","What is your name?","네 이름은 뭐야?"],
+["friend","친구","She is my friend.","그 애는 내 친구야.","You are my friend.","너는 내 친구야."],
+["one","하나, 1","I have one apple.","나는 사과가 하나 있어.","Give me one, please.","하나만 주세요."],
+["two","둘, 2","I have two eyes.","나는 눈이 두 개야.","I want two cookies.","쿠키 두 개 먹고 싶어."],
+["three","셋, 3","Three cats are here.","고양이 세 마리가 여기 있어.","I am three steps away.","나는 세 걸음 떨어져 있어."],
+["four","넷, 4","There are four books.","책이 네 권 있어.","A dog has four legs.","개는 다리가 네 개야."],
+["five","다섯, 5","My hand has five fingers.","내 손에는 손가락이 다섯 개야.","Count to five!","다섯까지 세어 봐!"],
+["six","여섯, 6","Six ducks swim.","오리 여섯 마리가 헤엄쳐.","I am six years old.","나는 여섯 살이야."],
+["seven","일곱, 7","I am seven years old.","나는 일곱 살이야.","Seven days make a week.","일곱 날이 한 주야."],
+["eight","여덟, 8","Eight birds fly.","새 여덟 마리가 날아.","I sleep eight hours.","나는 여덟 시간 자."],
+["nine","아홉, 9","Nine stars are bright.","별 아홉 개가 밝아.","My sister is nine.","우리 누나는 아홉 살이야."],
+["ten","열, 10","Ten cars are red.","차 열 대가 빨간색이야.","I can count to ten.","나는 열까지 셀 수 있어."],
+["red","빨간색","The apple is red.","사과는 빨간색이야.","My hat is red.","내 모자는 빨간색이야."],
+["blue","파란색","The sky is blue.","하늘은 파란색이야.","I like blue.","나는 파란색을 좋아해."],
+["yellow","노란색","The banana is yellow.","바나나는 노란색이야.","My bag is yellow.","내 가방은 노란색이야."],
+["green","초록색","The grass is green.","풀은 초록색이야.","Trees are green.","나무는 초록색이야."],
+["black","검은색","My dog is black.","우리 개는 검은색이야.","I have black shoes.","나는 검은 신발이 있어."],
+["white","하얀색","Snow is white.","눈은 하얀색이야.","The milk is white.","우유는 하얀색이야."],
+["pink","분홍색","Her bag is pink.","그 애 가방은 분홍색이야.","I want a pink one.","분홍색으로 주세요."],
+["color","색깔","What color is it?","그건 무슨 색이야?","My color is blue.","내가 좋아하는 색은 파랑이야."],
+["mom","엄마","My mom is kind.","우리 엄마는 다정해.","Mom, I am home!","엄마, 저 왔어요!"],
+["dad","아빠","My dad is tall.","우리 아빠는 키가 커.","Dad, look at me!","아빠, 저 좀 보세요!"],
+["baby","아기","The baby is small.","아기는 작아.","The baby is sleeping.","아기가 자고 있어."],
+["sister","누나, 언니, 여동생","My sister is seven.","우리 언니는 일곱 살이야.","I have one sister.","나는 여동생이 한 명 있어."],
+["brother","형, 오빠, 남동생","My brother is nine.","우리 형은 아홉 살이야.","My brother is funny.","우리 오빠는 웃겨."],
+["family","가족","I love my family.","나는 우리 가족을 사랑해.","My family is big.","우리 가족은 대가족이야."],
+["grandma","할머니","Grandma made cookies.","할머니가 쿠키를 만드셨어.","I miss my grandma.","할머니가 보고 싶어."],
+["grandpa","할아버지","Grandpa is funny.","할아버지는 재미있으셔.","Grandpa, hello!","할아버지, 안녕하세요!"],
+["head","머리","Touch your head.","머리를 만져 봐.","My head is big.","내 머리는 커."],
+["hand","손","Give me your hand.","손을 줘 봐.","Wash your hand.","손을 씻어."],
+["eye","눈","My eye is brown.","내 눈은 갈색이야.","Close your eye.","눈을 감아 봐."],
+["ear","귀","My ear is small.","내 귀는 작아.","Cover your ear.","귀를 막아 봐."],
+["nose","코","My nose is cold.","내 코가 차가워.","Touch your nose.","코를 만져 봐."],
+["mouth","입","Open your mouth.","입을 벌려 봐.","My mouth is full.","입이 가득 찼어."],
+["foot","발","My foot is big.","내 발은 커.","One foot, then two.","한 발, 그다음 두 발."],
+["cat","고양이","The cat is sleeping.","고양이가 자고 있어.","I have a cat.","나는 고양이를 키워."],
+["dog","개","My dog runs fast.","우리 개는 빨리 달려.","The dog is friendly.","그 개는 친해."],
+["bird","새","A bird sings.","새가 노래해.","The bird can fly.","새는 날 수 있어."],
+["fish","물고기","The fish swims.","물고기가 헤엄쳐.","I see a fish!","물고기가 보여!"],
+["rabbit","토끼","The rabbit jumps high.","토끼가 높이 뛰어.","The rabbit is white.","그 토끼는 하얀색이야."],
+["bear","곰","The bear is big.","곰은 커.","The bear is sleeping.","곰이 자고 있어."],
+["tiger","호랑이","The tiger is strong.","호랑이는 힘이 세.","I am not a tiger.","나는 호랑이가 아니야."],
+["lion","사자","The lion sleeps a lot.","사자는 잠을 많이 자.","The lion is loud.","사자는 소리가 커."],
+["duck","오리","The duck says quack.","오리는 꽥꽥 울어.","A duck is in the pond.","오리가 연못에 있어."],
+["pig","돼지","The pig is pink.","돼지는 분홍색이야.","The pig eats a lot.","돼지는 많이 먹어."],
+["milk","우유","I drink milk.","나는 우유를 마셔.","Milk is good for you.","우유는 몸에 좋아."],
+["water","물","I want water.","나 물 마시고 싶어.","Water, please!","물 주세요!"],
+["apple","사과","The apple is sweet.","사과는 달아.","I eat an apple.","나는 사과를 먹어."],
+["banana","바나나","I eat a banana.","나는 바나나를 먹어.","The banana is long.","바나나는 길어."],
+["bread","빵","I like bread.","나는 빵을 좋아해.","Bread is warm.","빵이 따뜻해."],
+["rice","밥, 쌀","Mom cooks rice.","엄마가 밥을 지으셔.","I eat rice every day.","나는 매일 밥을 먹어."],
+["egg","달걀","The egg is white.","달걀은 하얀색이야.","I want one egg.","달걀 하나 주세요."],
+["cake","케이크","The cake is yummy.","케이크가 맛있어.","It is my birthday cake.","이건 내 생일 케이크야."],
+["book","책","I read a book.","나는 책을 읽어.","This book is fun.","이 책 재미있어."],
+["pencil","연필","My pencil is short.","내 연필은 짧아.","I need a pencil.","연필이 필요해."],
+["bag","가방","My bag is heavy.","내 가방은 무거워.","Where is my bag?","내 가방 어디 있지?"],
+["school","학교","I go to school.","나는 학교에 가.","My school is close.","우리 학교는 가까워."],
+["desk","책상","My desk is clean.","내 책상은 깨끗해.","Sit at the desk.","책상에 앉아."],
+["chair","의자","Sit on the chair.","의자에 앉아.","The chair is small.","그 의자는 작아."],
+["door","문","Open the door.","문을 열어.","Close the door, please.","문 좀 닫아 줘."],
+["ball","공","The ball is round.","공은 둥글어.","Throw the ball!","공을 던져!"],
+["go","가다","Go to bed now.","이제 자러 가.","Let us go!","우리 가자!"],
+["eat","먹다","I eat lunch at noon.","나는 낮 열두 시에 점심을 먹어.","I want to eat.","나 먹고 싶어."],
+["run","달리다","I run to school.","나는 학교까지 달려가.","Run with me!","나랑 같이 달리자!"],
+["big","큰","The elephant is big.","코끼리는 커.","My shoes are big.","내 신발은 커."],
+["small","작은","The mouse is small.","쥐는 작아.","This is too small.","이건 너무 작아."],
+["happy","행복한","I am happy today.","나는 오늘 행복해.","You look happy!","너 행복해 보여!"],
+],
 1:[
 ["afraid","무서워하는","Some kids are afraid of the dark.","어떤 아이들은 어둠을 무서워해요.","I am not afraid!","나는 무섭지 않아!"],
 ["asleep","잠든","The baby is asleep in the crib.","아기가 아기 침대에서 잠들어 있어요.","The cat is asleep.","고양이가 잠들었어요."],
@@ -1123,6 +1216,8 @@ function defaultState(){ return {
   v:2, name:"", level:2, placed:false,
   money:0, earned:0, streak:0, best:0, lastDone:null,
   rate:0.85, mute:false, voiceName:"", lastBoss:null, ttsHQ:true, dstats:{}, revCap:20, lastClaw:"",
+  items:null,   /* 우리 집 상점 목록 (없으면 공용 기본 상점) */
+  ppin:"",      /* 부모 잠금번호 4자리 */
   learned:{},   /* word -> {lv, box, next, date} */
   day:null,     /* {date, sessions:[], reviewCleared, reviewBonusGiven} */
   buys:[], log:[]
@@ -1148,7 +1243,7 @@ function inDayWords(w){ return S.day && S.day.sessions.some(ss=>ss.words.some(x=
 function unlearnedPool(){
   const out=[];
   for(let lv=S.level; lv<=5; lv++) WORDS[lv].forEach(a=>{ if(!S.learned[a[0]] && !inDayWords(a[0])) out.push({w:a[0],k:a[1],e:a[2],t:a[3],s:a[4],st:a[5],lv}); });
-  for(let lv=S.level-1; lv>=1; lv--) WORDS[lv].forEach(a=>{ if(!S.learned[a[0]] && !inDayWords(a[0])) out.push({w:a[0],k:a[1],e:a[2],t:a[3],s:a[4],st:a[5],lv}); });
+  for(let lv=S.level-1; lv>=LV_MIN; lv--) WORDS[lv].forEach(a=>{ if(!S.learned[a[0]] && !inDayWords(a[0])) out.push({w:a[0],k:a[1],e:a[2],t:a[3],s:a[4],st:a[5],lv}); });
   return out;
 }
 function newSession(){
@@ -1222,7 +1317,7 @@ function drillPool(){
 function unlearnedIn(lv){ return WORDS[lv].filter(a=>!S.learned[a[0]]); }
 function levelUpCheck(){
   let upped = 0;
-  while(S.level<5 && unlearnedIn(S.level).length===0){ S.level++; upped++; }
+  while(S.level<LV_MAX && unlearnedIn(S.level).length===0){ S.level++; upped++; }
   if(upped>0){
     addMoney(REWARD.LEVELUP*upped);
     confetti(); Sfx.tada();
@@ -1267,7 +1362,8 @@ function renderWelcome(){
    +'<p class="sub" style="margin-bottom:18px">매일 새 단어 <b>10개</b>를 배우고 퀴즈까지 끝내면<br><b>영머니 500원+보너스</b>! 더 배우면 더 벌 수 있어.<br>모은 영머니로 편의점에서 진짜 간식을 골라 봐 🍦🍫</p>'
    +'<input type="text" id="nmInput" maxlength="10" placeholder="이름을 알려 줘!" style="margin-bottom:12px" value="'+esc(S.name)+'">'
    +'<button class="btn" onclick="beginPlacement()">내 영어 레벨 알아보기 🚀</button>'
-   +'<p class="sub" style="margin-top:12px;font-size:12px">퀴즈 15개로 미국 초등 기준 레벨을 찾아 줄게.<br>다 풀면 시작 보너스 영머니 300원!</p>'
+   +'<button class="knowbtn" onclick="startBeginner()">영어가 처음이에요 · 왕초보부터 시작할래요 🐥</button>'
+   +'<p class="sub" style="margin-top:12px;font-size:12px">퀴즈 18개로 레벨(왕초보~미국 G4)을 찾아 줄게.<br>다 풀면 시작 보너스 영머니 300원!<br>7살·유치원이면 레벨 테스트 없이 <b>왕초보</b>로 바로 시작해도 좋아.</p>'
    +'</div>';
 }
 function beginPlacement(){
@@ -1275,15 +1371,25 @@ function beginPlacement(){
   S.name = nm || S.name || "친구"; save();
   ac(); startPlacement();
 }
+/* 레벨 테스트를 건너뛰고 왕초보(Lv.0)부터 — 7살·유치원 아이용 */
+function startBeginner(){
+  const nm = $("#nmInput") ? $("#nmInput").value.trim() : "";
+  S.name = nm || S.name || "친구";
+  S.level = 0; S.placed = true;
+  S.money += REWARD.PLACE; S.earned += REWARD.PLACE;
+  logEv("place",{lv:0});
+  save(); ac(); updateMoney();
+  pickDay(); renderHome(); show("home");
+}
 
 /* ═══════════ 레벨 테스트 ═══════════ */
 let P = null;
 function startPlacement(){
   const qs=[];
-  for(let lv=1; lv<=5; lv++){
+  for(let lv=LV_MIN; lv<=LV_MAX; lv++){
     shuffle(WORDS[lv]).slice(0,3).forEach(a=>qs.push({w:a[0], k:a[1], lv}));
   }
-  P = {qs, i:0, score:{1:0,2:0,3:0,4:0,5:0}, lock:false};
+  P = {qs, i:0, score:{0:0,1:0,2:0,3:0,4:0,5:0}, lock:false};
   renderPQ(); show("place");
 }
 function renderPQ(){
@@ -1314,8 +1420,8 @@ function pAnswer(idx){
 }
 function pNext(){ P.i++; if(P.i < P.qs.length) renderPQ(); else finishPlacement(); }
 function finishPlacement(){
-  let lvl = 1;
-  for(let l=1; l<=5; l++){ if(P.score[l]>=2) lvl=l; else break; }
+  let lvl = LV_MIN;
+  for(let l=LV_MIN; l<=LV_MAX; l++){ if(P.score[l]>=2) lvl=l; else break; }
   S.level = lvl;
   const first = !S.placed;
   S.placed = true;
@@ -2061,7 +2167,7 @@ function renderLog(){
   const mastered = Object.keys(S.learned).filter(w=>(S.learned[w].box||1)>=6).length;
   const gradN = Object.keys(S.learned).filter(w=>(S.learned[w].box||1)>=7).length;
   let lvbars = "";
-  for(let l=1;l<=5;l++){
+  for(let l=LV_MIN;l<=LV_MAX;l++){
     const done = WORDS[l].filter(a=>S.learned[a[0]]).length;
     lvbars += '<div class="lvbar"><b>Lv.'+l+' '+LV_NAME[l]+'</b><div class="pbar"><i style="width:'+Math.round(done/WORDS[l].length*100)+'%"></i></div><span>'+done+'/'+WORDS[l].length+'</span></div>';
   }
@@ -2107,10 +2213,59 @@ function renderLog(){
 }
 function toggleGiven(i){ if(S.buys[i]){ S.buys[i].given = !S.buys[i].given; save(); renderLog(); } }
 
-/* ═══════════ 관리자: 상점 목록·가격 편집 (관리자 계정으로 로그인 시 설정에 나타남) ═══════════ */
+/* ═══════════ 부모 모드 — 잠금번호 4자리로 들어간다 ═══════════
+   아이 화면에서는 안 보이고, 부모만 상점·레벨·초기화를 만질 수 있게 하는 장치.
+   대표(서버 관리자 계정)는 잠금번호 없이 항상 열린다. */
+let PARENT = false;
+function isParent(){ return PARENT || !!(SESSION && SESSION.admin); }
+function openParent(){
+  if(isParent()){ closeModal(); openSettings(); return; }
+  if(!S.ppin) return askParentSet();
+  askParentPin();
+}
+function askParentSet(){
+  openModal('<h3>🔒 부모 모드 만들기</h3>'
+   +'<p class="sub" style="font-size:13px;margin:8px 0 12px">부모님만 쓰는 <b>잠금번호 4자리</b>를 정해 주세요.<br>이 번호를 넣어야 상점·레벨·초기화를 바꿀 수 있어요.<br>아이에게는 알려 주지 마세요!</p>'
+   +'<input type="password" id="pp1" maxlength="4" inputmode="numeric" placeholder="숫자 4자리" style="margin-bottom:8px">'
+   +'<input type="password" id="pp2" maxlength="4" inputmode="numeric" placeholder="한 번 더" style="margin-bottom:10px">'
+   +'<div class="qfeed" id="ppFeed"></div>'
+   +'<div class="btnrow"><button class="btn sm" onclick="doParentSet()">정하기</button>'
+   +'<button class="btn ghost sm" onclick="openSettings()">취소</button></div>');
+}
+function doParentSet(){
+  const a=($("#pp1")||{}).value||"", b=($("#pp2")||{}).value||"", f=$("#ppFeed");
+  if(!/^\d{4}$/.test(a)){ if(f) f.innerHTML='<span class="oops">숫자 4자리로 정해 주세요.</span>'; return; }
+  if(a!==b){ if(f) f.innerHTML='<span class="oops">두 번 넣은 번호가 서로 달라요.</span>'; return; }
+  S.ppin = a; PARENT = true; save(); openSettings();
+}
+function askParentPin(){
+  openModal('<h3>🔒 부모 모드</h3>'
+   +'<p class="sub" style="font-size:13px;margin:8px 0 12px">잠금번호 4자리를 넣어 주세요.</p>'
+   +'<input type="password" id="pp1" maxlength="4" inputmode="numeric" placeholder="숫자 4자리" style="margin-bottom:10px">'
+   +'<div class="qfeed" id="ppFeed"></div>'
+   +'<div class="btnrow"><button class="btn sm" onclick="doParentPin()">열기</button>'
+   +'<button class="btn ghost sm" onclick="openSettings()">취소</button></div>');
+  setTimeout(()=>{ const el=$("#pp1"); if(el) el.focus(); }, 60);
+}
+function doParentPin(){
+  const a=($("#pp1")||{}).value||"", f=$("#ppFeed");
+  if(a!==S.ppin){ if(f) f.innerHTML='<span class="oops">번호가 달라요.</span>'; return; }
+  PARENT = true; openSettings();
+}
+function parentOff(){ PARENT=false; closeModal(); }
+function askPinChange(){
+  openModal('<h3>🔒 잠금번호 바꾸기</h3>'
+   +'<input type="password" id="pp1" maxlength="4" inputmode="numeric" placeholder="새 번호 숫자 4자리" style="margin-bottom:8px">'
+   +'<input type="password" id="pp2" maxlength="4" inputmode="numeric" placeholder="한 번 더" style="margin-bottom:10px">'
+   +'<div class="qfeed" id="ppFeed"></div>'
+   +'<div class="btnrow"><button class="btn sm" onclick="doParentSet()">바꾸기</button>'
+   +'<button class="btn ghost sm" onclick="openSettings()">취소</button></div>');
+}
+
+/* ═══════════ 우리 집 상점 꾸미기 (부모 모드에서만) ═══════════ */
 let ADM = null;
 function openAdmin(){
-  if(!SESSION || !SESSION.admin){ go("store"); return; }
+  if(!isParent()){ go("store"); return; }
   ADM = ITEMS.map(it=>Object.assign({},it));
   renderAdmin(); show("admin");
 }
@@ -2135,12 +2290,14 @@ function renderAdmin(msg){
      +'<button class="admdel" onclick="admDel('+i+')">✕</button></div>';
   });
   $("#scr-admin").innerHTML =
-   '<h2 class="sec">🛠 상점 관리 <span class="sub" style="font-size:12px">(관리자 전용)</span></h2>'
-   +'<div class="card"><p class="sub" style="font-size:13px;margin-bottom:8px">순서: 이모지 · 이름 · 가격(원) · 분류.<br>분류를 새로 적으면(예: 문구류) 상점에 그 칸이 자동으로 생겨요.<br>3,000원 이하 상품은 인형뽑기 경품에도 자동으로 들어가요.</p>'
+   '<h2 class="sec">🛠 우리 집 상점 꾸미기 <span class="sub" style="font-size:12px">(부모 모드)</span></h2>'
+   +'<div class="card"><p class="sub" style="font-size:13px;margin-bottom:8px">여기서 고친 상점은 <b>'+esc((SESSION&&SESSION.uid)||"이 계정")+' 계정에만</b> 보여요. 다른 집 상점은 안 바뀝니다.<br>순서: 이모지 · 이름 · 가격(원) · 분류.<br>분류를 새로 적으면(예: 문구류) 상점에 그 칸이 자동으로 생겨요.<br>3,000원 이하 상품은 인형뽑기 경품에도 자동으로 들어가요.</p>'
    + rows
    +'<div class="btnrow" style="margin-top:12px"><button class="btn ghost sm" onclick="admAdd()">+ 상품 추가</button>'
-   +'<button class="btn sm" onclick="admSave()">💾 저장</button></div>'
+   +'<button class="btn sm" onclick="admSave()">💾 우리 집 상점으로 저장</button></div>'
    +'<button class="knowbtn" onclick="admReset()">기본 상품 36개로 되돌리기</button>'
+   +(ITEMS_FAMILY ? '<button class="knowbtn" onclick="admDropFamily()">우리 집 상점 지우고 공용 상점 쓰기</button>' : "")
+   +(SESSION && SESSION.admin ? '<button class="knowbtn" onclick="admSaveShared()">☁️ 모든 집의 기본 상점으로도 저장 (대표 전용)</button>' : "")
    +'<div class="qfeed" id="admFeed">'+(msg||"")+'</div></div>'
    +'<button class="btn ghost" onclick="go(\'store\')">← 편의점 화면으로</button>';
 }
@@ -2152,17 +2309,34 @@ function admAdd(){
 }
 function admDel(i){ admCollect(); ADM.splice(i,1); renderAdmin(); }
 function admReset(){ ADM = STORE_ITEMS.map(it=>Object.assign({},it)); renderAdmin('기본 상품으로 되돌렸어요. <b>저장</b>을 눌러야 적용됩니다.'); }
-async function admSave(){
+function admList(){
   admCollect();
   const items = ADM.filter(it=>it.nm && it.pr>0);
-  if(!items.length){ renderAdmin('<span class="oops">저장할 상품이 없어요! 이름과 가격을 채워 주세요.</span>'); return; }
+  if(!items.length){ renderAdmin('<span class="oops">저장할 상품이 없어요! 이름과 가격을 채워 주세요.</span>'); return null; }
+  return items;
+}
+function admSave(){
+  const items = admList(); if(!items) return;
+  S.items = packItems(items); save();   /* 계정 상태에 저장 → 서버(구글시트)로 자동 동기화 */
+  applyItems(unpackItems(S.items)); ITEMS_FAMILY = true;
+  ADM = ITEMS.map(it=>Object.assign({},it));
+  renderAdmin('<span class="good">우리 집 상점으로 저장했어요 ✅ '
+    + (SESSION ? '같은 계정으로 로그인한 다른 기기에서는 앱을 새로 열면 보여요.' : '이 기기에 저장했어요.') + '</span>');
+}
+function admDropFamily(){
+  S.items = null; save(); ITEMS_FAMILY = false;
+  ITEMS = STORE_ITEMS.slice();
+  loadItemsCache(); loadItemsServer();
+  ADM = ITEMS.map(it=>Object.assign({},it));
+  renderAdmin('<span class="good">우리 집 상점을 지웠어요. 이제 공용 기본 상점을 씁니다.</span>');
+}
+async function admSaveShared(){
+  const items = admList(); if(!items) return;
   const fb=$("#admFeed"); if(fb) fb.textContent = "서버에 저장하는 중...";
   try{
     await api("saveitems", {uid:SESSION.uid, token:SESSION.token, items});
-    applyItems(items);
     try{ localStorage.setItem("ecvs-items", JSON.stringify(items)); }catch(e){}
-    ADM = ITEMS.map(it=>Object.assign({},it));
-    renderAdmin('<span class="good">저장 완료 ✅ 아이 기기에서는 앱을 새로 열면 바뀐 상점이 보여요.</span>');
+    renderAdmin('<span class="good">모든 집의 기본 상점으로도 저장했어요 ☁️</span>');
   }catch(e){
     const raw = (e && e.message) ? e.message : String(e);
     renderAdmin('<span class="oops">저장 실패: '+esc(raw==="notadmin"?"관리자 계정이 아니에요":raw)+'</span>');
@@ -2223,14 +2397,14 @@ function openSettings(){
   const modeTxt = storageMode==="server" ? "☁️ 서버(구글시트)에 자동 저장" : (storageMode==="server-off" ? "⚠️ 서버 연결 끊김 · 기기에 임시 저장" : (storageMode==="claude" ? "Claude 계정에 자동 저장" : (storageMode==="local" ? "이 기기 브라우저에 저장" : "저장 안 됨(체험 모드)")));
   const micTxt = micState==="no" ? "사용 불가 · 자가 체크 모드" : (micState==="ok" ? "정상 작동 중 🎤" : "첫 사용 때 권한을 물어봐요");
   let lvBtns = "";
-  for(let l=1;l<=5;l++){ lvBtns += '<button class="minibtn '+(S.level===l?"on":"")+'" onclick="setLv('+l+')">'+l+'</button>'; }
+  for(let l=LV_MIN;l<=LV_MAX;l++){ lvBtns += '<button class="minibtn '+(S.level===l?"on":"")+'" onclick="setLv('+l+')">'+(l===0?"왕초보":l)+'</button>'; }
   let vopts = '<option value="">자동 추천 (가장 좋은 음성)</option>';
   VLIST.forEach((v,i)=>{ const g=voiceGrade(v); vopts += '<option value="'+i+'" '+(S.voiceName===v.name?"selected":"")+'>'+esc(v.name)+(g?" ★"+g:"")+'</option>'; });
   openModal('<h3>⚙️ 설정 <span class="sub" style="font-size:12px">(부모님과 함께)</span></h3>'
    +'<div class="setrow"><span>이름</span><div style="display:flex;gap:6px;flex:1;max-width:220px">'
    +'<input type="text" id="setNm" maxlength="10" value="'+esc(S.name)+'">'
    +'<button class="minibtn" onclick="setName()">저장</button></div></div>'
-   +'<div class="setrow"><span>레벨 (미국 G1~G4)</span><div class="mini">'+lvBtns+'</div></div>'
+   +(isParent() ? '<div class="setrow"><span>레벨 (왕초보~G4)</span><div class="mini">'+lvBtns+'</div></div>' : '<div class="setrow"><span>지금 레벨</span><span class="sub" style="font-size:12px">Lv.'+S.level+' · '+LV_NAME[S.level]+'</span></div>')
    +'<div class="setrow"><span>발음 음성</span><div style="display:flex;gap:6px;flex:1;max-width:230px;align-items:center">'
    +'<select id="voiceSel" onchange="setVoice()" style="flex:1;font-family:inherit;font-size:13px;padding:8px;border-radius:10px;border:2px solid var(--line)">'+vopts+'</select>'
    +'<button class="minibtn" onclick="speak(\'Hello! Nice to meet you. I am your English voice.\')">▶</button></div></div>'
@@ -2243,16 +2417,21 @@ function openSettings(){
    +'<button class="minibtn '+(S.rate===0.7?"on":"")+'" onclick="setRate(0.7)">느리게</button>'
    +'<button class="minibtn '+(S.rate===0.85?"on":"")+'" onclick="setRate(0.85)">보통</button>'
    +'<button class="minibtn '+(S.rate===1.0?"on":"")+'" onclick="setRate(1.0)">빠르게</button></div></div>'
-   +'<div class="setrow"><span>하루 복습 최대</span><div class="mini">'
+   +(isParent() ? '<div class="setrow"><span>하루 복습 최대</span><div class="mini">'
    +'<button class="minibtn '+(revCap()===10?"on":"")+'" onclick="setRevCap(10)">10개</button>'
    +'<button class="minibtn '+(revCap()===20?"on":"")+'" onclick="setRevCap(20)">20개</button>'
-   +'<button class="minibtn '+(revCap()===30?"on":"")+'" onclick="setRevCap(30)">30개</button></div></div>'
+   +'<button class="minibtn '+(revCap()===30?"on":"")+'" onclick="setRevCap(30)">30개</button></div></div>' : '')
    +'<div class="setrow"><span>효과음</span><button class="minibtn '+(S.mute?"":"on")+'" onclick="toggleMute()">'+(S.mute?"꺼짐":"켜짐")+'</button></div>'
-   +'<div class="setrow"><span>레벨 테스트 다시 보기</span><button class="minibtn" onclick="closeModal();startPlacement()">시작</button></div>'
-   +(SESSION && SESSION.admin ? '<div class="setrow"><span>🛠 상점 관리 (관리자)</span><button class="minibtn" onclick="closeModal();openAdmin()">열기</button></div>' : '')
+   +(isParent() ? '<div class="setrow"><span>레벨 테스트 다시 보기</span><button class="minibtn" onclick="closeModal();startPlacement()">시작</button></div>' : '')
+   +(isParent() ? '<div class="setrow"><span>🛠 우리 집 상점 꾸미기</span><button class="minibtn" onclick="closeModal();openAdmin()">열기</button></div>' : '')
+   +(isParent()
+      ? '<div class="setrow"><span>🔒 부모 모드</span><div class="mini">'
+        +(S.ppin ? '<button class="minibtn" onclick="askPinChange()">번호 바꾸기</button>' : '<button class="minibtn" onclick="askParentSet()">잠금번호 정하기</button>')
+        +(PARENT ? '<button class="minibtn on" onclick="parentOff()">잠그기</button>' : '')+'</div></div>'
+      : '<div class="setrow"><span>🔒 부모 모드</span><button class="minibtn" onclick="openParent()">'+(S.ppin?"열기":"시작하기")+'</button></div>')
    +(SERVER_URL ? '<div class="setrow"><span>계정</span>'+(SESSION ? '<div class="mini"><span class="sub" style="font-size:12px;align-self:center">'+esc(SESSION.uid)+' ☁️</span><button class="minibtn" onclick="logout()">로그아웃</button></div>' : '<button class="minibtn" onclick="closeModal();renderAuth();show(\'auth\')">로그인 / 가입</button>')+'</div>' : '')
    +'<div class="setrow"><span>저장 위치</span><span class="sub" style="font-size:12px">'+modeTxt+'</span></div>'
-   +'<div style="margin-top:16px"><button class="btn red sm" onclick="askReset()">데이터 전체 초기화</button></div>');
+   +(isParent() ? '<div style="margin-top:16px"><button class="btn red sm" onclick="askReset()">데이터 전체 초기화</button></div>' : ''));
 }
 function setVoice(){
   const v = $("#voiceSel").value;
@@ -2399,7 +2578,6 @@ function logout(){ SESSION=null; saveSession(); syncState="idle"; updateSyncDot(
 
 /* ═══════════ 부팅 ═══════════ */
 async function bootUser(){
-  loadItemsCache(); loadItemsServer();
   let loaded = null;
   try{ loaded = await Store.load(); }catch(e){}
   S = defaultState();
@@ -2407,6 +2585,8 @@ async function bootUser(){
     for(const k in loaded){ if(k!=="_migrated" && k in S) S[k]=loaded[k]; }
     if(loaded._migrated){ S.placed=false; S.learned={}; S.day=null; S.level=2; }
   }
+  PARENT = false;
+  if(!applyFamilyItems()){ loadItemsCache(); loadItemsServer(); }
   if(SESSION && !S.name) S.name = SESSION.name || "";
   buildIndex();
   if(storageMode==="none") $("#saveWarn").style.display="block";
