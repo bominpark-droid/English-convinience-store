@@ -67,6 +67,17 @@ auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store
 - `speak(text, rate)`가 이 둘을 자동 분기한다. **음성 재생은 항상 `speak()`를 통할 것.**
 - 저품질 기기 음성은 `isJunkVoice()`로 목록에서 걸러낸다.
 
+**소리가 안 나는 문제로 여러 번 고쳤다. 아래를 되돌리지 말 것 (2026-08-28):**
+- `a.play()` 는 프로미스를 돌려준다. **반드시 `.catch(()=>speakLocal(...))`** 를 붙인다.
+  await 없이 try/catch 안에 두면 재생 차단(아이폰 자동재생 정책)이 잡히지 않아 **소리 없이 조용히 실패**한다.
+- `speechSynthesis.cancel()` 직후 `speak()` 하면 통째로 무시되는 기기가 있다 → `speakLocal()`은
+  60ms 뒤에 말하고, 320ms 뒤 `speaking/pending` 이 false 면 **한 번만** 다시 시도한다(`ttsT/ttsRetryT`).
+- 아이폰은 `speechSynthesis` 를 pause 상태로 두는 일이 있어 매번 `resume()` 을 먼저 부른다.
+- 첫 터치·클릭 때 `unlockAudio()` 로 AudioContext 를 깨우고 무음 발화를 한 번 흘린다.
+- 설정의 `soundCheck()` 가 자가 진단 화면이다. 사용자가 "소리가 안 난다"고 하면 먼저 그걸 돌려 보게 한다.
+  (아이폰 **무음 스위치**가 켜져 있으면 mp3 재생이 통째로 무음이 된다 — 가장 흔한 원인)
+- `openSettings()` 는 로그인 화면(S 가 null)에서도 열려야 한다 → 첫 줄에 `if(!S) S = defaultState();`
+
 ## 서버(Code.gs) 연동
 
 액션: `signup | login | load | save | tts | items | saveitems`

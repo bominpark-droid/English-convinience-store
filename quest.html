@@ -667,15 +667,30 @@ function pickVoice(){
 let CURA=null;
 const TTSC = new Map();
 function stopAudio(){ try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
+function mkUtter(text){
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang="en-US"; const v=pickVoice(); if(v) u.voice=v;
+  u.rate = (QS && QS.rate) || 0.85; u.pitch=1.0;
+  return u;
+}
+let ttsT=null, ttsRetryT=null;
 function speakLocal(text){
   if(!("speechSynthesis" in window)) return;
-  try{
-    stopAudio();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang="en-US"; const v=pickVoice(); if(v) u.voice=v;
-    u.rate = (QS && QS.rate) || 0.85; u.pitch=1.0;
-    speechSynthesis.speak(u);
-  }catch(e){}
+  clearTimeout(ttsT); clearTimeout(ttsRetryT);
+  try{ stopAudio(); }catch(e){}
+  if(!voices.length) loadVoices();
+  ttsT = setTimeout(function(){
+    try{ speechSynthesis.resume(); }catch(e){}
+    try{ speechSynthesis.speak(mkUtter(text)); }catch(e){}
+    ttsRetryT = setTimeout(function(){
+      try{
+        if(!speechSynthesis.speaking && !speechSynthesis.pending){
+          speechSynthesis.resume();
+          speechSynthesis.speak(mkUtter(text));
+        }
+      }catch(e){}
+    }, 320);
+  }, 60);
 }
 async function speak(text){
   if(SESSION && SESSION.tts){
@@ -690,7 +705,10 @@ async function speak(text){
       stopAudio();
       const a = new Audio("data:audio/mp3;base64,"+b64);
       a.playbackRate = ((QS && QS.rate) || 0.85) + 0.15;
-      CURA=a; a.play();
+      a.onerror = function(){ speakLocal(text); };
+      CURA=a;
+      const pr = a.play();
+      if(pr && pr.catch) pr.catch(function(){ speakLocal(text); });   /* 재생 막히면 기기 음성으로 */
       return;
     }catch(e){}
   }
@@ -1148,6 +1166,16 @@ function qaskReset(){
 }
 function qdoReset(){ QS = defQS(); save(); updPow(); closeModal(); renderTitle(); show("title"); }
 $("#gearBtn").addEventListener("click", openQSettings);
+
+/* ═══════════ 소리 깨우기 (아이폰은 한 번 누르기 전엔 소리를 막는다) ═══════════ */
+let audioReady = false;
+function unlockAudio(){
+  if(audioReady) return; audioReady = true;
+  try{ const c = ac(); if(c && c.state === "suspended") c.resume(); }catch(e){}
+  try{ loadVoices(); const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); }catch(e){}
+}
+document.addEventListener("touchend", unlockAudio, {passive:true});
+document.addEventListener("click", unlockAudio);
 
 /* ═══════════ 부팅 ═══════════ */
 async function boot(){
