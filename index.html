@@ -347,6 +347,13 @@ nav button.on .ni{transform:scale(1.12)}
 .admrow .a-pr{flex:0 0 68px;text-align:right}
 .admrow .a-cat{flex:0 0 62px;padding:8px 4px}
 .admdel{flex:0 0 30px;border:none;background:#FFECE7;color:var(--red-dk);border-radius:8px;padding:8px 0;cursor:pointer;font-size:13px}
+/* ── 학교 스펠링 ── */
+.spellin{font-family:inherit;font-size:24px;letter-spacing:.1em;text-align:center;width:100%;border:2px solid var(--line);border-radius:14px;padding:13px;outline:none;background:#fff;color:var(--ink)}
+.spellin:focus{border-color:var(--green)}
+.spl-ok{color:var(--ok)} .spl-bad{color:var(--bad);text-decoration:underline}
+.spl-diff{font-size:30px;letter-spacing:.12em;margin:8px 0;word-break:break-all}
+.spellbig{font-size:36px;letter-spacing:.1em;word-break:break-all}
+.sc-ta{font-family:inherit;font-size:13px;width:100%;min-height:130px;border:2px solid var(--line);border-radius:12px;padding:10px;outline:none;background:#fff;color:var(--ink);line-height:1.7}
 </style>
 </head>
 <body>
@@ -369,6 +376,7 @@ nav button.on .ni{transform:scale(1.12)}
     <div class="screen" id="scr-review"></div>
     <div class="screen" id="scr-log"></div>
     <div class="screen" id="scr-admin"></div>
+    <div class="screen" id="scr-school"></div>
   </main>
   <nav id="nav">
     <button data-go="home" class="on"><span class="ni">🏠</span>홈</button>
@@ -380,7 +388,7 @@ nav button.on .ni{transform:scale(1.12)}
 </div>
 <script>
 /* ═══════════ 설정/상수 (v2 보상 체계) ═══════════ */
-const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50 };
+const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20 };
 const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑","🎓"];
 const DAILY_N = 10;
 const LV_NAME = ["왕초보 🐥", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
@@ -609,7 +617,7 @@ function pickVoice(){
 }
 let CURA = null;
 const TTSCACHE = new Map();
-function stopAudio(){ try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
+function stopAudio(){ try{ clearTimeout(ttsT); clearTimeout(ttsRetryT); }catch(e){} try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
 function speak(text, rate){
   if(SESSION && SESSION.tts && S && S.ttsHQ!==false){ speakServer(text, rate); return; }
   speakLocal(text, rate);
@@ -1217,6 +1225,8 @@ function defaultState(){ return {
   money:0, earned:0, streak:0, best:0, lastDone:null,
   rate:0.85, mute:false, voiceName:"", lastBoss:null, ttsHQ:true, dstats:{}, revCap:20, lastClaw:"",
   items:null,   /* 우리 집 상점 목록 (없으면 공용 기본 상점) */
+  school:null,  /* 학교 스펠링 단어 세트들 */
+  spellDay:null,/* 스펠링 보상 하루 기록 */
   ppin:"",      /* 부모 잠금번호 4자리 */
   learned:{},   /* word -> {lv, box, next, date} */
   day:null,     /* {date, sessions:[], reviewCleared, reviewBonusGiven} */
@@ -1333,7 +1343,7 @@ function levelUpCheck(){
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
   $("#scr-"+id).classList.add("on");
-  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz") ? "home" : (id==="admin" ? "store" : id);
+  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz"||id==="school") ? "home" : (id==="admin" ? "store" : id);
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===tab));
   window.scrollTo(0,0);
 }
@@ -1507,7 +1517,11 @@ function renderHome(){
    +'<div class="card" style="display:flex;align-items:center;gap:12px">'
    +'<span style="font-size:32px">🏪</span><div style="flex:1"><div style="font-size:16px">영어 편의점</div>'
    +'<div class="sub" style="font-size:13px">잔액 '+comma(S.money)+'원으로 뭘 살 수 있을까?</div></div>'
-   +'<button class="btn sm" style="width:auto" onclick="go(\'store\')">구경</button></div>';
+   +'<button class="btn sm" style="width:auto" onclick="go(\'store\')">구경</button></div>'
+   +(S.school && S.school.length ? '<div class="card" style="display:flex;align-items:center;gap:12px">'
+   +'<span style="font-size:32px">🏫</span><div style="flex:1"><div style="font-size:16px">학교 스펠링</div>'
+   +'<div class="sub" style="font-size:13px">'+esc(S.school[0].nm)+(S.school.length>1?' 외 '+(S.school.length-1)+'세트':'')+' · 시험 연습하면 영머니!</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="goSchool()">가기</button></div>' : '');
 }
 function addExtra(){
   const ses = newSession();
@@ -1695,6 +1709,10 @@ async function recStart(){
   }catch(e){
     REC.busy = false; micState = "no";
     renderSpeak();
+    openModal('<div class="center"><div class="bigemo">🎙️</div><h3 style="text-align:center">마이크를 쓸 수 없었어요</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px;line-height:1.8"><b>아이폰·아이패드</b>: 주소창 왼쪽 <b>ㅁ가(aA)</b> 단추 → 웹 사이트 설정 → 마이크 → <b>허용</b><br>또는 설정 앱 → Safari → 마이크 켜기.<br>지금은 <b>스스로 체크 모드</b>로 계속할 수 있어요.</p>'
+     +'<div class="btnrow"><button class="btn" onclick="closeModal();retryMic()">🎤 다시 시도</button>'
+     +'<button class="btn ghost" onclick="closeModal()">그냥 진행</button></div></div>');
   }
 }
 function recStop(){ clearTimeout(REC.t); try{ if(REC.mr && REC.mr.state==="recording") REC.mr.stop(); }catch(e){} }
@@ -1723,10 +1741,18 @@ function recAreaHtml(state){
    +'<p class="sub" style="font-size:13px">버튼을 누르고 '+(isWord?"단어":"문장")+'을 크게 말해 봐!<br>끝나면 내 목소리를 바로 들을 수 있어 👂</p>';
 }
 function renderRecUI(state){ const el = $("#recArea"); if(el) el.innerHTML = recAreaHtml(state); }
+function retryMic(){
+  micState = CANREC ? "unknown" : "no";
+  closeModal();
+  const scr = document.querySelector(".screen.on");
+  const s = curSession();
+  if(scr && scr.id==="scr-learn" && s && s.exDone && !s.spDone){ renderSpeak(); }
+}
 function micArea(noMic, tip){
   if(noMic){
     return '<div class="center"><p class="sub" style="font-size:13px;margin:6px 0">🎙️ 이 기기에서는 마이크를 쓸 수 없어서<br><b>스스로 체크 모드</b>로 진행해요. 크게 따라 말한 뒤 눌러 줘!</p>'
-     +'<button class="btn" onclick="speakPass()">큰 소리로 따라 말했어요 ✔</button></div>';
+     +'<button class="btn" onclick="speakPass()">큰 소리로 따라 말했어요 ✔</button>'
+     +'<button class="knowbtn" onclick="retryMic()">🎤 마이크 다시 켜 보기</button></div>';
   }
   return '<div class="center" id="recArea">'+recAreaHtml("idle")+'</div>';
 }
@@ -2384,6 +2410,273 @@ function renderReview(){
    +'<div class="card" style="padding:6px 14px">'+rows+'</div>';
 }
 
+/* ═══════════ 학교 스펠링 — 부모가 넣는 학교 단어로 스펠링 시험 연습 ═══════════ */
+function seedSchool(){ return [{ id:"rtg1", nm:"Room to Grow (8단어)", ws:[
+ ["admire","존경하다, 감탄하다 (동사)","To respect or think highly of someone or something","I admire my teacher because she is kind and smart."],
+ ["classmate","반 친구 (명사)","A person who is in the same class at school","My classmate helped me with my homework."],
+ ["community","공동체, 지역 사회 (명사)","A group of people who live or work in the same place","Our community built a new playground for kids."],
+ ["contribute","기부하다, 보태다 (동사)","To give or donate something, like time or money","Many people contributed food to the food bank."],
+ ["practice","연습하다 (동사)","To do something again and again to get better","I practice singing every day after school."],
+ ["pronounce","발음하다 (동사)","To say a word the correct way","Can you pronounce this long word slowly?"],
+ ["scared","무서워하는, 겁먹은 (형용사)","Feeling afraid or frightened","I was scared when I saw a big dog barking."],
+ ["tumble","굴러떨어지다, 구르다 (동사)","To fall down suddenly and roll","The little boy tumbled off the swing but laughed."]
+]}]; }
+function spellDay(){
+  const t = todayStr();
+  if(!S.spellDay || S.spellDay.date!==t) S.spellDay = {date:t, got:{}, pf:{}, pr:{}};
+  return S.spellDay;
+}
+function spellNorm(x){ return String(x||"").toLowerCase().trim().replace(/\s+/g," "); }
+function spellDiff(ans, typed){
+  const a=String(ans), t=spellNorm(typed);
+  let h='<div class="spl-diff">';
+  for(let i=0;i<a.length;i++) h += '<span class="'+(t[i]===a[i].toLowerCase()?"spl-ok":"spl-bad")+'">'+esc(a[i])+'</span>';
+  return h+'</div>';
+}
+function spellInput(fn){
+  return '<input type="text" id="spIn" class="spellin" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="여기에 스펠링 쓰기" onkeydown="if(event.key===\'Enter\'){'+fn+'()}">';
+}
+let SC = null;
+function goSchool(){ stopAudio(); renderSchool(); show("school"); }
+function renderSchool(){
+  const sets = S.school||[];
+  let cards = "";
+  sets.forEach((st,i)=>{
+    cards += '<div class="card"><div class="mtitle">🏫 '+esc(st.nm)+' <span class="sub" style="font-size:12px">단어 '+st.ws.length+'개</span></div>'
+     +'<div class="mdesc">진짜 시험처럼 <b>듣고 스펠링을 타자로</b> 써 보자!<br>테스트에서 맞히면 단어당 <b>+'+REWARD.SPELL+'원</b> · 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</div>'
+     +'<div class="btnrow"><button class="btn ghost sm" onclick="scLearn('+i+')">📖 단어 보기</button>'
+     +'<button class="btn sm" onclick="scPractice('+i+')">✍️ 스펠링 연습</button></div>'
+     +'<button class="btn yellow" style="margin-top:10px" onclick="scTestAsk('+i+')">📝 테스트 보기</button></div>';
+  });
+  if(!sets.length) cards = '<div class="card center"><div class="bigemo">🏫</div><p class="sub">아직 학교 단어가 없어요.<br>⚙️ 설정 → 부모 모드에서 넣어 주세요!</p></div>';
+  $("#scr-school").innerHTML =
+   '<h2 class="sec">🏫 학교 스펠링</h2>' + cards
+   +'<p class="sub" style="font-size:12px;text-align:center;margin:6px 0">단어를 넣거나 고치는 건 ⚙️ 설정 → 부모 모드 → 학교 단어 관리</p>'
+   +'<button class="btn ghost" onclick="go(\'home\')">← 홈으로</button>';
+}
+/* ── 단어 보기 ── */
+function scLearn(si){ SC = {si, i:0}; renderScLearn(); show("school"); }
+function renderScLearn(){
+  const st = S.school[SC.si], nn = st.ws.length, w = st.ws[SC.i];
+  let dots=""; for(let i=0;i<nn;i++) dots += '<i class="'+(i<SC.i?"done":(i===SC.i?"now":""))+'"></i>';
+  $("#scr-school").innerHTML =
+   '<div class="learnhead"><button class="minibtn" onclick="goSchool()">← 목록</button><div class="dots">'+dots+'</div></div>'
+   +'<div class="card qbox"><div class="qtype">'+esc(st.nm)+' · 단어 '+(SC.i+1)+' / '+nn+'</div>'
+   +'<div class="qword spellbig">'+esc(w[0])+'</div>'
+   +'<div class="qmean" style="font-size:20px">'+esc(w[1])+'</div>'
+   +(w[2]?'<p class="sub" style="margin:4px 0">'+esc(w[2])+'</p>':'')
+   +(w[3]?'<div class="ex" style="font-size:15px;margin-top:6px">'+esc(w[3])+'</div>':'')
+   +'<div style="margin-top:10px"><button class="spk" onclick="speak(S.school[SC.si].ws[SC.i][0])">🔊 단어</button> '
+   +(w[3]?'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.i][3])">🔊 문장</button>':'')+'</div></div>'
+   +'<div class="btnrow">'
+   +'<button class="btn ghost" style="flex:0 0 30%" onclick="scLPrev()" '+(SC.i===0?"disabled":"")+'>◀</button>'
+   +(SC.i===nn-1 ? '<button class="btn yellow" onclick="scPractice(SC.si)">✍️ 스펠링 연습 가기</button>'
+                 : '<button class="btn" onclick="scLNext()">다음 ▶</button>')+'</div>';
+  speak(w[0]);
+}
+function scLNext(){ if(SC.i < S.school[SC.si].ws.length-1){ SC.i++; renderScLearn(); } }
+function scLPrev(){ if(SC.i > 0){ SC.i--; renderScLearn(); } }
+/* ── 스펠링 연습: 보고 → 가리고 → 쓰기 (맞을 때까지) ── */
+function scPractice(si, idxs){
+  const st = S.school[si];
+  SC = {si, list: idxs || st.ws.map((w,i)=>i), i:0, step:0, lock:false};
+  renderScPr(); show("school");
+}
+function renderScPr(){
+  const st = S.school[SC.si];
+  if(SC.i >= SC.list.length){ scPrDone(); return; }
+  const w = st.ws[SC.list[SC.i]];
+  const head = '<div class="learnhead"><button class="minibtn" onclick="goSchool()">← 그만</button>'
+   +'<span class="lvbadge">✍️ 연습 '+(SC.i+1)+' / '+SC.list.length+'</span></div>';
+  if(SC.step===0){
+    $("#scr-school").innerHTML = head
+     +'<div class="card qbox"><div class="qtype">👀 스펠링을 눈에 꼭 담아 두자!</div>'
+     +'<div class="qword spellbig">'+esc(w[0])+'</div>'
+     +'<div class="qmean" style="font-size:18px">'+esc(w[1])+'</div>'
+     +'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.list[SC.i]][0])">🔊 다시 듣기</button></div>'
+     +'<button class="btn yellow" onclick="SC.step=1;SC.lock=false;renderScPr()">다 외웠어! 가리고 쓰기 ✍️</button>';
+    speak(w[0]);
+  } else {
+    $("#scr-school").innerHTML = head
+     +'<div class="card qbox"><div class="qtype">🙈 이제 안 보고 써 보자!</div>'
+     +'<div class="qmean" style="font-size:19px">'+esc(w[1])+'</div>'
+     +(w[2]?'<p class="sub" style="margin:4px 0;font-size:13px">'+esc(w[2])+'</p>':'')
+     +'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.list[SC.i]][0])">🔊 단어 듣기</button></div>'
+     + spellInput("scPrCheck")
+     +'<button class="btn" style="margin-top:10px" onclick="scPrCheck()">확인 ✔</button>'
+     +'<div class="qfeed" id="scFeed"></div>';
+    const el=$("#spIn"); if(el) el.focus();
+    speak(w[0]);
+  }
+}
+function scPrCheck(){
+  if(SC.lock) return;
+  const st = S.school[SC.si], w = st.ws[SC.list[SC.i]];
+  const typed = ($("#spIn")||{}).value||"";
+  if(!spellNorm(typed)) return;
+  if(spellNorm(typed)===spellNorm(w[0])){
+    SC.lock = true; Sfx.ok();
+    $("#scFeed").innerHTML = '<span class="good">⭕ 딩동댕! 완벽해!</span>'+spellDiff(w[0], typed)
+     +'<button class="btn" onclick="SC.i++;SC.step=0;SC.lock=false;renderScPr()">다음 ▶</button>';
+  } else {
+    Sfx.bad();
+    $("#scFeed").innerHTML = '<span class="oops">아깝다! 초록 글자만 맞았어</span>'+spellDiff(w[0], typed)
+     +'<p class="sub" style="font-size:13px">위 정답을 보고 한 번 더 써 보자! 💪</p>';
+    const el=$("#spIn"); if(el){ el.value=""; el.focus(); }
+  }
+}
+function scPrDone(){
+  const st = S.school[SC.si];
+  const d = spellDay();
+  let bonus = "";
+  if(!d.pr[st.id]){
+    d.pr[st.id] = 1;
+    S.money += REWARD.SPELL_PRACTICE; S.earned += REWARD.SPELL_PRACTICE; updateMoney();
+    bonus = '<p class="sub" style="margin:6px 0">오늘 첫 연습 완주 보너스 <b>+'+REWARD.SPELL_PRACTICE+'원</b>!</p>';
+  }
+  logEv("spellpr",{set:st.id, n:SC.list.length}); save(); Sfx.tada();
+  $("#scr-school").innerHTML =
+   '<div class="card center" style="padding:26px 18px"><div class="bigemo">✍️</div>'
+   +'<h3 style="font-size:20px">연습 끝! 손가락이 다 외웠어!</h3>' + bonus
+   +'<button class="btn yellow" style="margin-top:10px" onclick="scTestAsk(SC.si)">📝 바로 테스트 보기</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goSchool()">목록으로</button></div>';
+}
+/* ── 테스트: 듣고 스펠링 쓰기 (진짜 시험처럼) ── */
+function scTestAsk(si){
+  const st = S.school[si];
+  openModal('<div class="center"><div class="bigemo">📝</div><h3 style="text-align:center">'+esc(st.nm)+' 테스트</h3>'
+   +'<p class="sub" style="margin:8px 0 16px">단어 '+st.ws.length+'개 · 소리를 듣고 스펠링을 쓰는 거야.<br>맞히면 단어당 <b>+'+REWARD.SPELL+'원</b>, 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</p>'
+   +'<div class="btnrow"><button class="btn yellow" onclick="closeModal();scTest('+si+')">시작! ✏️</button>'
+   +'<button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
+}
+function scTest(si){
+  ac();
+  const st = S.school[si];
+  SC = {si, mode:"test", order:shuffle(st.ws.map((w,i)=>i)), i:0, right:[], wrong:[], earned:0, lock:false};
+  renderScTest(); show("school");
+}
+function renderScTest(){
+  const st = S.school[SC.si];
+  if(SC.i >= SC.order.length){ scTestDone(); return; }
+  const w = st.ws[SC.order[SC.i]];
+  $("#scr-school").innerHTML =
+   '<div class="learnhead"><button class="minibtn" onclick="goSchool()">← 그만</button>'
+   +'<span class="lvbadge">📝 테스트 '+(SC.i+1)+' / '+SC.order.length+' · ⭕ '+SC.right.length+'</span></div>'
+   +'<div class="card qbox"><div class="qtype">🎧 잘 듣고 스펠링을 써 봐!</div>'
+   +'<div class="qmean" style="font-size:20px">'+esc(w[1])+'</div>'
+   +(w[2]?'<p class="sub" style="margin:4px 0;font-size:13px">'+esc(w[2])+'</p>':'')
+   +'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.order[SC.i]][0])">🔊 다시 듣기</button></div>'
+   + spellInput("scTestCheck")
+   +'<button class="btn" style="margin-top:10px" onclick="scTestCheck()">제출 ✏️</button>'
+   +'<div class="qfeed" id="scFeed"></div>';
+  const el=$("#spIn"); if(el) el.focus();
+  speak(w[0]);
+}
+function scTestCheck(){
+  if(SC.lock) return;
+  const st = S.school[SC.si], wi = SC.order[SC.i], w = st.ws[wi];
+  const typed = ($("#spIn")||{}).value||"";
+  if(!spellNorm(typed)) return;
+  SC.lock = true;
+  const el=$("#spIn"); if(el) el.disabled = true;
+  const nb = '<button class="btn" style="margin-top:10px" onclick="SC.i++;SC.lock=false;renderScTest()">다음 ▶</button>';
+  if(spellNorm(typed)===spellNorm(w[0])){
+    SC.right.push(wi); Sfx.ok();
+    const d = spellDay();
+    const first = !d.got[w[0]];
+    d.got[w[0]] = 1;
+    const earn = first ? REWARD.SPELL : REWARD.SPELL_RE;
+    addMoney(earn, el);
+    SC.earned += earn;
+    $("#scFeed").innerHTML = '<span class="good">⭕ 정답! +'+earn+'원'+(first?'':' (오늘 또 맞혀서 조금만!)')+'</span>'+spellDiff(w[0], typed)+nb;
+  } else {
+    SC.wrong.push(wi); Sfx.bad();
+    $("#scFeed").innerHTML = '<span class="oops">❌ 아깝다! 정답은 이거야</span>'+spellDiff(w[0], typed)
+     +'<p class="sub" style="font-size:13px">내가 쓴 것: '+esc(typed)+'</p>'+nb;
+  }
+  save();
+}
+function scTestDone(){
+  const st = S.school[SC.si];
+  const total = SC.order.length, ok = SC.right.length;
+  const perfect = (ok===total);
+  let bonusHtml = "";
+  if(perfect){
+    const d = spellDay();
+    if(!d.pf[st.id]){
+      d.pf[st.id] = 1;
+      S.money += REWARD.SPELL_PERFECT; S.earned += REWARD.SPELL_PERFECT; updateMoney();
+      SC.earned += REWARD.SPELL_PERFECT;
+      bonusHtml = '<p class="sub" style="margin:6px 0">💯 만점 보너스 <b>+'+REWARD.SPELL_PERFECT+'원</b>!</p>';
+    }
+    confetti(); Sfx.tada();
+  } else { Sfx.tada(); }
+  logEv("spell",{set:st.id, n:total, ok:ok, earn:SC.earned}); save();
+  let wrongRows = "";
+  SC.wrong.forEach(wi=>{
+    const w = st.ws[wi];
+    wrongRows += '<div class="rline"><span class="remo">✏️</span><div class="rnm">'+esc(w[0])+'<small>'+esc(w[1])+'</small></div>'
+     +'<button class="wspk" onclick="speak(\''+esc(w[0])+'\')">🔊</button></div>';
+  });
+  const wrongIdx = JSON.stringify(SC.wrong);
+  $("#scr-school").innerHTML =
+   '<div class="card center" style="padding:26px 18px"><div class="bigemo">'+(perfect?"💯":"📝")+'</div>'
+   +'<h3 style="font-size:22px">'+total+'개 중 <b style="color:var(--green)">'+ok+'개</b> 맞았어!</h3>'
+   +'<p class="sub" style="margin:6px 0">이번에 번 영머니 <b>+'+comma(SC.earned)+'원</b></p>'
+   + bonusHtml
+   +(wrongRows ? '<div class="card" style="text-align:left;padding:8px 14px;margin:10px 0">'+wrongRows+'</div>'
+     +'<button class="btn" onclick="scPractice(SC.si, '+wrongIdx+')">🔥 틀린 것만 다시 연습</button>' : '<p class="sub">진짜 시험도 문제없겠는걸? 😎</p>')
+   +'<button class="btn yellow" style="margin-top:8px" onclick="scTestAsk(SC.si)">📝 한 번 더 테스트</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goSchool()">목록으로</button></div>';
+}
+/* ── 부모용: 학교 단어 넣기·고치기 ── */
+let SCE = null;
+function scEdit(){
+  if(!isParent()){ openSettings(); return; }
+  SCE = (S.school||[]).map(st=>({id:st.id, nm:st.nm, txt:st.ws.map(w=>w.join(" | ")).join("\n")}));
+  renderScEdit(); show("school");
+}
+function renderScEdit(msg){
+  let blocks = "";
+  SCE.forEach((st,i)=>{
+    blocks += '<div class="card"><div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">'
+     +'<input type="text" id="scEnm'+i+'" maxlength="24" value="'+esc(st.nm)+'" style="flex:1">'
+     +'<button class="admdel" onclick="scEDel('+i+')">✕</button></div>'
+     +'<textarea class="sc-ta" id="scEws'+i+'" placeholder="한 줄에 한 단어:\n단어 | 뜻 | 영어 정의 | 예문">'+esc(st.txt)+'</textarea></div>';
+  });
+  $("#scr-school").innerHTML =
+   '<h2 class="sec">🏫 학교 단어 관리 <span class="sub" style="font-size:12px">(부모 모드)</span></h2>'
+   +'<div class="card" style="padding:12px 14px"><p class="sub" style="font-size:13px;line-height:1.8">한 줄에 한 단어씩, 세로 막대(|)로 나눠서 적어 주세요.<br><b>단어 | 뜻 | 영어 정의 | 예문</b> — 뒤쪽 칸들은 비워도 됩니다.<br>학교 프린트를 보고 그대로 옮겨 적으면 됩니다.</p></div>'
+   + blocks
+   +'<div class="btnrow"><button class="btn ghost sm" onclick="scEAdd()">+ 새 단어 세트</button>'
+   +'<button class="btn sm" onclick="scESave()">💾 저장</button></div>'
+   +'<div class="qfeed" id="scEFeed">'+(msg||"")+'</div>'
+   +'<button class="btn ghost" onclick="goSchool()">← 학교 스펠링으로</button>';
+}
+function scECollect(){
+  SCE.forEach((st,i)=>{
+    const nm=$("#scEnm"+i), ta=$("#scEws"+i);
+    if(nm) st.nm = nm.value.trim() || "단어 세트";
+    if(ta) st.txt = ta.value;
+  });
+}
+function scEAdd(){ scECollect(); SCE.push({id:"s"+Date.now().toString(36), nm:"새 단어 세트", txt:""}); renderScEdit(); window.scrollTo(0,document.body.scrollHeight); }
+function scEDel(i){ scECollect(); SCE.splice(i,1); renderScEdit("세트를 뺐어요. <b>저장</b>을 눌러야 반영됩니다."); }
+function scESave(){
+  scECollect();
+  const out = [];
+  for(const st of SCE){
+    const ws = [];
+    st.txt.split("\n").forEach(line=>{
+      const p = line.split("|").map(x=>x.trim());
+      if(p[0]) ws.push([p[0], p[1]||"", p[2]||"", p[3]||""]);
+    });
+    if(ws.length) out.push({id:st.id, nm:st.nm, ws});
+  }
+  S.school = out; save();
+  renderScEdit('<span class="good">저장 완료 ✅ 세트 '+out.length+'개 · 단어 '+out.reduce((a,b)=>a+b.ws.length,0)+'개</span>');
+}
+
 /* ═══════════ 모달 · 설정 ═══════════ */
 function openModal(html){ $("#modalBox").innerHTML = html; $("#modalBg").classList.add("on"); }
 function closeModal(){ $("#modalBg").classList.remove("on"); }
@@ -2412,7 +2705,7 @@ function openSettings(){
    +'<div class="setrow"><span></span><button class="minibtn" onclick="openVoiceGuide()">🌟 더 좋은 발음 만들기 (음성 설치법)</button></div>'
    +'<div class="setrow"><span></span><button class="minibtn" onclick="soundCheck()">🔊 소리가 안 나와요 (검사하기)</button></div>'
    +(SESSION && SESSION.tts ? '<div class="setrow"><span>원어민 음성 (서버 AI)</span><button class="minibtn '+(S.ttsHQ!==false?"on":"")+'" onclick="toggleHQ()">'+(S.ttsHQ!==false?"켜짐":"꺼짐")+'</button></div>' : '')
-   +'<div class="setrow"><span>말하기 마이크</span><span class="sub" style="font-size:12px">'+micTxt+'</span></div>'
+   +'<div class="setrow"><span>말하기 마이크</span><div class="mini" style="align-items:center"><span class="sub" style="font-size:12px">'+micTxt+'</span>'+(micState==="no"?'<button class="minibtn" onclick="retryMic();openSettings()">다시 시도</button>':'')+'</div></div>'
    +'<div class="setrow"><span>발음 속도</span><div class="mini">'
    +'<button class="minibtn '+(S.rate===0.7?"on":"")+'" onclick="setRate(0.7)">느리게</button>'
    +'<button class="minibtn '+(S.rate===0.85?"on":"")+'" onclick="setRate(0.85)">보통</button>'
@@ -2422,6 +2715,7 @@ function openSettings(){
    +'<button class="minibtn '+(revCap()===20?"on":"")+'" onclick="setRevCap(20)">20개</button>'
    +'<button class="minibtn '+(revCap()===30?"on":"")+'" onclick="setRevCap(30)">30개</button></div></div>' : '')
    +'<div class="setrow"><span>효과음</span><button class="minibtn '+(S.mute?"":"on")+'" onclick="toggleMute()">'+(S.mute?"꺼짐":"켜짐")+'</button></div>'
+   +(isParent() ? '<div class="setrow"><span>🏫 학교 단어 관리</span><button class="minibtn" onclick="closeModal();scEdit()">열기</button></div>' : '')
    +(isParent() ? '<div class="setrow"><span>레벨 테스트 다시 보기</span><button class="minibtn" onclick="closeModal();startPlacement()">시작</button></div>' : '')
    +(isParent() ? '<div class="setrow"><span>🛠 우리 집 상점 꾸미기</span><button class="minibtn" onclick="closeModal();openAdmin()">열기</button></div>' : '')
    +(isParent()
@@ -2588,6 +2882,7 @@ async function bootUser(){
   PARENT = false;
   if(!applyFamilyItems()){ loadItemsCache(); loadItemsServer(); }
   if(SESSION && !S.name) S.name = SESSION.name || "";
+  if(!Array.isArray(S.school)) S.school = seedSchool();   /* 학교 스펠링 기본 세트 */
   buildIndex();
   if(storageMode==="none") $("#saveWarn").style.display="block";
   updateMoney(); updateSyncDot(); startTimeTracker();

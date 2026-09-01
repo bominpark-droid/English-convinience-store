@@ -743,7 +743,7 @@ function pickVoice(){
 }
 let CURA=null;
 const TTSC = new Map();
-function stopAudio(){ try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
+function stopAudio(){ try{ clearTimeout(ttsT); clearTimeout(ttsRetryT); }catch(e){} try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
 function mkUtter(text){
   const u = new SpeechSynthesisUtterance(text);
   u.lang="en-US"; const v=pickVoice(); if(v) u.voice=v;
