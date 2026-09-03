@@ -1356,8 +1356,12 @@ function go(tab){
   else if(tab==="review"){ renderReview(); show("review"); }
   else if(tab==="log"){ renderLog(); show("log"); }
 }
+/* 왕초보(Lv.0)는 「듣고 따라 말하기」를 건너뛴다 — 7살에게 부담이 컸다 (대표 지시 2026-09-03).
+   레벨 1로 올라가면 다시 나온다. 말하기 단계에는 영머니 보상이 없어 상점 물가는 그대로다. */
+function skipSpeak(){ return !!S && S.level === 0; }
 function stageBar(stage){
-  const names=["① 단어","② 예문","③ 말하기","④ 퀴즈"];
+  const names = skipSpeak() ? ["① 단어","② 예문","③ 퀴즈"] : ["① 단어","② 예문","③ 말하기","④ 퀴즈"];
+  if(skipSpeak() && stage >= 3) stage = 2;   /* 퀴즈 자리를 세 번째 칸으로 */
   let h='<div class="stagebar">';
   names.forEach((n,i)=>{ h+='<div class="stg '+(i<stage?"done":(i===stage?"now":""))+'">'+n+'</div>'; });
   return h+'</div>';
@@ -1469,11 +1473,11 @@ function renderHome(){
     let stage, cta, prog;
     if(!s.seenAll){ stage=0; cta='<button class="btn" onclick="startLearn()">'+(s.seen>0?"이어서 배우기 ("+s.seen+"/"+s.words.length+")":"단어 배우기 시작 ✏️")+'</button>'; prog=s.seen; }
     else if(!s.exDone){ stage=1; cta='<button class="btn" onclick="startEx()">예문 연습 ('+s.exIdx+'/'+s.words.length+')</button>'; prog=s.exIdx; }
-    else if(!s.spDone){ stage=2; cta='<button class="btn" onclick="startSpeak()">말하기 연습 ('+s.spIdx+'/'+s.words.length+')</button>'; prog=s.spIdx; }
+    else if(!s.spDone && !skipSpeak()){ stage=2; cta='<button class="btn" onclick="startSpeak()">말하기 연습 ('+s.spIdx+'/'+s.words.length+')</button>'; prog=s.spIdx; }
     else { stage=3; const gotN=s.words.filter(x=>x.got).length; cta='<button class="btn yellow" onclick="startQuiz(\'daily\')">퀴즈 시작 ('+gotN+'/'+s.words.length+')</button>'; prog=gotN; }
     const isExtra = S.day.sessions.indexOf(s)>0;
     mission = '<div class="card mission"><div class="mtitle">'+(isExtra?"🔥 추가 학습 중!":"📚 오늘의 단어 "+s.words.length+"개")+'</div>'
-      +'<div class="mdesc">4단계를 끝내면 단어당 <b>'+REWARD.WORD+'원</b>'+(isExtra?"":" — 하루 10개면 <b>500원</b>+보너스")+'!</div>'
+      +'<div class="mdesc">'+(skipSpeak()?"3단계":"4단계")+'를 끝내면 단어당 <b>'+REWARD.WORD+'원</b>'+(isExtra?"":" — 하루 10개면 <b>500원</b>+보너스")+'!</div>'
       + stageBar(stage)
       +'<div class="pbar"><i style="width:'+Math.round(prog/s.words.length*100)+'%"></i></div>'
       + cta + '</div>';
@@ -1650,6 +1654,7 @@ function startSpeak(){
   const s = curSession();
   if(!s){ go("home"); return; }
   if(!s.exDone){ startEx(); return; }
+  if(skipSpeak()){ s.spDone = true; save(); startQuiz("daily"); return; }
   SP.fails = 0;
   renderSpeak(); show("learn");
 }
@@ -2705,7 +2710,7 @@ function openSettings(){
    +'<div class="setrow"><span></span><button class="minibtn" onclick="openVoiceGuide()">🌟 더 좋은 발음 만들기 (음성 설치법)</button></div>'
    +'<div class="setrow"><span></span><button class="minibtn" onclick="soundCheck()">🔊 소리가 안 나와요 (검사하기)</button></div>'
    +(SESSION && SESSION.tts ? '<div class="setrow"><span>원어민 음성 (서버 AI)</span><button class="minibtn '+(S.ttsHQ!==false?"on":"")+'" onclick="toggleHQ()">'+(S.ttsHQ!==false?"켜짐":"꺼짐")+'</button></div>' : '')
-   +'<div class="setrow"><span>말하기 마이크</span><div class="mini" style="align-items:center"><span class="sub" style="font-size:12px">'+micTxt+'</span>'+(micState==="no"?'<button class="minibtn" onclick="retryMic();openSettings()">다시 시도</button>':'')+'</div></div>'
+   +(skipSpeak() ? '' : '<div class="setrow"><span>말하기 마이크</span><div class="mini" style="align-items:center"><span class="sub" style="font-size:12px">'+micTxt+'</span>'+(micState==="no"?'<button class="minibtn" onclick="retryMic();openSettings()">다시 시도</button>':'')+'</div></div>')
    +'<div class="setrow"><span>발음 속도</span><div class="mini">'
    +'<button class="minibtn '+(S.rate===0.7?"on":"")+'" onclick="setRate(0.7)">느리게</button>'
    +'<button class="minibtn '+(S.rate===0.85?"on":"")+'" onclick="setRate(0.85)">보통</button>'
