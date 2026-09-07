@@ -116,7 +116,11 @@ auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store
 
 - 데이터는 `S.school = [{id, nm, ws:[[단어, 뜻, 영어정의, 예문], ...]}]` — 계정 상태에 살아
   기존 save/load 로 서버 저장. **Code.gs 는 안 건드렸다.** 부팅 때 `S.school` 이 배열이 아니면
-  `seedSchool()`(Room to Grow 8단어)을 심는다.
+  `seedSchool()` 을 심는다. 기본 세트: Mary Anderson's New Invention · Room to Grow (각 8단어).
+- **기본 세트를 늘릴 때는 seedSchool 에 넣는 것만으로 부족하다** — 이미 쓰던 계정은
+  S.school 이 서버에 저장돼 있어 새 세트를 못 받는다. `topUpSchool()` 이 `SCHOOL_SEED_V`
+  판 번호(`S.schoolSeedV`)를 보고 **없는 세트만 앞에 한 번 얹는다.** 세트를 추가하면
+  `SCHOOL_SEED_V` 를 1 올릴 것. (부모가 지운 세트는 안 되살린다)
 - 흐름 셋: **단어 보기**(`scLearn`) → **스펠링 연습**(`scPractice` — 보기→가리고 쓰기, 맞을 때까지)
   → **테스트**(`scTest` — 단어를 숨기고 소리+뜻만 주고 타자로 쓰기, 점수판·오답만 재연습).
 - 시험 화면에는 **예문을 보여주지 않는다** (예문 안에 답 단어가 들어 있다).

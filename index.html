@@ -1226,6 +1226,7 @@ function defaultState(){ return {
   rate:0.85, mute:false, voiceName:"", lastBoss:null, ttsHQ:true, dstats:{}, revCap:20, lastClaw:"",
   items:null,   /* 우리 집 상점 목록 (없으면 공용 기본 상점) */
   school:null,  /* 학교 스펠링 단어 세트들 */
+  schoolSeedV:0,/* 기본 세트 몇 판까지 받았나 */
   spellDay:null,/* 스펠링 보상 하루 기록 */
   ppin:"",      /* 부모 잠금번호 4자리 */
   learned:{},   /* word -> {lv, box, next, date} */
@@ -2416,7 +2417,18 @@ function renderReview(){
 }
 
 /* ═══════════ 학교 스펠링 — 부모가 넣는 학교 단어로 스펠링 시험 연습 ═══════════ */
-function seedSchool(){ return [{ id:"rtg1", nm:"Room to Grow (8단어)", ws:[
+function seedSchool(){ return [
+{ id:"mary1", nm:"Mary Anderson's New Invention (8단어)", ws:[
+ ["design","디자인하다, 설계하다 (동사)","To make a plan or drawing for something","She designed a dress for her doll."],
+ ["encourage","용기를 주다, 격려하다 (동사)","To say kind words that make someone feel brave or strong","My mom encouraged me to try again."],
+ ["examine","자세히 살펴보다, 검사하다 (동사)","To look at something very carefully","The doctor examined my throat."],
+ ["investigation","조사, 수사 (명사)","A careful study to find out the truth","The police did an investigation about the missing bag."],
+ ["quality","품질, 질 (명사)","How good or bad something is","This chair is strong and has good quality."],
+ ["simple","쉬운, 간단한 (형용사)","Easy to do or understand","This is a simple math problem."],
+ ["solution","해답, 해결책 (명사)","The answer to a problem","The solution to 5 + 5 is 10."],
+ ["substitute","대신하는 것, 대체물 (명사)","Something that takes the place of another thing","Water is a good substitute for soda."]
+]},
+{ id:"rtg1", nm:"Room to Grow (8단어)", ws:[
  ["admire","존경하다, 감탄하다 (동사)","To respect or think highly of someone or something","I admire my teacher because she is kind and smart."],
  ["classmate","반 친구 (명사)","A person who is in the same class at school","My classmate helped me with my homework."],
  ["community","공동체, 지역 사회 (명사)","A group of people who live or work in the same place","Our community built a new playground for kids."],
@@ -2426,6 +2438,16 @@ function seedSchool(){ return [{ id:"rtg1", nm:"Room to Grow (8단어)", ws:[
  ["scared","무서워하는, 겁먹은 (형용사)","Feeling afraid or frightened","I was scared when I saw a big dog barking."],
  ["tumble","굴러떨어지다, 구르다 (동사)","To fall down suddenly and roll","The little boy tumbled off the swing but laughed."]
 ]}]; }
+/* 기본 세트가 늘어났을 때: 안 갖고 있는 세트만 앞에 끼워 넣는다 (한 번만 — 부모가 지운 건 안 되살림) */
+const SCHOOL_SEED_V = 2;
+function topUpSchool(){
+  if(S.schoolSeedV >= SCHOOL_SEED_V) return;
+  const have = {};
+  (S.school||[]).forEach(st=>{ have[st.id] = 1; });
+  seedSchool().slice().reverse().forEach(st=>{ if(!have[st.id]) S.school.unshift(st); });
+  S.schoolSeedV = SCHOOL_SEED_V;
+  save();
+}
 function spellDay(){
   const t = todayStr();
   if(!S.spellDay || S.spellDay.date!==t) S.spellDay = {date:t, got:{}, pf:{}, pr:{}};
@@ -2888,6 +2910,7 @@ async function bootUser(){
   if(!applyFamilyItems()){ loadItemsCache(); loadItemsServer(); }
   if(SESSION && !S.name) S.name = SESSION.name || "";
   if(!Array.isArray(S.school)) S.school = seedSchool();   /* 학교 스펠링 기본 세트 */
+  topUpSchool();   /* 새 기본 세트가 늘면, 이미 쓰던 계정에도 한 번만 얹는다 */
   buildIndex();
   if(storageMode==="none") $("#saveWarn").style.display="block";
   updateMoney(); updateSyncDot(); startTimeTracker();
