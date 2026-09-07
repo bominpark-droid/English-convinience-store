@@ -353,6 +353,9 @@ nav button.on .ni{transform:scale(1.12)}
 .spl-ok{color:var(--ok)} .spl-bad{color:var(--bad);text-decoration:underline}
 .spl-diff{font-size:30px;letter-spacing:.12em;margin:8px 0;word-break:break-all}
 .spellbig{font-size:36px;letter-spacing:.1em;word-break:break-all}
+.scask{font-size:22px;line-height:1.5;margin:12px 4px 2px;word-break:keep-all}
+.scasksub{font-size:13px;color:var(--sub);margin-top:4px}
+.schint{min-height:24px;margin-top:10px;font-size:17px;color:var(--green-dk)}
 .sc-ta{font-family:inherit;font-size:13px;width:100%;min-height:130px;border:2px solid var(--line);border-radius:12px;padding:10px;outline:none;background:#fff;color:var(--ink);line-height:1.7}
 </style>
 </head>
@@ -2460,6 +2463,26 @@ function spellDiff(ans, typed){
   for(let i=0;i<a.length;i++) h += '<span class="'+(t[i]===a[i].toLowerCase()?"spl-ok":"spl-bad")+'">'+esc(a[i])+'</span>';
   return h+'</div>';
 }
+function scCurWord(){
+  const st = S.school[SC.si];
+  const idx = (SC.mode==="test") ? SC.order[SC.i] : SC.list[SC.i];
+  return st.ws[idx];
+}
+/* 문제 = 영어 정의. 정의가 없으면 한글 뜻으로 대신한다.
+   한글 뜻·발음은 자동으로 알려주지 않고, 막혔을 때 눌러 보는 힌트로만 준다. */
+function scAskBlock(tip){
+  const w = scCurWord();
+  const hasDef = !!w[2];
+  return '<div class="card qbox"><div class="qtype">'+tip+'</div>'
+   +'<div class="scask">'+esc(w[2] || w[1])+'</div>'
+   +(hasDef ? '' : '<div class="scasksub">(영어 정의가 없어 한글 뜻으로 냈어요)</div>')
+   +'<div style="margin-top:12px">'
+   +(hasDef ? '<button class="spk" onclick="scHintKo()">🇰🇷 한글 뜻</button> ' : '')
+   +'<button class="spk" onclick="scHintSay()">🔊 발음 듣기</button></div>'
+   +'<div class="schint" id="scHint"></div></div>';
+}
+function scHintKo(){ const el=$("#scHint"); if(el) el.textContent = scCurWord()[1]; }
+function scHintSay(){ speak(scCurWord()[0]); }
 function spellInput(fn){
   return '<input type="text" id="spIn" class="spellin" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="여기에 스펠링 쓰기" onkeydown="if(event.key===\'Enter\'){'+fn+'()}">';
 }
@@ -2470,7 +2493,7 @@ function renderSchool(){
   let cards = "";
   sets.forEach((st,i)=>{
     cards += '<div class="card"><div class="mtitle">🏫 '+esc(st.nm)+' <span class="sub" style="font-size:12px">단어 '+st.ws.length+'개</span></div>'
-     +'<div class="mdesc">진짜 시험처럼 <b>듣고 스펠링을 타자로</b> 써 보자!<br>테스트에서 맞히면 단어당 <b>+'+REWARD.SPELL+'원</b> · 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</div>'
+     +'<div class="mdesc">진짜 시험처럼 <b>뜻을 보고 스펠링을 타자로</b> 써 보자!<br>테스트에서 맞히면 단어당 <b>+'+REWARD.SPELL+'원</b> · 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</div>'
      +'<div class="btnrow"><button class="btn ghost sm" onclick="scLearn('+i+')">📖 단어 보기</button>'
      +'<button class="btn sm" onclick="scPractice('+i+')">✍️ 스펠링 연습</button></div>'
      +'<button class="btn yellow" style="margin-top:10px" onclick="scTestAsk('+i+')">📝 테스트 보기</button></div>';
@@ -2520,20 +2543,17 @@ function renderScPr(){
      +'<div class="card qbox"><div class="qtype">👀 스펠링을 눈에 꼭 담아 두자!</div>'
      +'<div class="qword spellbig">'+esc(w[0])+'</div>'
      +'<div class="qmean" style="font-size:18px">'+esc(w[1])+'</div>'
+     +(w[2]?'<div class="scask" style="font-size:17px">'+esc(w[2])+'</div>':'')
      +'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.list[SC.i]][0])">🔊 다시 듣기</button></div>'
      +'<button class="btn yellow" onclick="SC.step=1;SC.lock=false;renderScPr()">다 외웠어! 가리고 쓰기 ✍️</button>';
     speak(w[0]);
   } else {
     $("#scr-school").innerHTML = head
-     +'<div class="card qbox"><div class="qtype">🙈 이제 안 보고 써 보자!</div>'
-     +'<div class="qmean" style="font-size:19px">'+esc(w[1])+'</div>'
-     +(w[2]?'<p class="sub" style="margin:4px 0;font-size:13px">'+esc(w[2])+'</p>':'')
-     +'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.list[SC.i]][0])">🔊 단어 듣기</button></div>'
+     + scAskBlock("🙈 이 뜻에 맞는 단어를 안 보고 써 보자!")
      + spellInput("scPrCheck")
      +'<button class="btn" style="margin-top:10px" onclick="scPrCheck()">확인 ✔</button>'
      +'<div class="qfeed" id="scFeed"></div>';
     const el=$("#spIn"); if(el) el.focus();
-    speak(w[0]);
   }
 }
 function scPrCheck(){
@@ -2572,7 +2592,7 @@ function scPrDone(){
 function scTestAsk(si){
   const st = S.school[si];
   openModal('<div class="center"><div class="bigemo">📝</div><h3 style="text-align:center">'+esc(st.nm)+' 테스트</h3>'
-   +'<p class="sub" style="margin:8px 0 16px">단어 '+st.ws.length+'개 · 소리를 듣고 스펠링을 쓰는 거야.<br>맞히면 단어당 <b>+'+REWARD.SPELL+'원</b>, 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</p>'
+   +'<p class="sub" style="margin:8px 0 16px">단어 '+st.ws.length+'개 · <b>영어 뜻풀이</b>를 보고 단어를 쓰는 거야.<br>막히면 🇰🇷 한글 뜻·🔊 발음 힌트를 눌러도 돼!<br>맞히면 단어당 <b>+'+REWARD.SPELL+'원</b>, 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</p>'
    +'<div class="btnrow"><button class="btn yellow" onclick="closeModal();scTest('+si+')">시작! ✏️</button>'
    +'<button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
 }
@@ -2589,15 +2609,11 @@ function renderScTest(){
   $("#scr-school").innerHTML =
    '<div class="learnhead"><button class="minibtn" onclick="goSchool()">← 그만</button>'
    +'<span class="lvbadge">📝 테스트 '+(SC.i+1)+' / '+SC.order.length+' · ⭕ '+SC.right.length+'</span></div>'
-   +'<div class="card qbox"><div class="qtype">🎧 잘 듣고 스펠링을 써 봐!</div>'
-   +'<div class="qmean" style="font-size:20px">'+esc(w[1])+'</div>'
-   +(w[2]?'<p class="sub" style="margin:4px 0;font-size:13px">'+esc(w[2])+'</p>':'')
-   +'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.order[SC.i]][0])">🔊 다시 듣기</button></div>'
+   + scAskBlock("📖 이 뜻에 맞는 영어 단어의 스펠링을 써 봐!")
    + spellInput("scTestCheck")
    +'<button class="btn" style="margin-top:10px" onclick="scTestCheck()">제출 ✏️</button>'
    +'<div class="qfeed" id="scFeed"></div>';
   const el=$("#spIn"); if(el) el.focus();
-  speak(w[0]);
 }
 function scTestCheck(){
   if(SC.lock) return;
