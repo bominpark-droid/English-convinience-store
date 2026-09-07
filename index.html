@@ -2469,20 +2469,17 @@ function scCurWord(){
   return st.ws[idx];
 }
 /* 문제 = 영어 정의. 정의가 없으면 한글 뜻으로 대신한다.
-   한글 뜻·발음은 자동으로 알려주지 않고, 막혔을 때 눌러 보는 힌트로만 준다. */
+   소리는 주지 않는다(대표 지시 2026-09-07). 한글 뜻만 막혔을 때 눌러 보는 힌트로 준다. */
 function scAskBlock(tip){
   const w = scCurWord();
   const hasDef = !!w[2];
   return '<div class="card qbox"><div class="qtype">'+tip+'</div>'
    +'<div class="scask">'+esc(w[2] || w[1])+'</div>'
    +(hasDef ? '' : '<div class="scasksub">(영어 정의가 없어 한글 뜻으로 냈어요)</div>')
-   +'<div style="margin-top:12px">'
-   +(hasDef ? '<button class="spk" onclick="scHintKo()">🇰🇷 한글 뜻</button> ' : '')
-   +'<button class="spk" onclick="scHintSay()">🔊 발음 듣기</button></div>'
+   +(hasDef ? '<div style="margin-top:12px"><button class="spk" onclick="scHintKo()">🇰🇷 한글 뜻</button></div>' : '')
    +'<div class="schint" id="scHint"></div></div>';
 }
 function scHintKo(){ const el=$("#scHint"); if(el) el.textContent = scCurWord()[1]; }
-function scHintSay(){ speak(scCurWord()[0]); }
 function spellInput(fn){
   return '<input type="text" id="spIn" class="spellin" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="여기에 스펠링 쓰기" onkeydown="if(event.key===\'Enter\'){'+fn+'()}">';
 }
@@ -2592,7 +2589,7 @@ function scPrDone(){
 function scTestAsk(si){
   const st = S.school[si];
   openModal('<div class="center"><div class="bigemo">📝</div><h3 style="text-align:center">'+esc(st.nm)+' 테스트</h3>'
-   +'<p class="sub" style="margin:8px 0 16px">단어 '+st.ws.length+'개 · <b>영어 뜻풀이</b>를 보고 단어를 쓰는 거야.<br>막히면 🇰🇷 한글 뜻·🔊 발음 힌트를 눌러도 돼!<br>맞히면 단어당 <b>+'+REWARD.SPELL+'원</b>, 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</p>'
+   +'<p class="sub" style="margin:8px 0 16px">단어 '+st.ws.length+'개 · <b>영어 뜻풀이</b>를 보고 단어를 쓰는 거야.<br>막히면 🇰🇷 한글 뜻 힌트를 눌러도 돼!<br>맞히면 단어당 <b>+'+REWARD.SPELL+'원</b>, 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</p>'
    +'<div class="btnrow"><button class="btn yellow" onclick="closeModal();scTest('+si+')">시작! ✏️</button>'
    +'<button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
 }
