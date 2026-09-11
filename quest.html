@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
   --navy:#23305B; --navy2:#37477E; --sky:#9BD7FF; --grass:#6BC356;
@@ -1254,6 +1256,11 @@ function unlockAudio(){
 }
 document.addEventListener("touchend", unlockAudio, {passive:true});
 document.addEventListener("click", unlockAudio);
+
+/* ═══════════ 오프라인 담당 등록 ═══════════ */
+if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+  window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
 
 /* ═══════════ 부팅 ═══════════ */
 async function boot(){

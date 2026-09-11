@@ -1,0 +1,16 @@
+{
+  "name": "영어 편의점",
+  "short_name": "영어편의점",
+  "description": "영단어를 외워 영머니를 모으고 편의점에서 쇼핑하는 학습 게임",
+  "lang": "ko",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F1F6F2",
+  "theme_color": "#0E8A63",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

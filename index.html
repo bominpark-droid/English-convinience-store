@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
   --bg:#F1F6F2; --card:#FFFFFF; --ink:#20302A; --sub:#6E8078;
@@ -225,6 +227,8 @@ h2.sec{font-size:20px;margin:6px 2px 12px;display:flex;align-items:center;gap:8p
   background:var(--yellow);color:#5A3E00;box-shadow:0 2px 0 var(--yellow-dk);white-space:nowrap;
 }
 .givebtn.done{background:var(--green-lt);color:var(--green-dk);box-shadow:0 2px 0 #C9E4D6}
+.refbtn{font-family:inherit;font-size:12px;border:none;border-radius:999px;padding:6px 9px;cursor:pointer;background:#F0F2F7;color:#6E7791;box-shadow:0 2px 0 #D9DEEF;white-space:nowrap;margin-right:4px}
+.refbtn:active{transform:translateY(2px);box-shadow:0 0 0 #D9DEEF}
 
 /* ── 복습/단어장 ─────────────────────── */
 .wrow{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line)}
@@ -357,6 +361,33 @@ nav button.on .ni{transform:scale(1.12)}
 .scasksub{font-size:13px;color:var(--sub);margin-top:4px}
 .schint{min-height:24px;margin-top:10px;font-size:17px;color:var(--green-dk)}
 .sc-ta{font-family:inherit;font-size:13px;width:100%;min-height:130px;border:2px solid var(--line);border-radius:12px;padding:10px;outline:none;background:#fff;color:var(--ink);line-height:1.7}
+/* ── 오락실 ── */
+.arcsign{background:#23305B;color:#fff;text-align:center;padding:12px 6px 9px;font-size:21px;border-radius:14px 14px 0 0;letter-spacing:1px}
+.arcsign small{display:block;font-size:10px;color:#9FE870;letter-spacing:3px;margin-top:2px}
+.arcbody{background:linear-gradient(#2E2A4A,#3C3766);border:3px solid #23305B;border-top:none;border-radius:0 0 14px 14px;padding:12px;margin-bottom:14px}
+.arcgame{background:#fff;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:10px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.arcgame:last-child{margin-bottom:0}
+.arcgame .ge{font-size:34px;line-height:1}
+.arcgame .gn{font-size:16px}
+.arcgame .gd{font-size:12px;color:var(--sub);line-height:1.45}
+.arctop{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px}
+.arcbar{height:12px;background:#E9EFEA;border-radius:999px;overflow:hidden;margin-bottom:12px}
+.arcbar>i{display:block;height:100%;width:100%;background:var(--yellow-dk);transition:width 1s linear}
+.moleboard{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.hole{position:relative;height:82px;background:#6B4A2F;border-radius:14px;overflow:hidden;box-shadow:inset 0 7px 9px rgba(0,0,0,.45)}
+.mole{position:absolute;left:5%;right:5%;bottom:-105%;height:84%;background:#C98A4B;border:3px solid #8B5E3C;border-radius:14px 14px 6px 6px;
+  display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;color:#3A2410;cursor:pointer;
+  transition:bottom .2s ease-out;word-break:break-all;padding:2px;line-height:1.1}
+.mole.up{bottom:5%}
+.mole.hit{background:#9FE870;border-color:#4F9A2A}
+.mole.bad{background:#FF9C86;border-color:var(--red-dk)}
+.sky{position:relative;height:300px;background:linear-gradient(#BDE3FF,#EAF6FF 70%,#DFF3E4);border:3px solid var(--green-dk);border-radius:16px;overflow:hidden}
+@keyframes balloonUp{from{transform:translateY(0)}to{transform:translateY(-420px)}}
+.balloon{position:absolute;bottom:-92px;width:80px;height:92px;border-radius:50% 50% 46% 46%;display:flex;align-items:center;justify-content:center;
+  text-align:center;font-size:13px;color:#4A2B00;cursor:pointer;line-height:1.2;padding:6px;word-break:keep-all;
+  animation-name:balloonUp;animation-timing-function:linear;animation-fill-mode:forwards;box-shadow:inset -6px -6px 0 rgba(0,0,0,.08)}
+.balloon:after{content:"";position:absolute;left:50%;bottom:-11px;width:2px;height:12px;background:#9AA0B4}
+.balloon.pop{animation:none;transform:scale(1.35);opacity:0;transition:transform .2s,opacity .2s}
 </style>
 </head>
 <body>
@@ -380,6 +411,7 @@ nav button.on .ni{transform:scale(1.12)}
     <div class="screen" id="scr-log"></div>
     <div class="screen" id="scr-admin"></div>
     <div class="screen" id="scr-school"></div>
+    <div class="screen" id="scr-arcade"></div>
   </main>
   <nav id="nav">
     <button data-go="home" class="on"><span class="ni">🏠</span>홈</button>
@@ -507,13 +539,16 @@ function storeKey(){ return SESSION ? ("ecvs-"+SESSION.uid) : "ecvs-guest"; }
 const Store = {
   async load(){
     if(SESSION){
+      let srv = null, loc = null;
       try{
         const j = await api("load", {uid:SESSION.uid, token:SESSION.token});
         storageMode = "server"; SESSION.tts = !!j.tts; saveSession();
-        if(j.state) return j.state;
+        srv = j.state || null;
       }catch(e){ storageMode = "server-off"; }
-      try{ const c = localStorage.getItem(storeKey()); if(c) return JSON.parse(c); }catch(e){}
-      return null;
+      try{ const c = localStorage.getItem(storeKey()); if(c) loc = JSON.parse(c); }catch(e){}
+      /* 인터넷 없이 공부한 게 서버 것보다 나중이면 그걸 살린다 (안 그러면 오프라인 진행이 날아간다) */
+      if(srv && loc) return ((loc.savedAt||0) > (srv.savedAt||0)) ? loc : srv;
+      return srv || loc;
     }
     if (typeof window.storage !== "undefined" && window.storage) {
       storageMode = "claude";
@@ -529,6 +564,7 @@ const Store = {
     memState = st;
     clearTimeout(this._t);
     this._t = setTimeout(async ()=>{
+      st.savedAt = Date.now();
       const json = JSON.stringify(st);
       try{ localStorage.setItem(storeKey(), json); }catch(e){}
       if(!SESSION && storageMode==="claude"){ try{ await window.storage.set("ecvs-guest", json); }catch(e){} }
@@ -554,7 +590,9 @@ function flushServer(){
 }
 function updateSyncDot(){
   const el = $("#syncDot"); if(!el) return;
-  el.textContent = SESSION ? (syncState==="off" ? "⚠️" : "☁️") : "";
+  const off = (typeof navigator!=="undefined" && navigator.onLine===false);
+  el.textContent = off ? "📴" : (SESSION ? (syncState==="off" ? "⚠️" : "☁️") : "");
+  el.title = off ? "오프라인 — 기기에 저장했다가 연결되면 올려요" : "";
 }
 
 /* ═══════════ 학습 통계(dstats) + 공부 시간 추적 ═══════════ */
@@ -1227,6 +1265,9 @@ function defaultState(){ return {
   v:2, name:"", level:2, placed:false,
   money:0, earned:0, streak:0, best:0, lastDone:null,
   rate:0.85, mute:false, voiceName:"", lastBoss:null, ttsHQ:true, dstats:{}, revCap:20, lastClaw:"",
+  savedAt:0,    /* 마지막으로 저장한 시각 — 서버와 기기 중 어느 쪽이 최신인지 가린다 */
+  arcDay:null,  /* 오락실 하루 기록 */
+  arcBest:null, /* 오락실 최고 점수 */
   items:null,   /* 우리 집 상점 목록 (없으면 공용 기본 상점) */
   school:null,  /* 학교 스펠링 단어 세트들 */
   schoolSeedV:0,/* 기본 세트 몇 판까지 받았나 */
@@ -1347,13 +1388,14 @@ function levelUpCheck(){
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
   $("#scr-"+id).classList.add("on");
-  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz"||id==="school") ? "home" : (id==="admin" ? "store" : id);
+  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz"||id==="school") ? "home" : ((id==="admin"||id==="arcade") ? "store" : id);
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===tab));
   window.scrollTo(0,0);
 }
 function go(tab){
   stopListen();
   try{ recStop(); }catch(e){}
+  try{ arcStop(); }catch(e){}
   if(!S.placed && tab!=="store"){ renderWelcome(); show("welcome"); return; }
   if(tab==="home"){ pickDay(); renderHome(); show("home"); }
   else if(tab==="store"){ renderStore("전체"); show("store"); }
@@ -2093,6 +2135,11 @@ function renderStore(cat){
    +'<div style="flex:1"><div style="font-size:16px">🕹️ 인형뽑기</div>'
    +'<div style="font-size:12px;opacity:.95">1회 1,000원 · 꽝 없음!<br>최대 3,000원짜리 상품까지!</div></div>'
    +'<button class="btn sm yellow" style="width:auto" onclick="askClaw()">뽑기!</button></div>'
+   +'<div class="clawcard" style="background:linear-gradient(135deg,#7B7BE8,#5A5ACF);border-color:#3B3B9E;box-shadow:0 4px 0 #3B3B9E">'
+   +'<div class="clawbox" style="background:linear-gradient(#2E2A4A 58%,#4C4788 58%);border-color:#1F1C36;color:#9FE870;font-size:22px;letter-spacing:0">🕹️</div>'
+   +'<div style="flex:1"><div style="font-size:16px">🎮 영어 오락실</div>'
+   +'<div style="font-size:12px;opacity:.95">1판 '+ARCADE_FEE+'원 · 30초 게임!<br>잘하면 낸 돈보다 많이 벌어 😎</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="goArcade()">들어가기</button></div>'
    +'<div class="chips">'+chips+'</div>'
    +'<div class="grid">'+grid+'</div>'
    +'<p class="sub" style="margin-top:14px;font-size:12px">※ 간식은 2025~26 편의점 실제가, 장난감·굿즈는 시중가 기준.<br>여기서 산 물건은 부모님이 진짜로 사 주시는 약속이에요!</p>';
@@ -2184,6 +2231,239 @@ function doBuy(id){
    +'<div class="btnrow"><button class="btn" onclick="closeModal();go(\'log\')">영수증 보기</button>'
    +'<button class="btn ghost" onclick="closeModal();renderStore()">더 구경하기</button></div></div>');
 }
+/* ═══════════ 영어 오락실 — 100원 내고 30초 게임 ═══════════ */
+const ARCADE_FEE = 100, ARCADE_HIT = 10, ARCADE_CAP = 300, ARCADE_SEC = 30;
+let ARC = null;
+
+function arcToday(){
+  const t = todayStr();
+  if(!S.arcDay || S.arcDay.date!==t) S.arcDay = {date:t, earn:0};
+  return S.arcDay;
+}
+function arcBestOf(g){ return (S.arcBest && S.arcBest[g]) || 0; }
+/* 문제로 쓸 단어: 배운 단어가 우선, 모자라면 지금 레벨 단어로 채운다 */
+function arcPool(){
+  const out=[], seen={};
+  for(const w in S.learned){ if(WIDX[w] && !seen[w]){ seen[w]=1; out.push(WIDX[w]); } }
+  if(out.length < 8){
+    const lv = Math.max(LV_MIN, Math.min(S.level||1, LV_MAX));
+    (WORDS[lv]||[]).forEach(a=>{ if(!seen[a[0]]){ seen[a[0]]=1; out.push({w:a[0], k:a[1], lv:lv}); } });
+  }
+  return out;
+}
+function shortK(k){
+  let t = String(k||"").split(",")[0].trim();
+  if(t.length > 9) t = t.slice(0,8) + "…";
+  return t;
+}
+function arcStop(){
+  if(!ARC) return;
+  ARC.dead = true;
+  clearInterval(ARC.tick); clearTimeout(ARC.t1); clearTimeout(ARC.t2);
+}
+function goArcade(){ stopAudio(); arcStop(); renderArcade(); show("arcade"); }
+function renderArcade(){
+  const d = arcToday(), left = Math.max(0, ARCADE_CAP - d.earn);
+  $("#scr-arcade").innerHTML =
+   '<div class="arcsign">🎮 영어 오락실<small>ENGLISH ARCADE</small></div>'
+   +'<div class="arcbody">'
+   +'<div class="arcgame"><span class="ge">🔨</span><div style="flex:1">'
+   +'<div class="gn">두더지 잡기</div><div class="gd">한글 뜻을 보고 <b>영어 단어</b> 두더지를 때려!<br>최고 기록 '+arcBestOf("mole")+'점</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="askPlay(\'mole\')">'+ARCADE_FEE+'원</button></div>'
+   +'<div class="arcgame"><span class="ge">🎈</span><div style="flex:1">'
+   +'<div class="gn">풍선 터뜨리기</div><div class="gd">영어 단어를 보고 맞는 <b>뜻 풍선</b>을 터뜨려!<br>최고 기록 '+arcBestOf("balloon")+'점</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="askPlay(\'balloon\')">'+ARCADE_FEE+'원</button></div>'
+   +'</div>'
+   +'<div class="card"><div class="mtitle" style="font-size:15px">🪙 오늘 오락실에서 번 영머니</div>'
+   +'<div class="mdesc">'+comma(d.earn)+'원 / 하루 최대 '+comma(ARCADE_CAP)+'원'
+   +(left<=0 ? '<br><b style="color:var(--red)">오늘 몫은 다 받았어! 게임은 계속 할 수 있지만 영머니는 내일부터야.</b>'
+             : '<br>맞힐 때마다 '+ARCADE_HIT+'원 · 30초 안에 많이 맞힐수록 이득!')+'</div></div>'
+   +'<button class="btn ghost" onclick="go(\'store\')">← 편의점으로</button>';
+}
+function askPlay(game){
+  const nm = (game==="mole") ? "🔨 두더지 잡기" : "🎈 풍선 터뜨리기";
+  if(S.money < ARCADE_FEE){
+    openModal('<div class="center"><div class="bigemo">🥲</div><h3 style="text-align:center">영머니가 부족해!</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px">1판에 '+ARCADE_FEE+'원 · 지금 '+comma(S.money)+'원<br>단어 공부하고 다시 오자!</p>'
+     +'<button class="btn" onclick="closeModal()">알겠어!</button></div>');
+    return;
+  }
+  const how = (game==="mole")
+    ? "구멍에서 올라오는 영어 단어 중<br><b>위에 적힌 뜻</b>에 맞는 걸 눌러!"
+    : "올라오는 풍선 중<br><b>위에 적힌 영어 단어</b>의 뜻을 눌러!";
+  openModal('<div class="center"><div class="bigemo">'+(game==="mole"?"🔨":"🎈")+'</div>'
+   +'<h3 style="text-align:center">'+nm+'</h3>'
+   +'<p class="sub" style="text-align:center;margin:8px 0 16px">'+how+'<br>30초 · 1개 맞히면 '+ARCADE_HIT+'원<br>지금 영머니 '+comma(S.money)+'원 → 입장료 '+ARCADE_FEE+'원</p>'
+   +'<div class="btnrow"><button class="btn yellow" onclick="arcStart(\''+game+'\')">시작! 🕹️</button>'
+   +'<button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
+}
+function arcStart(game){
+  if(S.money < ARCADE_FEE){ closeModal(); return; }
+  ac(); closeModal();
+  S.money -= ARCADE_FEE; updateMoney(); logEv("arcade",{g:game}); save();
+  ARC = {game, pool:arcPool(), score:0, miss:0, left:ARCADE_SEC, dead:false, tick:null, t1:null, t2:null, lock:false, target:null};
+  show("arcade");
+  if(game==="mole") moleStart(); else balloonStart();
+}
+function arcHead(title){
+  return '<div class="arctop"><button class="minibtn" onclick="arcQuit()">← 그만</button>'
+   +'<span class="lvbadge">'+title+' · <b id="arcScore">0</b>점</span>'
+   +'<span class="lvbadge" id="arcClock">'+ARCADE_SEC+'초</span></div>'
+   +'<div class="arcbar"><i id="arcBar"></i></div>';
+}
+function arcTimer(){
+  ARC.tick = setInterval(function(){
+    if(!ARC || ARC.dead){ clearInterval(ARC.tick); return; }
+    ARC.left--;
+    const b=$("#arcBar"); if(b) b.style.width = Math.max(0, ARC.left/ARCADE_SEC*100)+"%";
+    const c=$("#arcClock"); if(c) c.textContent = Math.max(0,ARC.left)+"초";
+    if(ARC.left<=0){ clearInterval(ARC.tick); arcEnd(); }
+  }, 1000);
+}
+function arcQuit(){ arcStop(); goArcade(); }
+
+/* ── 🔨 두더지 잡기 ── */
+function moleStart(){
+  let holes="";
+  for(let i=0;i<9;i++) holes += '<div class="hole"><div class="mole" id="mole'+i+'"></div></div>';
+  $("#scr-arcade").innerHTML = arcHead("🔨 두더지")
+   +'<div class="card qbox" style="padding:12px"><div class="qtype">이 뜻에 맞는 단어를 때려!</div>'
+   +'<div class="qmean" id="moleAsk" style="font-size:23px">준비!</div></div>'
+   +'<div class="moleboard">'+holes+'</div>'
+   +'<div class="qfeed" id="arcFeed"></div>';
+  arcTimer(); moleRound();
+}
+function moleDown(){ for(let i=0;i<9;i++){ const m=$("#mole"+i); if(m){ m.classList.remove("up"); } } }
+function moleRound(){
+  if(!ARC || ARC.dead) return;
+  ARC.lock = false;
+  const pick = shuffle(ARC.pool).slice(0,4);
+  if(pick.length<2){ arcEnd(); return; }
+  ARC.target = pick[0];
+  const a = $("#moleAsk"); if(a) a.textContent = ARC.target.k;
+  for(let i=0;i<9;i++){ const m=$("#mole"+i); if(m){ m.className="mole"; m.textContent=""; m.onclick=null; } }
+  const holes = shuffle([0,1,2,3,4,5,6,7,8]).slice(0, pick.length);
+  const words = shuffle(pick);
+  holes.forEach(function(h, idx){
+    const m = $("#mole"+h); if(!m) return;
+    const w = words[idx];
+    m.textContent = w.w;
+    m.onclick = function(){ moleHit(h, w.w===ARC.target.w); };
+    setTimeout(function(){ if(ARC && !ARC.dead) m.classList.add("up"); }, idx*90);
+  });
+  ARC.t1 = setTimeout(function(){
+    if(!ARC || ARC.dead || ARC.lock) return;
+    ARC.miss++; moleDown();
+    ARC.t2 = setTimeout(moleRound, 350);
+  }, 2600);
+}
+function moleHit(h, ok){
+  if(!ARC || ARC.dead || ARC.lock) return;
+  ARC.lock = true; clearTimeout(ARC.t1);
+  const m = $("#mole"+h), f = $("#arcFeed");
+  if(ok){
+    ARC.score++; Sfx.ok(); if(m) m.classList.add("hit");
+    const sc=$("#arcScore"); if(sc) sc.textContent = ARC.score;
+    if(f) f.innerHTML = '<span class="good">잘했어! 🔨</span>';
+  } else {
+    ARC.miss++; Sfx.bad(); if(m) m.classList.add("bad");
+    if(f) f.innerHTML = '<span class="oops">앗! 정답은 <b>'+esc(ARC.target.w)+'</b></span>';
+  }
+  ARC.t2 = setTimeout(function(){
+    moleDown();
+    ARC.t2 = setTimeout(moleRound, 250);
+  }, ok ? 300 : 800);
+}
+
+/* ── 🎈 풍선 터뜨리기 ── */
+function balloonStart(){
+  $("#scr-arcade").innerHTML = arcHead("🎈 풍선")
+   +'<div class="card qbox" style="padding:12px"><div class="qtype">이 단어의 뜻 풍선을 터뜨려!</div>'
+   +'<div class="qword" id="balloonAsk" style="font-size:30px">준비!</div></div>'
+   +'<div class="sky" id="sky"></div>'
+   +'<div class="qfeed" id="arcFeed"></div>';
+  arcTimer(); balloonRound();
+}
+function balloonRound(){
+  if(!ARC || ARC.dead) return;
+  ARC.lock = false;
+  const pick = shuffle(ARC.pool).slice(0,4);
+  if(pick.length<2){ arcEnd(); return; }
+  ARC.target = pick[0];
+  const a = $("#balloonAsk"); if(a) a.textContent = ARC.target.w;
+  const sky = $("#sky"); if(!sky) return;
+  sky.innerHTML = "";
+  const cols = ["#FF9DBB","#8FD0FF","#FFD64D","#9FE870"];
+  const dur = 5.4;
+  shuffle(pick).forEach(function(w, i){
+    const b = document.createElement("div");
+    b.className = "balloon";
+    b.style.background = cols[i%4];
+    b.style.left = (4 + i*24 + Math.random()*5) + "%";
+    b.style.animationDuration = dur + "s";
+    b.style.animationDelay = (Math.random()*0.4) + "s";
+    b.textContent = shortK(w.k);
+    b.onclick = function(){ balloonPop(b, w.w===ARC.target.w); };
+    sky.appendChild(b);
+  });
+  ARC.t1 = setTimeout(function(){
+    if(!ARC || ARC.dead || ARC.lock) return;
+    ARC.miss++;
+    const f=$("#arcFeed"); if(f) f.innerHTML = '<span class="oops">놓쳤다! 정답은 <b>'+esc(shortK(ARC.target.k))+'</b></span>';
+    balloonRound();
+  }, (dur+0.7)*1000);
+}
+function balloonPop(el, ok){
+  if(!ARC || ARC.dead || ARC.lock) return;
+  ARC.lock = true; clearTimeout(ARC.t1);
+  const f = $("#arcFeed");
+  if(ok){
+    ARC.score++; Sfx.ok();
+    el.textContent = "💥"; el.classList.add("pop");
+    const sc=$("#arcScore"); if(sc) sc.textContent = ARC.score;
+    if(f) f.innerHTML = '<span class="good">터뜨렸다! 🎈</span>';
+  } else {
+    ARC.miss++; Sfx.bad(); el.style.opacity = ".3";
+    if(f) f.innerHTML = '<span class="oops">앗! 정답은 <b>'+esc(shortK(ARC.target.k))+'</b></span>';
+  }
+  ARC.t2 = setTimeout(balloonRound, ok ? 400 : 900);
+}
+
+/* ── 끝나고 정산 ── */
+function arcEnd(){
+  if(!ARC) return;
+  ARC.dead = true;
+  clearInterval(ARC.tick); clearTimeout(ARC.t1); clearTimeout(ARC.t2);
+  const d = arcToday();
+  const room = Math.max(0, ARCADE_CAP - d.earn);
+  const earn = Math.min(ARC.score * ARCADE_HIT, room);
+  if(earn>0){ S.money += earn; S.earned += earn; d.earn += earn; updateMoney(); }
+  if(!S.arcBest) S.arcBest = {};
+  const isBest = ARC.score > (S.arcBest[ARC.game]||0);
+  if(isBest) S.arcBest[ARC.game] = ARC.score;
+  logEv("arcadeend",{g:ARC.game, sc:ARC.score, earn:earn});
+  save();
+  Sfx.tada(); if(isBest) confetti();
+  const nm = (ARC.game==="mole") ? "🔨 두더지 잡기" : "🎈 풍선 터뜨리기";
+  const net = earn - ARCADE_FEE;
+  $("#scr-arcade").innerHTML =
+   '<div class="card center" style="padding:26px 18px"><div class="bigemo">'+(isBest?"🏆":"🕹️")+'</div>'
+   +'<h3 style="font-size:21px">'+nm+' 끝!</h3>'
+   +'<div class="statrow" style="margin-top:14px">'
+   +'<div class="statbox"><b>'+ARC.score+'</b><span>맞힌 개수</span></div>'
+   +'<div class="statbox"><b>+'+comma(earn)+'</b><span>번 영머니</span></div>'
+   +'<div class="statbox"><b>'+arcBestOf(ARC.game)+'</b><span>최고 기록</span></div></div>'
+   +(isBest ? '<p class="sub" style="margin:4px 0"><b>🏆 신기록이야! 대단해!</b></p>' : '')
+   +'<p class="sub" style="margin:6px 0">'+(net>=0
+      ? '입장료 '+ARCADE_FEE+'원을 내고 '+comma(earn)+'원을 벌었어 — <b>'+comma(net)+'원 이득!</b>'
+      : '입장료 '+ARCADE_FEE+'원 중 '+comma(earn)+'원을 벌었어.<br>다음엔 더 잘할 수 있어! 💪')+'</p>'
+   +(room<=0 ? '<p class="sub" style="font-size:12px;color:var(--red)">오늘 오락실 영머니는 다 받았어. 게임은 계속 할 수 있어!</p>' : '')
+   +'<div class="btnrow" style="margin-top:8px">'
+   +'<button class="btn yellow" onclick="askPlay(\''+ARC.game+'\')">🕹️ 한 번 더 ('+ARCADE_FEE+'원)</button>'
+   +'<button class="btn ghost" onclick="goArcade()">다른 게임</button></div>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="go(\'store\')">편의점으로</button></div>';
+}
+
 /* ═══════════ 기록 (영수증 + 학습 기록) ═══════════ */
 function renderLog(){
   const ds = S.dstats || {};
@@ -2221,9 +2501,11 @@ function renderLog(){
     rlines = '<p class="sub center" style="padding:14px 0">아직 산 물건이 없어요.<br>영머니를 모아 첫 쇼핑을 해 보자! 🛍️</p>';
   } else {
     S.buys.forEach((b,i)=>{
+      const canRef = !b.given && b.id!=="claw";
       rlines += '<div class="rline"><span class="remo">'+b.emo+'</span>'
         +'<div class="rnm">'+esc(b.nm)+'<small>'+b.date+'</small></div>'
         +'<span class="rpr">'+comma(b.pr)+'원</span>'
+        +(canRef ? '<button class="refbtn" onclick="askRefund('+i+')">↩︎ 무르기</button>' : '')
         +'<button class="givebtn '+(b.given?"done":"")+'" onclick="toggleGiven('+i+')">'+(b.given?"✅ 받았어요":"전달 대기")+'</button></div>';
     });
   }
@@ -2242,11 +2524,49 @@ function renderLog(){
    +(weakRows ? '<div class="card"><div class="mtitle" style="font-size:15px">🎯 자주 틀리는 단어</div>'+weakRows+'</div>' : '')
    +'<div class="card"><div class="mtitle" style="font-size:15px">최근 완료 기록</div>'+loglines+'</div>'
    +'<h2 class="sec">🧾 쇼핑 영수증 <span class="sub" style="font-size:12px">(부모님 확인용)</span></h2>'
-   +'<div class="receipt"><h4>ENGLISH STORE ★ 영어 편의점</h4><div class="rsub">사 주신 뒤 [전달 대기]를 눌러 완료 표시해 주세요</div>'
+   +'<div class="receipt"><h4>ENGLISH STORE ★ 영어 편의점</h4><div class="rsub">사 주신 뒤 [전달 대기]를 눌러 완료 표시해 주세요<br>잘못 샀으면 [↩︎ 무르기]로 영머니를 돌려받을 수 있어요</div>'
    + rlines
    +'<div class="rline" style="border-bottom:none"><div class="rnm"><b>총 사용 영머니</b></div><span class="rpr"><b>'+comma(spent)+'원</b></span></div></div>';
 }
 function toggleGiven(i){ if(S.buys[i]){ S.buys[i].given = !S.buys[i].given; save(); renderLog(); } }
+
+/* ═══════════ 무르기(환불) — 잘못 산 물건을 되돌리고 영머니를 정확히 돌려준다 ═══════════ */
+function askRefund(i){
+  const b = S.buys[i];
+  if(!b) return;
+  if(b.id==="claw"){
+    openModal('<div class="center"><div class="bigemo">🎰</div><h3 style="text-align:center">뽑기는 무를 수 없어</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px">뽑기는 운으로 뽑는 거라<br>무르기는 안 돼. 다음에 더 좋은 게 나올 거야!</p>'
+     +'<button class="btn" onclick="closeModal()">알겠어!</button></div>');
+    return;
+  }
+  if(b.given){
+    openModal('<div class="center"><div class="bigemo">🎁</div><h3 style="text-align:center">이미 받은 물건이야</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px">부모님이 이미 사 주신 물건은 무를 수 없어요.</p>'
+     +'<button class="btn" onclick="closeModal()">알겠어요</button></div>');
+    return;
+  }
+  openModal('<div class="center"><div class="bigemo">'+b.emo+'</div>'
+   +'<h3 style="text-align:center">'+esc(b.nm)+' 무를까?</h3>'
+   +'<p class="sub" style="text-align:center;margin:8px 0 16px">영수증에서 빼고 <b>'+comma(b.pr)+'원</b>을 돌려줄게.<br>'
+   +'지금 '+comma(S.money)+'원 → <b>'+comma(S.money+b.pr)+'원</b>이 돼.<br>'
+   +'<span style="color:var(--red)">부모님이 벌써 사 주셨다면 무르면 안 돼요!</span></p>'
+   +'<div class="btnrow"><button class="btn yellow" onclick="doRefund('+i+')">네, 무를래요</button>'
+   +'<button class="btn ghost" onclick="closeModal()">그냥 둘래요</button></div></div>');
+}
+function doRefund(i){
+  const b = S.buys[i];
+  if(!b || b.given || b.id==="claw"){ closeModal(); return; }
+  S.money += b.pr;                    /* 낼 때 money 만 줄였으므로 money 만 되돌린다 */
+  S.buys.splice(i,1);
+  logEv("refund",{item:b.id, pr:b.pr});
+  updateMoney(); bumpMoney(); Sfx.coin(); save();
+  closeModal(); renderLog();
+  openModal('<div class="center"><div class="bigemo">↩︎</div><h3 style="text-align:center">무르기 완료!</h3>'
+   +'<p class="sub" style="text-align:center;margin:8px 0 16px"><b>'+comma(b.pr)+'원</b>이 돌아왔어.<br>지금 영머니 <b>'+comma(S.money)+'원</b></p>'
+   +'<div class="btnrow"><button class="btn" onclick="closeModal();go(\'store\')">편의점 가기 🏪</button>'
+   +'<button class="btn ghost" onclick="closeModal()">닫기</button></div></div>');
+}
 
 /* ═══════════ 부모 모드 — 잠금번호 4자리로 들어간다 ═══════════
    아이 화면에서는 안 보이고, 부모만 상점·레벨·초기화를 만질 수 있게 하는 장치.
@@ -2909,6 +3229,15 @@ async function testServer(){
 }
 function guestMode(){ SESSION=null; saveSession(); bootUser(); }
 function logout(){ SESSION=null; saveSession(); syncState="idle"; updateSyncDot(); closeModal(); renderAuth(); show("auth"); }
+
+/* ═══════════ 오프라인 담당 등록 — 인터넷 없이도 앱이 열리게 ═══════════ */
+if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+window.addEventListener("online",  function(){ updateSyncDot(); if(SESSION) flushServer(); });
+window.addEventListener("offline", function(){ updateSyncDot(); });
 
 /* ═══════════ 부팅 ═══════════ */
 async function bootUser(){
