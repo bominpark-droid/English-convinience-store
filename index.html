@@ -2138,7 +2138,7 @@ function renderStore(cat){
    +'<div class="clawcard" style="background:linear-gradient(135deg,#7B7BE8,#5A5ACF);border-color:#3B3B9E;box-shadow:0 4px 0 #3B3B9E">'
    +'<div class="clawbox" style="background:linear-gradient(#2E2A4A 58%,#4C4788 58%);border-color:#1F1C36;color:#9FE870;font-size:22px;letter-spacing:0">🕹️</div>'
    +'<div style="flex:1"><div style="font-size:16px">🎮 영어 오락실</div>'
-   +'<div style="font-size:12px;opacity:.95">1판 '+ARCADE_FEE+'원 · 30초 게임!<br>잘하면 낸 돈보다 많이 벌어 😎</div></div>'
+   +'<div style="font-size:12px;opacity:.95">1판 '+ARCADE_FEE+'원 · '+ARCADE_SEC+'초 게임!<br>잘하면 낸 돈보다 많이 벌어 😎</div></div>'
    +'<button class="btn sm yellow" style="width:auto" onclick="goArcade()">들어가기</button></div>'
    +'<div class="chips">'+chips+'</div>'
    +'<div class="grid">'+grid+'</div>'
@@ -2231,15 +2231,24 @@ function doBuy(id){
    +'<div class="btnrow"><button class="btn" onclick="closeModal();go(\'log\')">영수증 보기</button>'
    +'<button class="btn ghost" onclick="closeModal();renderStore()">더 구경하기</button></div></div>');
 }
-/* ═══════════ 영어 오락실 — 100원 내고 30초 게임 ═══════════ */
-const ARCADE_FEE = 100, ARCADE_HIT = 10, ARCADE_CAP = 300, ARCADE_SEC = 30;
+/* ═══════════ 영어 오락실 — 100원 내고 짧은 게임 ═══════════
+   난이도를 바꾸려면 아래 숫자만 고치면 된다.
+   2026-09-11: 아이가 너무 빠르다고 해서 속도를 절반으로 늦추고(두 배 여유),
+   기회 수가 줄지 않도록 게임 길이도 두 배로 늘렸다. */
+const ARCADE_FEE = 100, ARCADE_HIT = 10, ARCADE_CAP = 300;
+const ARCADE_SEC = 60;        /* 한 판 길이(초) */
+const MOLE_WAIT = 5200;       /* 두더지가 들어가기까지 기다리는 시간(밀리초) */
+const BALLOON_RISE = 10.8;    /* 풍선이 하늘 끝까지 올라가는 시간(초) */
+const ARCADE_PLAYS = 5;       /* 게임마다 하루 몇 판까지 */
 let ARC = null;
 
 function arcToday(){
   const t = todayStr();
-  if(!S.arcDay || S.arcDay.date!==t) S.arcDay = {date:t, earn:0};
+  if(!S.arcDay || S.arcDay.date!==t) S.arcDay = {date:t, earn:0, plays:{}};
+  if(!S.arcDay.plays) S.arcDay.plays = {};   /* 예전에 저장된 기록에도 칸을 만들어 준다 */
   return S.arcDay;
 }
+function arcLeft(g){ return Math.max(0, ARCADE_PLAYS - (arcToday().plays[g]||0)); }
 function arcBestOf(g){ return (S.arcBest && S.arcBest[g]) || 0; }
 /* 문제로 쓸 단어: 배운 단어가 우선, 모자라면 지금 레벨 단어로 채운다 */
 function arcPool(){
@@ -2268,20 +2277,31 @@ function renderArcade(){
    '<div class="arcsign">🎮 영어 오락실<small>ENGLISH ARCADE</small></div>'
    +'<div class="arcbody">'
    +'<div class="arcgame"><span class="ge">🔨</span><div style="flex:1">'
-   +'<div class="gn">두더지 잡기</div><div class="gd">한글 뜻을 보고 <b>영어 단어</b> 두더지를 때려!<br>최고 기록 '+arcBestOf("mole")+'점</div></div>'
-   +'<button class="btn sm yellow" style="width:auto" onclick="askPlay(\'mole\')">'+ARCADE_FEE+'원</button></div>'
+   +'<div class="gn">두더지 잡기</div><div class="gd">한글 뜻을 보고 <b>영어 단어</b> 두더지를 때려!<br>최고 기록 '+arcBestOf("mole")+'점 · <b>오늘 '+arcLeft("mole")+'판 남음</b></div></div>'
+   +(arcLeft("mole")>0
+      ? '<button class="btn sm yellow" style="width:auto" onclick="askPlay(\'mole\')">'+ARCADE_FEE+'원</button></div>'
+      : '<button class="btn sm" style="width:auto" disabled>내일 또</button></div>')
    +'<div class="arcgame"><span class="ge">🎈</span><div style="flex:1">'
-   +'<div class="gn">풍선 터뜨리기</div><div class="gd">영어 단어를 보고 맞는 <b>뜻 풍선</b>을 터뜨려!<br>최고 기록 '+arcBestOf("balloon")+'점</div></div>'
-   +'<button class="btn sm yellow" style="width:auto" onclick="askPlay(\'balloon\')">'+ARCADE_FEE+'원</button></div>'
+   +'<div class="gn">풍선 터뜨리기</div><div class="gd">영어 단어를 보고 맞는 <b>뜻 풍선</b>을 터뜨려!<br>최고 기록 '+arcBestOf("balloon")+'점 · <b>오늘 '+arcLeft("balloon")+'판 남음</b></div></div>'
+   +(arcLeft("balloon")>0
+      ? '<button class="btn sm yellow" style="width:auto" onclick="askPlay(\'balloon\')">'+ARCADE_FEE+'원</button></div>'
+      : '<button class="btn sm" style="width:auto" disabled>내일 또</button></div>')
    +'</div>'
    +'<div class="card"><div class="mtitle" style="font-size:15px">🪙 오늘 오락실에서 번 영머니</div>'
    +'<div class="mdesc">'+comma(d.earn)+'원 / 하루 최대 '+comma(ARCADE_CAP)+'원'
+   +'<br>게임마다 하루 '+ARCADE_PLAYS+'판까지 할 수 있어'
    +(left<=0 ? '<br><b style="color:var(--red)">오늘 몫은 다 받았어! 게임은 계속 할 수 있지만 영머니는 내일부터야.</b>'
-             : '<br>맞힐 때마다 '+ARCADE_HIT+'원 · 30초 안에 많이 맞힐수록 이득!')+'</div></div>'
+             : '<br>맞힐 때마다 '+ARCADE_HIT+'원 · '+ARCADE_SEC+'초 안에 많이 맞힐수록 이득!')+'</div></div>'
    +'<button class="btn ghost" onclick="go(\'store\')">← 편의점으로</button>';
 }
 function askPlay(game){
   const nm = (game==="mole") ? "🔨 두더지 잡기" : "🎈 풍선 터뜨리기";
+  if(arcLeft(game) <= 0){
+    openModal('<div class="center"><div class="bigemo">🌙</div><h3 style="text-align:center">오늘은 여기까지!</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px">'+nm+'는 하루에 '+ARCADE_PLAYS+'판까지야.<br>내일 또 하러 오자!</p>'
+     +'<button class="btn" onclick="closeModal();goArcade()">알겠어!</button></div>');
+    return;
+  }
   if(S.money < ARCADE_FEE){
     openModal('<div class="center"><div class="bigemo">🥲</div><h3 style="text-align:center">영머니가 부족해!</h3>'
      +'<p class="sub" style="text-align:center;margin:8px 0 16px">1판에 '+ARCADE_FEE+'원 · 지금 '+comma(S.money)+'원<br>단어 공부하고 다시 오자!</p>'
@@ -2293,13 +2313,14 @@ function askPlay(game){
     : "올라오는 풍선 중<br><b>위에 적힌 영어 단어</b>의 뜻을 눌러!";
   openModal('<div class="center"><div class="bigemo">'+(game==="mole"?"🔨":"🎈")+'</div>'
    +'<h3 style="text-align:center">'+nm+'</h3>'
-   +'<p class="sub" style="text-align:center;margin:8px 0 16px">'+how+'<br>30초 · 1개 맞히면 '+ARCADE_HIT+'원<br>지금 영머니 '+comma(S.money)+'원 → 입장료 '+ARCADE_FEE+'원</p>'
+   +'<p class="sub" style="text-align:center;margin:8px 0 16px">'+how+'<br>'+ARCADE_SEC+'초 · 1개 맞히면 '+ARCADE_HIT+'원<br>지금 영머니 '+comma(S.money)+'원 → 입장료 '+ARCADE_FEE+'원</p>'
    +'<div class="btnrow"><button class="btn yellow" onclick="arcStart(\''+game+'\')">시작! 🕹️</button>'
    +'<button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
 }
 function arcStart(game){
-  if(S.money < ARCADE_FEE){ closeModal(); return; }
+  if(S.money < ARCADE_FEE || arcLeft(game) <= 0){ closeModal(); return; }
   ac(); closeModal();
+  const d = arcToday(); d.plays[game] = (d.plays[game]||0) + 1;
   S.money -= ARCADE_FEE; updateMoney(); logEv("arcade",{g:game}); save();
   ARC = {game, pool:arcPool(), score:0, miss:0, left:ARCADE_SEC, dead:false, tick:null, t1:null, t2:null, lock:false, target:null};
   show("arcade");
@@ -2349,13 +2370,13 @@ function moleRound(){
     const w = words[idx];
     m.textContent = w.w;
     m.onclick = function(){ moleHit(h, w.w===ARC.target.w); };
-    setTimeout(function(){ if(ARC && !ARC.dead) m.classList.add("up"); }, idx*90);
+    setTimeout(function(){ if(ARC && !ARC.dead) m.classList.add("up"); }, idx*130);
   });
   ARC.t1 = setTimeout(function(){
     if(!ARC || ARC.dead || ARC.lock) return;
     ARC.miss++; moleDown();
     ARC.t2 = setTimeout(moleRound, 350);
-  }, 2600);
+  }, MOLE_WAIT);
 }
 function moleHit(h, ok){
   if(!ARC || ARC.dead || ARC.lock) return;
@@ -2372,7 +2393,7 @@ function moleHit(h, ok){
   ARC.t2 = setTimeout(function(){
     moleDown();
     ARC.t2 = setTimeout(moleRound, 250);
-  }, ok ? 300 : 800);
+  }, ok ? 300 : 1200);
 }
 
 /* ── 🎈 풍선 터뜨리기 ── */
@@ -2394,7 +2415,7 @@ function balloonRound(){
   const sky = $("#sky"); if(!sky) return;
   sky.innerHTML = "";
   const cols = ["#FF9DBB","#8FD0FF","#FFD64D","#9FE870"];
-  const dur = 5.4;
+  const dur = BALLOON_RISE;
   shuffle(pick).forEach(function(w, i){
     const b = document.createElement("div");
     b.className = "balloon";
@@ -2426,7 +2447,7 @@ function balloonPop(el, ok){
     ARC.miss++; Sfx.bad(); el.style.opacity = ".3";
     if(f) f.innerHTML = '<span class="oops">앗! 정답은 <b>'+esc(shortK(ARC.target.k))+'</b></span>';
   }
-  ARC.t2 = setTimeout(balloonRound, ok ? 400 : 900);
+  ARC.t2 = setTimeout(balloonRound, ok ? 400 : 1300);
 }
 
 /* ── 끝나고 정산 ── */
@@ -2459,8 +2480,11 @@ function arcEnd(){
       : '입장료 '+ARCADE_FEE+'원 중 '+comma(earn)+'원을 벌었어.<br>다음엔 더 잘할 수 있어! 💪')+'</p>'
    +(room<=0 ? '<p class="sub" style="font-size:12px;color:var(--red)">오늘 오락실 영머니는 다 받았어. 게임은 계속 할 수 있어!</p>' : '')
    +'<div class="btnrow" style="margin-top:8px">'
-   +'<button class="btn yellow" onclick="askPlay(\''+ARC.game+'\')">🕹️ 한 번 더 ('+ARCADE_FEE+'원)</button>'
+   +(arcLeft(ARC.game)>0
+      ? '<button class="btn yellow" onclick="askPlay(\''+ARC.game+'\')">🕹️ 한 번 더 ('+ARCADE_FEE+'원 · '+arcLeft(ARC.game)+'판 남음)</button>'
+      : '')
    +'<button class="btn ghost" onclick="goArcade()">다른 게임</button></div>'
+   +(arcLeft(ARC.game)<=0 ? '<p class="sub" style="font-size:12px;margin-top:6px">이 게임은 오늘 '+ARCADE_PLAYS+'판을 다 했어. 내일 또 하자! 🌙</p>' : '')
    +'<button class="btn ghost sm" style="margin-top:8px" onclick="go(\'store\')">편의점으로</button></div>';
 }
 
