@@ -2133,7 +2133,7 @@ function renderStore(cat){
    +'<div class="s-win"><i>🍦</i><i>🍫</i><i>🧸</i><i>🥤</i><i>🍭</i><i>🎁</i><i>📚</i><i>🪀</i><i>🃏</i><i>🍪</i></div></div></div>'
    +'<div class="clawcard"><div class="clawbox">🧸🐰🦖</div>'
    +'<div style="flex:1"><div style="font-size:16px">🕹️ 인형뽑기</div>'
-   +'<div style="font-size:12px;opacity:.95">1회 1,000원 · 꽝 없음!<br>최대 3,000원짜리 상품까지!</div></div>'
+   +'<div style="font-size:12px;opacity:.95">1회 '+comma(CLAW_FEE)+'원 · 꽝 없음!<br>'+comma(CLAW_MIN)+'~'+comma(CLAW_MAX)+'원 상품이 나와!</div></div>'
    +'<button class="btn sm yellow" style="width:auto" onclick="askClaw()">뽑기!</button></div>'
    +'<div class="clawcard" style="background:linear-gradient(135deg,#7B7BE8,#5A5ACF);border-color:#3B3B9E;box-shadow:0 4px 0 #3B3B9E">'
    +'<div class="clawbox" style="background:linear-gradient(#2E2A4A 58%,#4C4788 58%);border-color:#1F1C36;color:#9FE870;font-size:22px;letter-spacing:0">🕹️</div>'
@@ -2145,7 +2145,9 @@ function renderStore(cat){
    +'<p class="sub" style="margin-top:14px;font-size:12px">※ 간식은 2025~26 편의점 실제가, 장난감·굿즈는 시중가 기준.<br>여기서 산 물건은 부모님이 진짜로 사 주시는 약속이에요!</p>';
 }
 /* 뽑기 경품 = 상점 목록 중 3,000원 이하 전부. 싼 건 자주, 비싼 건 가끔 (꽝 없음) */
-function clawPool(){ return ITEMS.filter(it=>it && it.pr>0 && it.pr<=3000); }
+const CLAW_FEE = 1000, CLAW_MIN = 700, CLAW_MAX = 3000;   /* 뽑기 1회 값 · 경품 최저가 · 최고가 */
+/* 700원 미만은 뽑기에 안 나온다 (대표 지시 2026-09-13 — 「똥침당하기 50원」 같은 장난 상품이 나왔다) */
+function clawPool(){ return ITEMS.filter(it=>it && it.pr>=CLAW_MIN && it.pr<=CLAW_MAX); }
 function clawWeight(pr){ return pr<=1000?30 : pr<=1500?22 : pr<=2000?12 : pr<=2500?6 : 4; }
 function pickClawPrize(){
   const pool = clawPool();
@@ -2162,11 +2164,17 @@ function pickClawPrize(){
   return p;
 }
 function askClaw(){
+  if(!clawPool().length){
+    openModal('<div class="center"><div class="bigemo">🧺</div><h3 style="text-align:center">지금은 뽑을 상품이 없어</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px">뽑기에는 '+comma(CLAW_MIN)+'원~'+comma(CLAW_MAX)+'원짜리 상품만 나와.<br>부모님께 상점에 상품을 넣어 달라고 하자!</p>'
+     +'<button class="btn" onclick="closeModal()">알겠어!</button></div>');
+    return;
+  }
   if(S.money < 1000){
     openModal('<div class="center"><div class="bigemo">🥲</div><h3 style="text-align:center">영머니가 부족해!</h3><p class="sub" style="text-align:center;margin:8px 0 16px">뽑기 1회는 1,000원 · 지금 '+comma(S.money)+'원<br>단어 공부하고 다시 오자!</p><button class="btn" onclick="closeModal()">알겠어!</button></div>');
     return;
   }
-  openModal('<div class="center"><div class="clawbox" style="margin:0 auto;width:84px;height:96px;font-size:18px">🧸🐰🦖</div><h3 style="text-align:center;margin-top:12px">인형뽑기 1회 = 1,000원</h3><p class="sub" style="text-align:center;margin:6px 0 16px">내 영머니 '+comma(S.money)+'원 · 꽝은 없어!<br>최대 3,000원짜리 상품이 걸려 있어 👀</p><div class="btnrow"><button class="btn yellow" onclick="doClaw()">뽑는다! 🦾</button><button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
+  openModal('<div class="center"><div class="clawbox" style="margin:0 auto;width:84px;height:96px;font-size:18px">🧸🐰🦖</div><h3 style="text-align:center;margin-top:12px">인형뽑기 1회 = 1,000원</h3><p class="sub" style="text-align:center;margin:6px 0 16px">내 영머니 '+comma(S.money)+'원 · 꽝은 없어!<br>'+comma(CLAW_MIN)+'원~'+comma(CLAW_MAX)+'원짜리 상품이 걸려 있어 👀</p><div class="btnrow"><button class="btn yellow" onclick="doClaw()">뽑는다! 🦾</button><button class="btn ghost" onclick="closeModal()">다음에</button></div></div>');
 }
 function doClaw(){
   const prize = pickClawPrize();
