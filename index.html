@@ -429,6 +429,8 @@ const DAILY_N = 10;
 const LV_NAME = ["왕초보 🐥", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
 const LV_MIN = 0, LV_MAX = 5;
 const BOX_GAP = [0, 1, 3, 7, 14, 30, 60];
+/* 말하기 따라하기: 1번만 하면 넘어갈 수 있고, 원하면 3번까지 더 연습 (대표 지시 2026-09-15) */
+const REP_NEED = 1, REP_MAX = 3;
 
 const STORE_ITEMS = [
   /* 간식 — 2025~26 편의점 실제가 */
@@ -1370,18 +1372,43 @@ function drillPool(){
     .slice(0,10);
 }
 function unlearnedIn(lv){ return WORDS[lv].filter(a=>!S.learned[a[0]]); }
+/* 레벨업 선물: 상점 상품 중 700~5,000원짜리 하나를 공짜로 (대표 지시 2026-09-15) */
+const LEVELUP_MIN = 700, LEVELUP_MAX = 5000;
+function levelUpPrize(){
+  const pool = ITEMS.filter(it=>it && it.pr>=LEVELUP_MIN && it.pr<=LEVELUP_MAX);
+  if(!pool.length) return null;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
 function levelUpCheck(){
   let upped = 0;
   while(S.level<LV_MAX && unlearnedIn(S.level).length===0){ S.level++; upped++; }
-  if(upped>0){
-    addMoney(REWARD.LEVELUP*upped);
-    confetti(); Sfx.tada();
-    openModal('<div class="center"><div class="bigemo">🎊</div>'
-      +'<h3 style="text-align:center">레벨 업!</h3>'
-      +'<p class="sub" style="text-align:center;margin:8px 0 16px">이제 <b>Lv.'+S.level+' · '+LV_NAME[S.level]+'</b> 단계야!<br>보너스 <b>영머니 '+comma(REWARD.LEVELUP*upped)+'원</b>을 받았어!</p>'
-      +'<button class="btn yellow" onclick="closeModal()">최고야! 🙌</button></div>');
-    save();
+  if(upped<=0) return;
+  addMoney(REWARD.LEVELUP*upped);
+  const gifts = [];
+  for(let i=0;i<upped;i++){
+    const g = levelUpPrize();
+    if(!g) break;
+    gifts.push(g);
+    /* 영머니로 산 게 아니라 선물이므로 가격은 0원으로 적는다 (총 사용 영머니가 늘면 안 된다) */
+    S.buys.unshift({id:"levelup", nm:"🎉 레벨업 선물 · "+g.nm+" ("+comma(g.pr)+"원)", emo:g.emo, pr:0, date:todayStr(), given:false});
+    logEv("levelgift",{item:g.id, pr:g.pr});
   }
+  let giftHtml = "";
+  if(gifts.length){
+    giftHtml = '<div class="card" style="padding:14px;margin:10px 0">'
+     + gifts.map(g=>'<div style="font-size:40px;line-height:1.1">'+g.emo+'</div>'
+        +'<div style="font-size:18px">'+esc(g.nm)+'</div>'
+        +'<div class="sub" style="font-size:12px">'+comma(g.pr)+'원짜리 선물!</div>').join('<div style="height:1px;background:var(--line);margin:10px 0"></div>')
+     +'</div>'
+     +'<p class="sub" style="font-size:12.5px;margin-bottom:14px">영수증에 담아 뒀어 🧾<br>부모님께 보여 드리면 진짜로 받을 수 있어!</p>';
+  }
+  confetti(); Sfx.tada();
+  openModal('<div class="center"><div class="bigemo">🎊</div>'
+    +'<h3 style="text-align:center">레벨 업!</h3>'
+    +'<p class="sub" style="text-align:center;margin:8px 0 10px">이제 <b>Lv.'+S.level+' · '+LV_NAME[S.level]+'</b> 단계야!<br>보너스 <b>영머니 '+comma(REWARD.LEVELUP*upped)+'원</b>을 받았어!</p>'
+    + giftHtml
+    +'<button class="btn yellow" onclick="closeModal()">최고야! 🙌</button></div>');
+  save();
 }
 
 /* ═══════════ 화면 전환 ═══════════ */
@@ -1554,6 +1581,20 @@ function renderHome(){
       +'<div class="mdesc">복습 퀴즈를 맞히면 단어당 <b>영머니 '+REWARD.REVIEW+'원</b>!<br>👑에서 한 번 더 맞히면 <b>🎓 졸업</b> — 다시 안 나와요.</div>'
       +'<button class="btn" onclick="startQuiz(\'review\')">복습 퀴즈 시작</button></div>';
   }
+  /* 레벨업까지 얼마나 남았는지 — 목표가 보여야 더 하고 싶어진다 */
+  let lvProg = "";
+  const lvTot = (WORDS[S.level]||[]).length;
+  if(lvTot){
+    const lvLeft = unlearnedIn(S.level).length, lvDone = lvTot - lvLeft;
+    if(S.level >= LV_MAX && lvLeft===0){
+      lvProg = '<div class="card" style="padding:10px 14px"><div style="font-size:14px">👑 마지막 레벨까지 다 왔어! 대단해!</div></div>';
+    } else {
+      lvProg = '<div class="card" style="padding:11px 14px">'
+       +'<div style="font-size:14px;margin-bottom:7px">🏅 다음 레벨까지 <b>'+lvLeft+'개</b> 남았어! <span class="sub" style="font-size:12px">('+lvDone+'/'+lvTot+')</span></div>'
+       +'<div class="pbar"><i style="width:'+Math.round(lvDone/lvTot*100)+'%"></i></div>'
+       +'<div class="sub" style="font-size:12px;margin-top:6px">레벨이 오르면 <b>영머니 '+comma(REWARD.LEVELUP)+'원</b> + <b>선물 하나</b> 🎁</div></div>';
+    }
+  }
   $("#scr-home").innerHTML =
    '<div class="hello">안녕, '+esc(S.name)+'! 👋<small>'+todayStr()+'</small></div>'
    +'<span class="lvbadge">Lv.'+S.level+' · '+LV_NAME[S.level]+'</span> '
@@ -1563,6 +1604,7 @@ function renderHome(){
    +'<div class="statbox"><b>'+comma(S.earned)+'</b><span>모은 영머니</span></div>'
    +'<div class="statbox"><b>'+S.best+'</b><span>최고 연속일</span></div>'
    +'</div>'
+   + lvProg
    + mission + bossCard + reviewCard + drillCard
    +'<div class="card" style="display:flex;align-items:center;gap:12px">'
    +'<span style="font-size:32px">🏪</span><div style="flex:1"><div style="font-size:16px">영어 편의점</div>'
@@ -1717,12 +1759,14 @@ function renderSpeak(){
      +'<button class="spk" onclick="speakCurWord()">🔊 다시 듣기</button></div>'
      + micArea(noMic, "단어를 말하면 자동으로 확인해 줘요");
   } else if(s.spStep===1){
-    let dots=""; for(let i=0;i<3;i++) dots += '<i class="'+(i<s.reps?"on":"")+'"></i>';
-    body = '<div class="card qbox"><div class="qtype">🗣️ 이 문장을 3번 듣고 따라 말하자!</div>'
+    let dots=""; for(let i=0;i<REP_MAX;i++) dots += '<i class="'+(i<s.reps?"on":"")+'"></i>';
+    body = '<div class="card qbox"><div class="qtype">🗣️ 이 문장을 듣고 따라 말해 보자!</div>'
      +'<div class="saybox">'+esc(w.s)+'</div><div class="ext">'+esc(w.st)+'</div>'
      +'<div class="repdots">'+dots+'</div></div>'
-     +'<button class="btn yellow" id="repBtn" onclick="repOnce()">🔊 듣고 따라 말하기 ('+s.reps+'/3)</button>'
-     +'<p class="sub center" style="font-size:12px;margin-top:8px">소리가 나오면 큰 소리로 똑같이 따라 해!</p>';
+     +'<button class="btn yellow" id="repBtn" onclick="repOnce()">'+(s.reps===0?'🔊 듣고 따라 말하기':'🔁 한 번 더 연습 ('+s.reps+'/'+REP_MAX+')')+'</button>'
+     +(s.reps>=REP_NEED ? '<button class="btn" style="margin-top:9px" onclick="speakPass()">다 했어! 다음 ▶</button>' : '')
+     +'<p class="sub center" style="font-size:12px;margin-top:8px">'
+     +(s.reps>=REP_NEED ? '한 번만 해도 넘어갈 수 있어. 더 하고 싶으면 🔁 를 눌러!' : '소리가 나오면 큰 소리로 똑같이 따라 해!')+'</p>';
   } else {
     body = '<div class="card qbox"><div class="qtype">🎤 이제 혼자서 문장을 말해 보자!</div>'
      +'<div class="saybox">'+esc(w.s)+'</div><div class="ext">'+esc(w.st)+'</div>'
@@ -1815,7 +1859,7 @@ function repOnce(){
   speak(w.s);
   setTimeout(()=>{
     s.reps++;
-    if(s.reps>=3){ s.spStep=2; }
+    if(s.reps>=REP_MAX){ s.spStep=2; }   /* 최대까지 다 하면 자동으로 다음 단계 */
     save(); renderSpeak();
   }, Math.max(2200, w.s.length*100));
 }
@@ -2533,7 +2577,7 @@ function renderLog(){
     rlines = '<p class="sub center" style="padding:14px 0">아직 산 물건이 없어요.<br>영머니를 모아 첫 쇼핑을 해 보자! 🛍️</p>';
   } else {
     S.buys.forEach((b,i)=>{
-      const canRef = !b.given && b.id!=="claw";
+      const canRef = !b.given && b.id!=="claw" && b.id!=="levelup";
       rlines += '<div class="rline"><span class="remo">'+b.emo+'</span>'
         +'<div class="rnm">'+esc(b.nm)+'<small>'+b.date+'</small></div>'
         +'<span class="rpr">'+comma(b.pr)+'원</span>'
@@ -2566,6 +2610,12 @@ function toggleGiven(i){ if(S.buys[i]){ S.buys[i].given = !S.buys[i].given; save
 function askRefund(i){
   const b = S.buys[i];
   if(!b) return;
+  if(b.id==="levelup"){
+    openModal('<div class="center"><div class="bigemo">🎁</div><h3 style="text-align:center">선물은 무를 수 없어</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px">레벨업 선물은 영머니로 산 게 아니라<br>그냥 받은 거야. 맛있게 받자!</p>'
+     +'<button class="btn" onclick="closeModal()">알겠어!</button></div>');
+    return;
+  }
   if(b.id==="claw"){
     openModal('<div class="center"><div class="bigemo">🎰</div><h3 style="text-align:center">뽑기는 무를 수 없어</h3>'
      +'<p class="sub" style="text-align:center;margin:8px 0 16px">뽑기는 운으로 뽑는 거라<br>무르기는 안 돼. 다음에 더 좋은 게 나올 거야!</p>'
@@ -2588,7 +2638,7 @@ function askRefund(i){
 }
 function doRefund(i){
   const b = S.buys[i];
-  if(!b || b.given || b.id==="claw"){ closeModal(); return; }
+  if(!b || b.given || b.id==="claw" || b.id==="levelup"){ closeModal(); return; }
   S.money += b.pr;                    /* 낼 때 money 만 줄였으므로 money 만 되돌린다 */
   S.buys.splice(i,1);
   logEv("refund",{item:b.id, pr:b.pr});
