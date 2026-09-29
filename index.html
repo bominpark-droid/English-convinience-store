@@ -360,6 +360,15 @@ nav button.on .ni{transform:scale(1.12)}
 .scask{font-size:22px;line-height:1.5;margin:12px 4px 2px;word-break:keep-all}
 .scasksub{font-size:13px;color:var(--sub);margin-top:4px}
 .schint{min-height:24px;margin-top:10px;font-size:17px;color:var(--green-dk)}
+.mchips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.mchip{font-family:inherit;font-size:17px;border:3px solid var(--green-dk);background:#fff;color:var(--ink);border-radius:999px;padding:9px 16px;cursor:pointer;box-shadow:0 3px 0 var(--line)}
+.mchip.on{background:var(--yellow);border-color:var(--yellow-dk);box-shadow:0 3px 0 var(--yellow-dk)}
+.mrow{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px;cursor:pointer}
+.mrow .mq{flex:1;font-size:14.5px;line-height:1.45;word-break:keep-all}
+.mrow .mans{flex:0 0 100px;text-align:center;font-size:17px;color:var(--green-dk);border-bottom:3px solid var(--line);padding-bottom:3px;min-height:26px}
+.mrow.ok{background:#E4F8EE;border-color:var(--ok)}
+.mrow.ok .mans{border-bottom-color:var(--ok)}
+.mrow.bad{animation:shake .35s;border-color:var(--red);background:#FFECE7}
 .sc-ta{font-family:inherit;font-size:13px;width:100%;min-height:130px;border:2px solid var(--line);border-radius:12px;padding:10px;outline:none;background:#fff;color:var(--ink);line-height:1.7}
 /* ── 오락실 ── */
 .arcsign{background:#23305B;color:#fff;text-align:center;padding:12px 6px 9px;font-size:21px;border-radius:14px 14px 0 0;letter-spacing:1px}
@@ -423,7 +432,7 @@ nav button.on .ni{transform:scale(1.12)}
 </div>
 <script>
 /* ═══════════ 설정/상수 (v2 보상 체계) ═══════════ */
-const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20 };
+const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20, SPELL_MATCH:20 };
 const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑","🎓"];
 const DAILY_N = 10;
 const LV_NAME = ["왕초보 🐥", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
@@ -1563,6 +1572,12 @@ function renderHome(){
       +'<button class="btn ghost sm" style="margin-top:8px" onclick="startLearn()">오늘 단어 다시 보기</button></div>';
   }
   let bossCard = "";
+  if(bossAvailable() && !S.day.reviewCleared){
+    /* 잠겨 있어도 보여 준다 — 안 보이면 「없어졌다」고 생각한다 (2026-09-29) */
+    bossCard = '<div class="card" style="background:#3A3658;border-color:#241F3D">'
+     +'<div class="mtitle" style="color:#CFC9F0">🔒 👾 주말 보스 퀴즈가 기다리는 중!</div>'
+     +'<div class="mdesc" style="color:#B9B3DC">위 <b>복습</b>을 먼저 끝내면 열려.<br>깨면 <b style="color:#FFD64D">+'+REWARD.BOSS_CLEAR+'</b>, 한 번에 다 맞히면 <b style="color:#FFD64D">+'+REWARD.BOSS_PERFECT+'</b> 더!</div></div>';
+  }
   if(S.day.reviewCleared && bossAvailable()){
     bossCard = '<div class="card" style="background:#2E2A4A;border-color:#1F1C36"><div class="mtitle" style="color:#FFD64D">👾 주말 보스 퀴즈 등장!</div>'
      +'<div class="mdesc" style="color:#D8D4F0">이번 주에 배운 단어 종합 시험! 깨면 <b style="color:#FFD64D">+'+REWARD.BOSS_CLEAR+'</b>, 한 번에 다 맞히면 <b style="color:#FFD64D">+'+REWARD.BOSS_PERFECT+'</b> 추가!</div>'
@@ -2823,6 +2838,16 @@ function renderReview(){
 
 /* ═══════════ 학교 스펠링 — 부모가 넣는 학교 단어로 스펠링 시험 연습 ═══════════ */
 function seedSchool(){ return [
+{ id:"g3u1w5", nm:"Grade 3 Unit 1 Week 5 · Word Match (8단어)", ws:[
+ ["carve","조각하다, 깎아서 만들다 (동사)","To cut a shape into material like stone or wood to create some objects","They carve faces into the big mountain."],
+ ["clue","단서, 실마리 (명사)","Something that helps to solve a puzzle or mystery","The footprint was an important clue."],
+ ["grand","웅장한, 멋진 (형용사)","Large and splendid","We visited a grand old palace."],
+ ["landmark","랜드마크, 눈에 띄는 표지물 (명사)","An object that stands out in a landscape and is easily recognized","The tall tower is a famous landmark."],
+ ["massive","거대한, 엄청나게 큰 (형용사)","Very large in size, amount or number","A massive rock blocked the road."],
+ ["monument","기념비, 기념물 (명사)","A statue or building built in memory of a person","They built a monument for the hero."],
+ ["national","국가의, 나라의 (형용사)","Relating to or representing a nation or its people","The national flag flies high."],
+ ["trace","흔적, 자취 (명사)","A mark or sign left behind","We found a trace of the lost dog."]
+]},
 { id:"mary1", nm:"Mary Anderson's New Invention (8단어)", ws:[
  ["design","디자인하다, 설계하다 (동사)","To make a plan or drawing for something","She designed a dress for her doll."],
  ["encourage","용기를 주다, 격려하다 (동사)","To say kind words that make someone feel brave or strong","My mom encouraged me to try again."],
@@ -2844,7 +2869,7 @@ function seedSchool(){ return [
  ["tumble","굴러떨어지다, 구르다 (동사)","To fall down suddenly and roll","The little boy tumbled off the swing but laughed."]
 ]}]; }
 /* 기본 세트가 늘어났을 때: 안 갖고 있는 세트만 앞에 끼워 넣는다 (한 번만 — 부모가 지운 건 안 되살림) */
-const SCHOOL_SEED_V = 2;
+const SCHOOL_SEED_V = 3;
 function topUpSchool(){
   if(S.schoolSeedV >= SCHOOL_SEED_V) return;
   const have = {};
@@ -2895,6 +2920,7 @@ function renderSchool(){
      +'<div class="mdesc">진짜 시험처럼 <b>뜻을 보고 스펠링을 타자로</b> 써 보자!<br>테스트에서 맞히면 단어당 <b>+'+REWARD.SPELL+'원</b> · 만점이면 <b>+'+REWARD.SPELL_PERFECT+'</b> 보너스!</div>'
      +'<div class="btnrow"><button class="btn ghost sm" onclick="scLearn('+i+')">📖 단어 보기</button>'
      +'<button class="btn sm" onclick="scPractice('+i+')">✍️ 스펠링 연습</button></div>'
+     +'<button class="btn ghost" style="margin-top:9px" onclick="scMatch('+i+')">🔗 짝 맞추기 (시험이랑 똑같이!)</button>'
      +'<button class="btn yellow" style="margin-top:10px" onclick="scTestAsk('+i+')">📝 테스트 보기</button></div>';
   });
   if(!sets.length) cards = '<div class="card center"><div class="bigemo">🏫</div><p class="sub">아직 학교 단어가 없어요.<br>⚙️ 설정 → 부모 모드에서 넣어 주세요!</p></div>';
@@ -3071,6 +3097,88 @@ function scTestDone(){
    +'<button class="btn yellow" style="margin-top:8px" onclick="scTestAsk(SC.si)">📝 한 번 더 테스트</button>'
    +'<button class="btn ghost sm" style="margin-top:8px" onclick="goSchool()">목록으로</button></div>';
 }
+/* ── 🔗 짝 맞추기 — 학교 시험지(뜻과 단어를 선으로 잇기)와 똑같은 방식 ── */
+function scAskOf(w){ return w[2] || w[1]; }
+function scMatch(si){
+  ac();
+  const st = S.school[si];
+  if(!st || !st.ws.length){ goSchool(); return; }
+  SC = {si, mode:"match", rows: shuffle(st.ws), chips: shuffle(st.ws), done:{}, pick:null, wrong:0};
+  renderScMatch(); show("school");
+}
+function renderScMatch(){
+  const st = S.school[SC.si];
+  const total = SC.rows.length, got = Object.keys(SC.done).length;
+  let chips = "";
+  SC.chips.forEach(w=>{
+    if(SC.done[w[0]]) return;
+    chips += '<button class="mchip'+(SC.pick===w[0]?" on":"")+'" onclick="scMatchPick(\''+esc(w[0])+'\')">'+esc(w[0])+'</button>';
+  });
+  if(!chips) chips = '<span class="sub">단어를 다 썼어!</span>';
+  let rows = "";
+  SC.rows.forEach((w,i)=>{
+    const ok = !!SC.done[w[0]];
+    rows += '<div class="mrow'+(ok?" ok":"")+'" id="mrow'+i+'" onclick="scMatchDrop('+i+')">'
+     +'<div class="mq">'+esc(scAskOf(w))+'</div>'
+     +'<div class="mans">'+(ok?esc(w[0]):"____")+'</div></div>';
+  });
+  $("#scr-school").innerHTML =
+   '<div class="learnhead"><button class="minib" onclick="goSchool()">← 그만</button>'
+   +'<span class="lvbadge">🔗 짝 맞추기 '+got+' / '+total+'</span></div>'
+   +'<div class="card" style="padding:12px 14px"><p class="sub" style="font-size:13px;line-height:1.7">'
+   +'위에서 <b>단어</b>를 하나 누르고, 아래에서 그 뜻에 맞는 <b>줄</b>을 눌러!<br>시험지에 선 긋는 것이랑 똑같아 ✏️</p></div>'
+   +'<div class="mchips">'+chips+'</div>'
+   + rows
+   +'<div class="qfeed" id="scFeed"></div>';
+}
+function scMatchPick(w){
+  if(!SC || SC.mode!=="match") return;
+  SC.pick = (SC.pick===w) ? null : w;
+  renderScMatch();
+}
+function scMatchDrop(i){
+  if(!SC || SC.mode!=="match") return;
+  const w = SC.rows[i];
+  if(!w || SC.done[w[0]]) return;
+  const f = $("#scFeed");
+  if(!SC.pick){ if(f) f.innerHTML = '<span class="sub">먼저 위에서 단어를 골라 줘 👆</span>'; return; }
+  if(SC.pick === w[0]){
+    SC.done[w[0]] = 1; SC.pick = null; Sfx.ok();
+    renderScMatch();
+    const f2 = $("#scFeed"); if(f2) f2.innerHTML = '<span class="good">맞았어! 🔗</span>';
+    if(Object.keys(SC.done).length >= SC.rows.length) setTimeout(scMatchDone, 500);
+  } else {
+    SC.wrong++; Sfx.bad();
+    const row = $("#mrow"+i);
+    if(row){ row.classList.remove("bad"); void row.offsetWidth; row.classList.add("bad"); }
+    if(f) f.innerHTML = '<span class="oops"><b>'+esc(SC.pick)+'</b>는 여기가 아니야. 다시 찾아보자!</span>';
+    SC.pick = null;
+    setTimeout(function(){ if(SC && SC.mode==="match") renderScMatch(); }, 380);
+  }
+}
+function scMatchDone(){
+  const st = S.school[SC.si], d = spellDay();
+  if(!d.mt) d.mt = {};
+  let bonus = "";
+  if(!d.mt[st.id]){
+    d.mt[st.id] = 1;
+    S.money += REWARD.SPELL_MATCH; S.earned += REWARD.SPELL_MATCH; updateMoney();
+    bonus = '<p class="sub" style="margin:6px 0">오늘 첫 짝 맞추기 완주 보너스 <b>+'+REWARD.SPELL_MATCH+'원</b>!</p>';
+  }
+  logEv("spellmatch",{set:st.id, n:SC.rows.length, wrong:SC.wrong}); save();
+  Sfx.tada(); if(SC.wrong===0) confetti();
+  $("#scr-school").innerHTML =
+   '<div class="card center" style="padding:26px 18px"><div class="bigemo">'+(SC.wrong===0?"💯":"🔗")+'</div>'
+   +'<h3 style="font-size:21px">짝 맞추기 끝!</h3>'
+   +'<p class="sub" style="margin:8px 0">'+(SC.wrong===0
+      ? '한 번도 안 틀렸어! 시험도 문제없겠는걸 😎'
+      : '틀린 횟수 <b>'+SC.wrong+'번</b> — 한 번 더 하면 훨씬 빨라져!')+'</p>'
+   + bonus
+   +'<div class="btnrow"><button class="btn" onclick="scMatch(SC.si)">🔁 한 번 더</button>'
+   +'<button class="btn yellow" onclick="scTestAsk(SC.si)">📝 테스트 보기</button></div>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goSchool()">목록으로</button></div>';
+}
+
 /* ── 부모용: 학교 단어 넣기·고치기 ── */
 let SCE = null;
 function scEdit(){

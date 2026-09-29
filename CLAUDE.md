@@ -91,6 +91,11 @@ auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store
 4. **퀴즈** (`renderQ`) — 뜻/영어/듣기 3유형 랜덤
 
 부가 모드: 복습(Leitner), 주말 보스 퀴즈(토·일), 오답 집중 훈련(miss≥2 단어 3개 이상 시).
+
+> **「주말 보스 퀴즈가 없어졌다」는 신고의 정체 (2026-09-29)** — 기능은 멀쩡하다. 조건이 셋이다:
+> ① **토·일에만** (`bossAvailable`) ② 그날 **복습을 끝낸 뒤** ③ 이번 주에 아직 안 했을 것.
+> ②가 문제였다 — 복습이 안 끝나면 카드가 **통째로 안 보여서** 사라진 줄 안다.
+> 이제 복습 전에도 **「🔒 주말 보스 퀴즈가 기다리는 중」** 잠금 카드를 보여 준다. 없애지 말 것.
 `startQuiz(mode)`의 mode는 `daily | review | boss | drill` 4종.
 
 **Leitner 복습**: `S.learned[단어] = {lv, box, next, date, miss}`. box 1→6, `BOX_GAP = [0,1,3,7,14,30,60]`일 후 재출제.
@@ -136,13 +141,18 @@ auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store
 
 - 데이터는 `S.school = [{id, nm, ws:[[단어, 뜻, 영어정의, 예문], ...]}]` — 계정 상태에 살아
   기존 save/load 로 서버 저장. **Code.gs 는 안 건드렸다.** 부팅 때 `S.school` 이 배열이 아니면
-  `seedSchool()` 을 심는다. 기본 세트: Mary Anderson's New Invention · Room to Grow (각 8단어).
+  `seedSchool()` 을 심는다. 기본 세트(각 8단어): **Grade 3 Unit 1 Week 5 (Word Match)** ·
+  Mary Anderson's New Invention · Room to Grow.
 - **기본 세트를 늘릴 때는 seedSchool 에 넣는 것만으로 부족하다** — 이미 쓰던 계정은
   S.school 이 서버에 저장돼 있어 새 세트를 못 받는다. `topUpSchool()` 이 `SCHOOL_SEED_V`
   판 번호(`S.schoolSeedV`)를 보고 **없는 세트만 앞에 한 번 얹는다.** 세트를 추가하면
   `SCHOOL_SEED_V` 를 1 올릴 것. (부모가 지운 세트는 안 되살린다)
-- 흐름 셋: **단어 보기**(`scLearn`) → **스펠링 연습**(`scPractice` — 보기→가리고 쓰기, 맞을 때까지)
-  → **테스트**(`scTest` — 단어를 숨기고 소리+뜻만 주고 타자로 쓰기, 점수판·오답만 재연습).
+- 흐름 넷: **단어 보기**(`scLearn`) → **스펠링 연습**(`scPractice` — 보기→가리고 쓰기, 맞을 때까지)
+  → **🔗 짝 맞추기**(`scMatch`) → **테스트**(`scTest` — 단어를 숨기고 뜻만 주고 타자로 쓰기, 점수판·오답만 재연습).
+- **🔗 짝 맞추기는 학교 시험지와 같은 형태**다 (2026-09-29 — 아들 시험이 「뜻 ↔ 단어 선 긋기」).
+  위에 단어 칩, 아래에 뜻 줄. 칩을 고르고 줄을 누른다. 맞으면 칩이 사라지고 줄이 초록.
+  **시험과 같은 형태로 연습하는 것이 가장 잘 붙는다** — 형태를 임의로 바꾸지 말 것.
+  완주 보너스 `REWARD.SPELL_MATCH`(20원, 세트당 하루 1회 · `S.spellDay.mt`).
 - **문제는 「영어 정의」, 답은 「단어 스펠링」이다** (대표 지시 2026-09-07).
   예: 문제 `Easy to do or understand` → 답 `simple`. 문제 만들기는 `scAskBlock()` 하나로 모았고
   연습(가리고 쓰기)과 테스트가 같은 형태를 쓴다.
