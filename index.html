@@ -369,6 +369,27 @@ nav button.on .ni{transform:scale(1.12)}
 .mrow.ok{background:#E4F8EE;border-color:var(--ok)}
 .mrow.ok .mans{border-bottom-color:var(--ok)}
 .mrow.bad{animation:shake .35s;border-color:var(--red);background:#FFECE7}
+/* ── 중간고사 대비 (scr-mid) ── */
+.middone{font-size:12px}
+.midword{font-size:32px;word-break:break-word}
+.midmean{font-size:20px;line-height:1.45;color:var(--green-dk);margin:14px 4px 4px;word-break:keep-all}
+.midko{display:none;margin-top:8px;font-size:17px;color:#5A3E00;background:#FFF6D6;border-radius:10px;padding:7px 12px}
+.midko.on{display:block}
+.mrow .mko{font-size:13px;color:#8A6A00;margin-top:3px}
+.midblank{display:inline-block;min-width:70px;border-bottom:3px solid var(--line);color:transparent}
+.midfill{color:var(--green-dk);text-decoration:underline}
+.spk.sm2{font-size:13px;padding:6px 11px}
+.vrow{background:#fff;border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.vrow .vw{font-size:18px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.vrow .ven{font-size:15px;line-height:1.45;color:var(--sub);margin-top:3px}
+.vrow .vko{display:none;margin-top:6px;font-size:15px;color:#5A3E00;background:#FFF6D6;border-radius:8px;padding:5px 10px}
+.vrow.on .vko{display:block}
+.vrow.hid .ven{font-size:0;background:var(--green-lt);border-radius:6px;padding:4px 8px}
+.vrow.hid .ven::before{content:"👆 눌러서 뜻 보기";color:var(--sub);font-size:13px}
+.cutline{font-size:19px;line-height:2.3;margin-top:10px}
+.cutw{font-family:inherit;font-size:18px;border:2px dashed var(--green);background:#fff;border-radius:8px;padding:2px 8px;margin:0 1px;cursor:pointer}
+.cutsb{color:#1D5FD1} .cutpr{color:#D9480F}
+.cutbar{color:var(--bad);font-weight:bold;margin:0 6px;font-size:24px}
 .sc-ta{font-family:inherit;font-size:13px;width:100%;min-height:130px;border:2px solid var(--line);border-radius:12px;padding:10px;outline:none;background:#fff;color:var(--ink);line-height:1.7}
 /* ── 오락실 ── */
 .arcsign{background:#23305B;color:#fff;text-align:center;padding:12px 6px 9px;font-size:21px;border-radius:14px 14px 0 0;letter-spacing:1px}
@@ -420,6 +441,7 @@ nav button.on .ni{transform:scale(1.12)}
     <div class="screen" id="scr-log"></div>
     <div class="screen" id="scr-admin"></div>
     <div class="screen" id="scr-school"></div>
+    <div class="screen" id="scr-mid"></div>
     <div class="screen" id="scr-arcade"></div>
   </main>
   <nav id="nav">
@@ -432,7 +454,7 @@ nav button.on .ni{transform:scale(1.12)}
 </div>
 <script>
 /* ═══════════ 설정/상수 (v2 보상 체계) ═══════════ */
-const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20, SPELL_MATCH:20 };
+const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20, SPELL_MATCH:20, MID:20 };
 const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑","🎓"];
 const DAILY_N = 10;
 const LV_NAME = ["왕초보 🐥", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
@@ -1283,6 +1305,7 @@ function defaultState(){ return {
   school:null,  /* 학교 스펠링 단어 세트들 */
   schoolSeedV:0,/* 기본 세트 몇 판까지 받았나 */
   spellDay:null,/* 스펠링 보상 하루 기록 */
+  mid:null,     /* 중간고사 대비 기록 {miss, done, day} — midSt() 가 채운다 */
   ppin:"",      /* 부모 잠금번호 4자리 */
   learned:{},   /* word -> {lv, box, next, date} */
   day:null,     /* {date, sessions:[], reviewCleared, reviewBonusGiven} */
@@ -1424,7 +1447,7 @@ function levelUpCheck(){
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
   $("#scr-"+id).classList.add("on");
-  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz"||id==="school") ? "home" : ((id==="admin"||id==="arcade") ? "store" : id);
+  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz"||id==="school"||id==="mid") ? "home" : ((id==="admin"||id==="arcade") ? "store" : id);
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===tab));
   window.scrollTo(0,0);
 }
@@ -1625,6 +1648,10 @@ function renderHome(){
    +'<span style="font-size:32px">🏪</span><div style="flex:1"><div style="font-size:16px">영어 편의점</div>'
    +'<div class="sub" style="font-size:13px">잔액 '+comma(S.money)+'원으로 뭘 살 수 있을까?</div></div>'
    +'<button class="btn sm" style="width:auto" onclick="go(\'store\')">구경</button></div>'
+   +'<div class="card" style="display:flex;align-items:center;gap:12px;border:2px solid var(--yellow-dk)">'
+   +'<span style="font-size:32px">📚</span><div style="flex:1"><div style="font-size:16px">중간고사 대비</div>'
+   +'<div class="sub" style="font-size:13px">단어 60개 + 문법 · Day 1~3</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="goMid()">가기</button></div>'
    +(S.school && S.school.length ? '<div class="card" style="display:flex;align-items:center;gap:12px">'
    +'<span style="font-size:32px">🏫</span><div style="flex:1"><div style="font-size:16px">학교 스펠링</div>'
    +'<div class="sub" style="font-size:13px">'+esc(S.school[0].nm)+(S.school.length>1?' 외 '+(S.school.length-1)+'세트':'')+' · 시험 연습하면 영머니!</div></div>'
@@ -2925,7 +2952,8 @@ function renderSchool(){
   });
   if(!sets.length) cards = '<div class="card center"><div class="bigemo">🏫</div><p class="sub">아직 학교 단어가 없어요.<br>⚙️ 설정 → 부모 모드에서 넣어 주세요!</p></div>';
   $("#scr-school").innerHTML =
-   '<h2 class="sec">🏫 학교 스펠링</h2>' + cards
+   '<h2 class="sec">🏫 학교 스펠링</h2>'
+   +'<button class="btn yellow" style="margin-bottom:12px" onclick="goMid()">📚 중간고사 대비 (단어 60개 + 문법) 가기</button>' + cards
    +'<p class="sub" style="font-size:12px;text-align:center;margin:6px 0">단어를 넣거나 고치는 건 ⚙️ 설정 → 부모 모드 → 학교 단어 관리</p>'
    +'<button class="btn ghost" onclick="go(\'home\')">← 홈으로</button>';
 }
@@ -3177,6 +3205,678 @@ function scMatchDone(){
    +'<div class="btnrow"><button class="btn" onclick="scMatch(SC.si)">🔁 한 번 더</button>'
    +'<button class="btn yellow" onclick="scTestAsk(SC.si)">📝 테스트 보기</button></div>'
    +'<button class="btn ghost sm" style="margin-top:8px" onclick="goSchool()">목록으로</button></div>';
+}
+
+/* ═══════════ 중간고사 대비 (E3 Midterm) — 2026-10-08 신설 ═══════════
+   아들 학교 중간고사 가이드(E3 Midterm Preparation Workbook)를 그대로 옮겼다.
+   단어 60개(하루 20개 × 3일) + 문법 3일. 데이터는 상수 MID 에만 둔다
+   (S 에 넣으면 상태 JSON 이 커진다 — 시트 한 칸 5만 자 한도).
+   - 단어 뜻은 **시험지의 영어 뜻 그대로** 보여 준다. 한글 뜻은 🇰🇷 를 눌렀을 때만
+     영어 뜻 밑에 나온다 (대표 지시 2026-10-08). 처음부터 한글이 보이게 바꾸지 말 것.
+   - ws 한 줄 = [단어, 영어 뜻(시험지), 한글 뜻]. fill 한 줄 = [빈칸(___) 문장, 답].
+     fill 의 앞 10개는 시험지 Part B·C 문장 그대로, 뒤 10개는 나머지 단어용으로 새로 쓴 것.
+   - 진행 기록은 S.mid = {miss:{단어:횟수}, done:{활동키:횟수}, day:{date, got:{}}}.
+   - 실전 테스트는 나중에 연다 (MID_TEST_READY). */
+const MID_TEST_READY = false;
+const MID = [
+{ vt:"School and Friendship", gt:"Complete Sentences and Fragments",
+  ws:[
+ ["unfamiliar","not known or not recognized","낯선, 처음 보는"],
+ ["overwhelming","so strong or difficult that it is hard to manage","너무 벅찬, 감당하기 힘든"],
+ ["arranged","put in a planned or neat order","가지런히 정리했다, 배치했다"],
+ ["greeted","welcomed someone by speaking or smiling","인사했다, 반갑게 맞았다"],
+ ["nervous","worried or afraid about what may happen","긴장한, 불안한"],
+ ["hesitated","paused because you were unsure","망설였다, 머뭇거렸다"],
+ ["crowded","filled with many people or things","붐비는, 꽉 찬"],
+ ["considered","thought carefully about something","곰곰이 생각했다"],
+ ["awkwardly","in an uncomfortable or unsure way","어색하게"],
+ ["reassuring","helping someone feel less worried","안심시켜 주는"],
+ ["precious","very special and valuable","소중한, 귀한"],
+ ["reminded","helped someone remember","생각나게 했다, 다시 알려 줬다"],
+ ["discovered","found or learned something new","발견했다, 새로 알게 됐다"],
+ ["interest","a feeling of wanting to know more","관심, 흥미"],
+ ["unusual","different from what is common","특이한, 흔하지 않은"],
+ ["amusing","funny or enjoyable","재미있는, 웃긴"],
+ ["relaxed","calm and not worried","편안한, 느긋한"],
+ ["invited","asked someone to come or join","초대했다, 같이 하자고 했다"],
+ ["confident","sure that you can do something","자신감 있는"],
+ ["welcome","accepted and happy to be included","환영받는, 함께해서 기쁜"]],
+  fill:[
+ ["The old photograph was very ___ to Mina.","precious"],
+ ["The bell ___ us that lunch was over.","reminded"],
+ ["Eli ___ that Mina also liked drawing.","discovered"],
+ ["Mina showed ___ in the science club.","interest"],
+ ["The purple plant looked ___.","unusual"],
+ ["The funny story was ___.","amusing"],
+ ["Mina felt ___ after Eli spoke kindly.","relaxed"],
+ ["Eli ___ Mina to sit with the group.","invited"],
+ ["After making a friend, Mina felt more ___.","confident"],
+ ["The students made Mina feel ___.","welcome"],
+ ["Mina walked into an ___ classroom on her first day.","unfamiliar"],
+ ["So many new faces felt ___ to Mina.","overwhelming"],
+ ["The teacher ___ the desks in neat rows.","arranged"],
+ ["Eli ___ Mina with a big smile.","greeted"],
+ ["Mina felt ___ before she said hello.","nervous"],
+ ["Mina ___ at the door before she came in.","hesitated"],
+ ["The lunch table was ___ with students.","crowded"],
+ ["Mina ___ which club to join.","considered"],
+ ["Mina waved ___ because she felt shy.","awkwardly"],
+ ["Eli's kind words were ___.","reassuring"]],
+  rules:[
+ ["Complete sentence","Has a subject, a predicate, and a complete thought.","Mina sat beside Eli.","완전한 문장 = 누가(주어) + 무엇을 했다(서술어)가 다 있고, 말이 끝까지 끝난 문장."],
+ ["Sentence fragment","Is missing a subject, a predicate, or a complete thought.","Beside the new student.","조각 문장 = 주어나 서술어가 빠졌거나, 말이 중간에 끊긴 문장. Because…, When…, After… 로 시작해서 그냥 끝나면 대개 조각이야!"]],
+  gq:[
+ ["sf","Mina entered an unfamiliar classroom.","S","누가? Mina · 뭘 했어? entered… 둘 다 있어!"],
+ ["sf","At the crowded lunch table.","F","어디서?만 있어. 누가 뭘 했는지가 없어."],
+ ["sf","Eli greeted the new student.","S","누가? Eli · 뭘 했어? greeted… 둘 다 있어!"],
+ ["sf","Because the puppy was frightened.","F","Because로 시작하고 말이 안 끝났어. 그래서 어떻게 됐는데?"],
+ ["sf","Noah and Lily waited patiently.","S","누가? Noah and Lily · 뭘 했어? waited… 둘 다 있어!"],
+ ["sf","Under the faded photograph.","F","어디?만 있어. 누가 뭘 했는지가 없어."],
+ ["sf","Sofia listened to her grandfather's story.","S","누가? Sofia · 뭘 했어? listened… 둘 다 있어!"],
+ ["sf","The neglected corner of the garden.","F","무엇(주어)만 있고 뭘 했는지(서술어)가 없어."],
+ ["sf","Jada investigated the problem.","S","누가? Jada · 뭘 했어? investigated… 둘 다 있어!"],
+ ["sf","Grew gradually in the sunlight.","F","뭘 했는지(Grew)만 있고 누가(주어)가 없어."],
+ ["pick","완전한 문장은 어느 것?",["The small dog near the bakery.","The small dog waited near the bakery."],1,"waited(서술어)가 있어야 완전한 문장!"],
+ ["pick","완전한 문장은 어느 것?",["Sofia opened the old story box.","Inside the old story box."],0,"Inside… 는 어디?만 있는 조각이야."],
+ ["pick","완전한 문장은 어느 것?",["Because Mina felt nervous.","Mina felt nervous on her first day."],1,"Because… 로 시작해 끝나면 말이 안 끝난 조각!"],
+ ["pick","완전한 문장은 어느 것?",["The students watered the garden.","Watering the garden every morning."],0,"Watering… 에는 누가(주어)가 없어."],
+ ["pick","완전한 문장은 어느 것?",["When Mr. Kim arrived.","Mr. Kim arrived immediately."],1,"When… 으로 시작해 끝나면 조각이야."],
+ ["pick","조각 'Near the bakery.' 를 고친 문장은?",["Waited near the bakery.","The dog waited near the bakery.","The dog near the bakery."],1,"누가(The dog) + 뭘 했어(waited)를 넣었어!"],
+ ["pick","조각 'The nervous new student.' 를 고친 문장은?",["The nervous new student entered the room.","The nervous new student in the room.","Entered the room."],0,"서술어 entered the room 을 붙였어!"],
+ ["pick","조각 'Because the plants needed sunlight.' 를 고친 문장은?",["Because the plants needed sunlight and water.","The plants because they needed sunlight.","The plants were weak because they needed sunlight."],2,"앞에 The plants were weak 를 붙여 말이 끝났어!"],
+ ["pick","조각 'Trembling behind the boxes.' 를 고친 문장은?",["The puppy behind the boxes.","The puppy was trembling behind the boxes.","Trembling behind the old boxes."],1,"누가(The puppy) + was trembling 이 다 있어!"],
+ ["pick","조각 'After the class made a practical plan.' 를 고친 문장은?",["The garden improved after the class made a practical plan.","After the class made a plan.","The garden after the class made a plan."],0,"The garden improved 를 붙여 말이 끝났어!"]]
+},
+{ vt:"Helping an Animal", gt:"Capitalization, Punctuation, and Sentence Types",
+  ws:[
+ ["persistent","continuing even when something is difficult","끈기 있는, 포기하지 않는"],
+ ["faint","quiet, weak, or hard to notice","희미한, 약한"],
+ ["sorrowful","very sad","몹시 슬픈"],
+ ["whimper","a small, weak crying sound","낑낑거리는 소리, 흐느낌"],
+ ["trembling","shaking because of fear, cold, or excitement","덜덜 떠는"],
+ ["alarmed","suddenly worried or frightened","깜짝 놀라 걱정한"],
+ ["attempt","an effort to do something","시도, 해 보려는 노력"],
+ ["protect","keep someone or something safe","보호하다, 지키다"],
+ ["reassure","help someone feel safe and less worried","안심시키다"],
+ ["observed","watched carefully","유심히 지켜봤다, 관찰했다"],
+ ["refused","said no or would not do something","거절했다, 안 하려고 했다"],
+ ["cautiously","carefully to avoid danger or a mistake","조심조심, 조심스럽게"],
+ ["concealed","hidden from sight","숨겨진, 안 보이게 숨은"],
+ ["anxious","worried and unable to relax","불안한, 조마조마한"],
+ ["immediately","right away","곧바로, 즉시"],
+ ["excitement","a strong feeling of happiness and energy","신남, 들뜬 기분"],
+ ["frightened","afraid","겁먹은, 무서워하는"],
+ ["disappeared","could no longer be seen","사라졌다, 안 보이게 됐다"],
+ ["relieved","happy because a worry or problem ended","안심한, 마음이 놓인"],
+ ["patience","the ability to wait calmly","참을성, 인내심"]],
+  fill:[
+ ["Pepper ___ to leave the dark corner.","refused"],
+ ["The children moved ___ toward the frightened dog.","cautiously"],
+ ["The small puppy was ___ behind the boxes.","concealed"],
+ ["Lily felt ___ while she waited for help.","anxious"],
+ ["Mr. Kim came ___ when Noah called.","immediately"],
+ ["The children shouted with ___ when Pepper was safe.","excitement"],
+ ["The loud noise made the puppy feel ___.","frightened"],
+ ["Pepper ___ behind the bakery boxes.","disappeared"],
+ ["Noah felt ___ when the dog was found.","relieved"],
+ ["Helping a scared animal requires ___.","patience"],
+ ["Noah was ___ and kept looking for Pepper.","persistent"],
+ ["They heard a ___ sound near the bakery.","faint"],
+ ["Pepper looked up with big, ___ eyes.","sorrowful"],
+ ["The puppy let out a small ___.","whimper"],
+ ["The wet puppy was ___ in the cold rain.","trembling"],
+ ["Lily was ___ when she saw the hurt puppy.","alarmed"],
+ ["Noah made one more ___ to catch the puppy.","attempt"],
+ ["Lily held an umbrella to ___ the puppy from the rain.","protect"],
+ ["Noah spoke softly to ___ the scared puppy.","reassure"],
+ ["Lily quietly ___ the puppy from far away.","observed"]],
+  rules:[
+ ["Capital letters","Capitalize the first word, names, places, days, and months.","On Monday, Mina met Eli.","대문자 = 문장의 첫 단어, 사람 이름, 장소, 요일(Monday), 달(October)은 첫 글자를 대문자로!"],
+ ["Statement","Tells something. Ends with a period.","Pepper is safe.","평서문 = 무언가를 알려 주는 문장. 마침표( . )로 끝나."],
+ ["Question","Asks something. Ends with a question mark.","Where is Pepper?","의문문 = 물어보는 문장. 물음표( ? )로 끝나. How, Why, Where, Did… 로 많이 시작해."],
+ ["Command","Tells someone to do something. Usually ends with a period.","Please wait here.","명령문 = 누구에게 뭘 하라고 하는 문장. 보통 마침표( . ). Please 나 동작 단어(Look, Bring)로 시작해."],
+ ["Exclamation","Shows strong feeling. Ends with an exclamation mark.","What a wonderful surprise!","감탄문 = 강한 기분을 나타내는 문장. 느낌표( ! )로 끝나. What a…! 가 대표 모양이야."]],
+  gq:[
+ ["pick","바르게 고친 문장은? (mina sat beside eli)",["Mina sat beside eli.","Mina sat beside Eli.","mina sat beside Eli."],1,"첫 단어와 이름(Mina, Eli)은 대문자, 끝에 마침표!"],
+ ["pick","바르게 고친 문장은? (where did noah find pepper)",["Where did Noah find Pepper?","Where did noah find pepper?","Where did Noah find Pepper."],0,"이름 Noah, Pepper 는 대문자. 물어보니까 물음표!"],
+ ["pick","바르게 고친 문장은? (please open the story box)",["please open the story box.","Please Open The Story Box.","Please open the story box."],2,"첫 단어만 대문자. 명령문이라 마침표!"],
+ ["pick","바르게 고친 문장은? (what a beautiful garden)",["What a beautiful garden?","What a beautiful garden!","what a beautiful garden!"],1,"What a…! 는 감탄문 — 느낌표!"],
+ ["pick","바르게 고친 문장은? (on tuesday jada brought seeds)",["On tuesday, Jada brought seeds.","On Tuesday, jada brought seeds.","On Tuesday, Jada brought seeds."],2,"요일 Tuesday, 이름 Jada 는 대문자!"],
+ ["pick","바르게 고친 문장은? (mr kim called peppers owner)",["Mr. Kim called Pepper's owner.","Mr. kim called pepper's owner.","mr. Kim called Pepper's owner."],0,"Mr. 다음에 점, 이름 Kim·Pepper 대문자, Pepper's 처럼 ' 를 붙여!"],
+ ["pick","바르게 고친 문장은? (did sofia keep the photograph)",["Did sofia keep the photograph?","Did Sofia keep the photograph?","Did Sofia keep the photograph."],1,"이름 Sofia 대문자. 물어보니까 물음표!"],
+ ["pick","바르게 고친 문장은? (the class worked in october)",["The class worked in October.","The class worked in october.","the class worked in October."],0,"달 October 는 대문자!"],
+ ["type","How did Mina feel on her first day","Q","How 로 물어보고 있어 → 물음표 ?"],
+ ["type","Eli invited Mina to sit down","S","있었던 일을 알려 줘 → 마침표 ."],
+ ["type","Please move slowly near the dog","C","Please… 하라고 시키는 말 → 명령문 ."],
+ ["type","What a brave puppy","E","What a…! 강한 기분 → 느낌표 !"],
+ ["type","Why did Sofia treasure the photograph","Q","Why 로 물어보고 있어 → 물음표 ?"],
+ ["type","The seeds need water and sunlight","S","사실을 알려 줘 → 마침표 ."],
+ ["type","Look carefully at the plant","C","Look… 하라고 시키는 말 → 명령문 ."],
+ ["type","We finally solved the problem","ES","finally(드디어!) 기쁜 마음이면 감탄문 ! · 그냥 알려 주는 거면 평서문 . — 둘 다 맞아. 시험지에서는 감탄문(!)일 가능성이 커."],
+ ["pick","물어보는 문장(question)은?",["Please sit here.","What a kind friend!","Where is the puppy?","The puppy is safe."],2,"Where… ? 물음표로 끝나!"],
+ ["pick","시키는 문장(command)은?",["Bring the watering can.","Did you bring the can?","The can is heavy.","What a heavy can!"],0,"Bring… 하라고 시키는 말!"],
+ ["pick","\"What a surprise\" 뒤에 오는 문장부호는?",["period ( . )","comma ( , )","question mark ( ? )","exclamation mark ( ! )"],3,"What a…! 는 느낌표!"]]
+},
+{ vt:"Memories and Problem-Solving", gt:"Subjects, Predicates, and Mixed Review",
+  ws:[
+ ["faded","having lost some color or strength","색이 바랜, 희미해진"],
+ ["revealed","showed something that was hidden","드러냈다, 보여 줬다"],
+ ["numerous","many","수많은"],
+ ["independently","by yourself without help","혼자서, 스스로"],
+ ["swollen","larger than normal because of injury or illness","부어오른, 부은"],
+ ["relocated","moved to a different place","다른 곳으로 옮겼다, 이사했다"],
+ ["distant","far away in place or time","먼, 멀리 떨어진"],
+ ["exchanged","gave one thing and received another","서로 주고받았다, 바꿨다"],
+ ["treasured","greatly loved and valued","아주 소중히 여긴"],
+ ["preserve","keep something safe and in good condition","잘 보관하다, 보존하다"],
+ ["neglected","not given enough care","돌보지 않은, 방치된"],
+ ["frustrated","upset because something is difficult","속상한, 답답한"],
+ ["sprout","begin to grow from a seed","싹이 트다 (새싹)"],
+ ["investigate","look carefully to learn the facts","조사하다, 자세히 알아보다"],
+ ["specific","clear and exact","구체적인, 정확한"],
+ ["thrive","grow well and become strong","잘 자라다, 쑥쑥 크다"],
+ ["practical","useful and likely to work","실용적인, 쓸모 있는"],
+ ["responsibilities","jobs or duties you must do","맡은 일, 책임"],
+ ["gradually","slowly over time","서서히, 조금씩"],
+ ["determined","not willing to give up","굳게 마음먹은, 포기하지 않는"]],
+  fill:[
+ ["The class ___ the dry garden corner.","neglected"],
+ ["Jada felt ___ when the seeds did not grow.","frustrated"],
+ ["A green ___ appeared after several days.","sprout"],
+ ["The students decided to ___ why the plants were weak.","investigate"],
+ ["They wrote a ___ plan for watering the garden.","specific"],
+ ["Plants ___ when they have enough light and water.","thrive"],
+ ["A watering schedule is a ___ idea.","practical"],
+ ["Each student had garden ___.","responsibilities"],
+ ["The plants grew ___ over several weeks.","gradually"],
+ ["Jada was ___ to help the garden grow.","determined"],
+ ["Sofia found a ___ photograph in the old box.","faded"],
+ ["Grandpa opened the box and ___ his old letters.","revealed"],
+ ["The old box held ___ memories.","numerous"],
+ ["Sofia read the long story ___.","independently"],
+ ["Grandpa's ankle was ___ after he fell.","swollen"],
+ ["Grandpa's family ___ to a new city long ago.","relocated"],
+ ["Grandpa told a story about a ___ land.","distant"],
+ ["Sofia and her friend ___ letters every week.","exchanged"],
+ ["The old watch was Grandpa's most ___ gift.","treasured"],
+ ["Sofia put the photo in a frame to ___ it.","preserve"]],
+  rules:[
+ ["Complete subject","All the words that tell who or what the sentence is about.","The frightened puppy / trembled.","완전한 주어 = 문장이 누구(무엇)에 대한 건지 말해 주는 모든 단어. The frightened puppy 처럼 꾸며 주는 말까지 전부!"],
+ ["Complete predicate","All the words that tell what the subject does or is.","The frightened puppy / trembled behind the boxes.","완전한 서술어 = 주어가 무엇을 하는지(어떤지) 말해 주는 모든 단어. 동작 단어(동사)부터 문장 끝까지야."],
+ ["How to draw the line","Find the action word. Draw the line right before it.","Noah and Lily / waited patiently.","선 긋는 요령 = 동작 단어(waited, hid, told…)를 찾아서 그 바로 앞에 선을 그어!"]],
+  gq:[
+ ["cut","The nervous new student","entered the classroom."],
+ ["cut","A friendly boy","welcomed Mina."],
+ ["cut","The small brown dog","hid near the bakery."],
+ ["cut","Noah and Lily","waited patiently."],
+ ["cut","The old wooden box","held many memories."],
+ ["cut","Sofia's grandfather","told a treasured story."],
+ ["cut","The neglected garden corner","needed help."],
+ ["cut","Jada and her classmates","made a practical plan."],
+ ["cut","The frightened puppy","trembled behind the boxes."],
+ ["pick","'The old wooden box held many memories.' 의 완전한 주어는?",["The old wooden box","box","held many memories"],0,"꾸며 주는 말(The old wooden)까지 전부 주어야!"],
+ ["pick","'Noah and Lily waited patiently.' 의 완전한 서술어는?",["Noah and Lily","waited patiently","waited"],1,"동사 waited 부터 끝까지 전부 서술어!"],
+ ["pick","'Sofia's grandfather told a treasured story.' 에서 주어와 서술어 사이 선은 어디?",["Sofia's / grandfather told a treasured story.","Sofia's grandfather / told a treasured story.","Sofia's grandfather told / a treasured story."],1,"동작 단어 told 바로 앞!"]]
+}];
+
+/* ── 기록 ── */
+function midSt(){
+  if(!S.mid || typeof S.mid!=="object") S.mid = {};
+  if(!S.mid.miss) S.mid.miss = {};
+  if(!S.mid.done) S.mid.done = {};
+  const t = todayStr();
+  if(!S.mid.day || S.mid.day.date!==t) S.mid.day = {date:t, got:{}};
+  return S.mid;
+}
+function midMissN(){ return Object.keys(midSt().miss).length; }
+function midMissAdd(w){ const m = midSt().miss; m[w] = (m[w]||0) + 1; }
+/* 활동 하나를 끝까지 하면: 기록 + 하루 한 번 보너스 */
+function midFinish(key){
+  const st = midSt();
+  st.done[key] = (st.done[key]||0) + 1;
+  let bonus = "";
+  if(!st.day.got[key]){
+    st.day.got[key] = 1;
+    S.money += REWARD.MID; S.earned += REWARD.MID; updateMoney();
+    bonus = '<p class="sub" style="margin:6px 0">오늘 첫 완주 보너스 <b>+'+REWARD.MID+'원</b>!</p>';
+  }
+  logEv("mid",{k:key}); save();
+  return bonus;
+}
+function midDoneMark(key){ const n = (midSt().done[key]||0); return n ? ' <span class="middone">✅'+(n>1?'×'+n:'')+'</span>' : ''; }
+function midKo(id){ const el = $("#"+id); if(el) el.classList.toggle("on"); }
+function midBlank(s, fillWord){
+  const parts = String(s).split("___");
+  return esc(parts[0]) + (fillWord ? '<b class="midfill">'+esc(fillWord)+'</b>' : '<span class="midblank">______</span>') + esc(parts.slice(1).join("___"));
+}
+
+/* ── 중간고사 첫 화면 ── */
+let MIDD = 0;     /* 지금 보고 있는 Day (0~2) */
+let V = null;     /* 지금 하는 활동 */
+function goMid(d){ stopAudio(); if(typeof d==="number") MIDD = d; V = null; renderMid(); show("mid"); }
+function renderMid(){
+  midSt();
+  const D = MID[MIDD], n = MIDD+1;
+  let tabs = '<div class="chips">';
+  MID.forEach((x,i)=>{ tabs += '<button class="chip'+(i===MIDD?" on":"")+'" onclick="goMid('+i+')">Day '+(i+1)+'</button>'; });
+  tabs += '</div>';
+  const miss = midMissN();
+  $("#scr-mid").innerHTML =
+   '<h2 class="sec">📚 중간고사 대비</h2>'
+   +'<p class="sub" style="font-size:13px;margin:-6px 2px 10px">E3 Midterm · 하루에 단어 1개 + 문법 1개씩!</p>'
+   + tabs
+   +'<div class="card"><div class="mtitle">📗 Vocabulary Day '+n+' <span class="sub" style="font-size:12px">'+esc(D.vt)+' · 20단어</span></div>'
+   +'<div class="mdesc">뜻은 시험지처럼 <b>영어</b>로 나와. 모르겠으면 <b>🇰🇷</b> 를 눌러 봐!</div>'
+   +'<button class="btn ghost" onclick="midList()">📋 단어장 보기'+midDoneMark("v"+n+"l")+'</button>'
+   +'<button class="btn" style="margin-top:9px" onclick="midCard()">📇 카드로 외우기'+midDoneMark("v"+n+"c")+'</button>'
+   +'<div class="btnrow" style="margin-top:9px">'
+   +'<button class="btn ghost sm" onclick="midMatch(0)">🔗 짝 맞추기 1~10'+midDoneMark("v"+n+"m0")+'</button>'
+   +'<button class="btn ghost sm" onclick="midMatch(1)">🔗 짝 맞추기 11~20'+midDoneMark("v"+n+"m1")+'</button></div>'
+   +'<button class="btn yellow" style="margin-top:9px" onclick="midFill()">✏️ 문장 빈칸 채우기'+midDoneMark("v"+n+"f")+'</button></div>'
+   +'<div class="card"><div class="mtitle">📘 Grammar Day '+n+' <span class="sub" style="font-size:12px">'+esc(D.gt)+'</span></div>'
+   +'<div class="btnrow" style="margin-top:6px">'
+   +'<button class="btn ghost sm" onclick="midRules()">📖 규칙 보기</button>'
+   +'<button class="btn sm" onclick="midGram()">✍️ 연습 문제'+midDoneMark("g"+n)+'</button></div>'
+   +(MIDD===2 ? '<button class="btn yellow" style="margin-top:9px" onclick="midGram(1)">🔀 문법 섞어서 복습 (Day 1~3)'+midDoneMark("gmix")+'</button>' : '')
+   +'</div>'
+   +'<div class="card" style="display:flex;align-items:center;gap:12px">'
+   +'<span style="font-size:30px">🔁</span><div style="flex:1"><div style="font-size:16px">헷갈린 단어 다시</div>'
+   +'<div class="sub" style="font-size:13px">'+(miss ? '지금 <b>'+miss+'개</b> — 맞히면 하나씩 빠져!' : '아직 없어! 틀린 단어가 여기 모여.')+'</div></div>'
+   +'<button class="btn sm '+(miss?"yellow":"ghost")+'" style="width:auto" onclick="midMiss()" '+(miss?"":"disabled")+'>하기</button></div>'
+   +(MID_TEST_READY ? '' : '<div class="card" style="opacity:.6"><div style="font-size:16px">📝 실전 테스트</div><div class="sub" style="font-size:13px">곧 열려요! 지금은 위에서 열심히 외우자 💪</div></div>')
+   +'<button class="btn ghost" onclick="go(\'home\')">← 홈으로</button>';
+}
+function midHead(label){
+  return '<div class="learnhead"><button class="minibtn" onclick="goMid()">← 그만</button><span class="lvbadge">'+label+'</span></div>';
+}
+
+/* ── 📋 단어장: 시험지 표처럼. 줄을 누르면 한글 뜻이 밑에 ── */
+function midList(){ V = {mode:"list", hide:false}; renderMidList(); show("mid"); }
+function renderMidList(){
+  const D = MID[MIDD];
+  let rows = "";
+  D.ws.forEach((w,i)=>{
+    rows += '<div class="vrow'+(V.hide?" hid":"")+'" id="vr'+i+'" onclick="midListTap('+i+')">'
+     +'<div class="vw"><b>'+esc(w[0])+'</b> <button class="spk sm2" onclick="event.stopPropagation();speak(MID['+MIDD+'].ws['+i+'][0])">🔊</button></div>'
+     +'<div class="ven">'+esc(w[1])+'</div>'
+     +'<div class="vko">🇰🇷 '+esc(w[2])+'</div></div>';
+  });
+  $("#scr-mid").innerHTML = midHead("📋 Day "+(MIDD+1)+" 단어장")
+   +'<div class="card" style="padding:12px 14px"><p class="sub" style="font-size:13px;line-height:1.7">'
+   +'단어와 뜻을 <b>소리 내어</b> 읽어 봐. 줄을 누르면 <b>🇰🇷 한글 뜻</b>이 나와.<br>'
+   +'다 읽었으면 <b>뜻 가리기</b>를 켜고 뜻을 혼자 말해 봐! (시험지 공부법)</p>'
+   +'<button class="btn '+(V.hide?"yellow":"ghost")+' sm" onclick="V.hide=!V.hide;renderMidList()">'+(V.hide?"🙈 뜻 가리는 중 (끄기)":"🙈 뜻 가리기")+'</button></div>'
+   + rows
+   +'<button class="btn" style="margin-top:8px" onclick="midListDone()">다 읽었어! ✅</button>';
+}
+function midListTap(i){
+  const el = $("#vr"+i); if(!el) return;
+  if(el.classList.contains("hid")){ el.classList.remove("hid"); return; }
+  el.classList.toggle("on");
+}
+function midListDone(){
+  const b = midFinish("v"+(MIDD+1)+"l");
+  $("#scr-mid").innerHTML = '<div class="card center" style="padding:26px 18px"><div class="bigemo">📋</div>'
+   +'<h3 style="font-size:21px">단어장 다 봤어!</h3>'+b
+   +'<p class="sub" style="margin:8px 0">이제 카드로 하나씩 외워 볼까?</p>'
+   +'<button class="btn" onclick="midCard()">📇 카드로 외우기</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button></div>';
+}
+
+/* ── 📇 카드: 단어 → (누르면) 영어 뜻 → (🇰🇷) 한글 뜻.
+   「아직 헷갈려」는 3장 뒤에 다시 나온다. 다 「알아!」가 될 때까지. ── */
+function midCard(){
+  V = {mode:"card", q: MID[MIDD].ws.map((w,i)=>i), open:false, again:0, seen:{}};
+  renderMidCard(); show("mid");
+}
+function renderMidCard(){
+  const D = MID[MIDD], tot = D.ws.length, wi = V.q[0], w = D.ws[wi];
+  const left = (new Set(V.q)).size;
+  $("#scr-mid").innerHTML = midHead("📇 남은 카드 "+left+" / "+tot)
+   +'<div class="pbar" style="margin-bottom:12px"><i style="width:'+Math.round((tot-left)/tot*100)+'%"></i></div>'
+   +'<div class="card qbox" onclick="midCardOpen()" style="cursor:pointer;min-height:250px">'
+   +'<div class="qtype">Vocabulary Day '+(MIDD+1)+(V.seen[wi]?' · 🔁 다시 나온 카드':'')+'</div>'
+   +'<div class="qword midword">'+esc(w[0])+'</div>'
+   +'<div><button class="spk" onclick="event.stopPropagation();speak(MID['+MIDD+'].ws['+wi+'][0])">🔊 단어</button></div>'
+   +(V.open
+     ? '<div class="midmean">'+esc(w[1])+'</div>'
+       +'<button class="spk" style="margin-top:6px" onclick="event.stopPropagation();midKo(\'cko\')">🇰🇷 한글 뜻</button>'
+       +'<div class="midko" id="cko">'+esc(w[2])+'</div>'
+     : '<p class="sub" style="margin-top:18px">무슨 뜻일까? 먼저 말해 보고 👆 카드를 눌러!</p>')
+   +'</div>'
+   +(V.open
+     ? '<div class="btnrow"><button class="btn ghost" onclick="midCardAns(0)">🤔 아직 헷갈려</button>'
+       +'<button class="btn" onclick="midCardAns(1)">✅ 알아!</button></div>'
+     : '<button class="btn yellow" onclick="midCardOpen()">뜻 보기 👀</button>');
+  if(!V.open) speak(w[0]);
+}
+function midCardOpen(){ if(V && V.mode==="card" && V.q.length && !V.open){ V.open = true; Sfx.flip(); renderMidCard(); } }
+function midCardAns(ok){
+  const wi = V.q.shift(), w = MID[MIDD].ws[wi];
+  if(!ok){
+    V.again++; V.seen[wi] = 1; midMissAdd(w[0]);
+    V.q.splice(Math.min(3, V.q.length), 0, wi);
+  }
+  V.open = false;
+  if(!V.q.length){ midCardDone(); return; }
+  renderMidCard();
+}
+function midCardDone(){
+  V.mode = "done";
+  const b = midFinish("v"+(MIDD+1)+"c");
+  Sfx.tada(); if(!V.again) confetti();
+  $("#scr-mid").innerHTML = '<div class="card center" style="padding:26px 18px"><div class="bigemo">'+(V.again?"📇":"💯")+'</div>'
+   +'<h3 style="font-size:21px">카드 20장 다 외웠어!</h3>'
+   +'<p class="sub" style="margin:8px 0">'+(V.again ? '헷갈렸던 횟수 <b>'+V.again+'번</b> — 헷갈린 단어는 「헷갈린 단어 다시」에 모아 뒀어.' : '한 번도 안 헷갈렸어! 대단해 😎')+'</p>'+b
+   +'<div class="btnrow"><button class="btn ghost" onclick="midCard()">🔁 한 번 더</button>'
+   +'<button class="btn yellow" onclick="midMatch(0)">🔗 짝 맞추기</button></div>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button></div>';
+}
+
+/* ── 🔗 짝 맞추기: 시험지 Part A 처럼 10개씩. 단어 칩 → 뜻 줄 ── */
+function midMatch(part){
+  ac();
+  const ws = MID[MIDD].ws.slice(part*10, part*10+10);
+  V = {mode:"match", part, rows: shuffle(ws), chips: shuffle(ws), done:{}, pick:null, wrong:0, ko:false};
+  renderMidMatch(); show("mid");
+}
+function renderMidMatch(){
+  const total = V.rows.length, got = Object.keys(V.done).length;
+  let chips = "";
+  V.chips.forEach((w,i)=>{
+    if(V.done[w[0]]) return;
+    chips += '<button class="mchip'+(V.pick===w[0]?" on":"")+'" onclick="midMatchPick('+i+')">'+esc(w[0])+'</button>';
+  });
+  if(!chips) chips = '<span class="sub">단어를 다 썼어!</span>';
+  let rows = "";
+  V.rows.forEach((w,i)=>{
+    const ok = !!V.done[w[0]];
+    rows += '<div class="mrow'+(ok?" ok":"")+'" id="mrow'+i+'" onclick="midMatchDrop('+i+')">'
+     +'<div class="mq">'+esc(w[1])+(V.ko?'<div class="mko">🇰🇷 '+esc(w[2])+'</div>':'')+'</div>'
+     +'<div class="mans">'+(ok?esc(w[0]):"____")+'</div></div>';
+  });
+  $("#scr-mid").innerHTML = midHead("🔗 짝 맞추기 "+(V.part*10+1)+"~"+(V.part*10+10)+" · "+got+" / "+total)
+   +'<div class="card" style="padding:12px 14px"><p class="sub" style="font-size:13px;line-height:1.7">'
+   +'위에서 <b>단어</b>를 누르고, 아래에서 맞는 <b>뜻</b> 줄을 눌러! 시험지 Part A 랑 똑같아 ✏️</p>'
+   +'<button class="btn '+(V.ko?"yellow":"ghost")+' sm" onclick="V.ko=!V.ko;renderMidMatch()">'+(V.ko?"🇰🇷 한글 뜻 숨기기":"🇰🇷 한글 뜻도 보기")+'</button></div>'
+   +'<div class="mchips">'+chips+'</div>' + rows
+   +'<div class="qfeed" id="midFeed"></div>';
+}
+function midMatchPick(i){
+  if(!V || V.mode!=="match") return;
+  const w = V.chips[i][0];
+  V.pick = (V.pick===w) ? null : w;
+  renderMidMatch();
+}
+function midMatchDrop(i){
+  if(!V || V.mode!=="match") return;
+  const w = V.rows[i];
+  if(!w || V.done[w[0]]) return;
+  const f = $("#midFeed");
+  if(!V.pick){ if(f) f.innerHTML = '<span class="sub">먼저 위에서 단어를 골라 줘 👆</span>'; return; }
+  if(V.pick === w[0]){
+    V.done[w[0]] = 1; V.pick = null; Sfx.ok();
+    renderMidMatch();
+    const f2 = $("#midFeed"); if(f2) f2.innerHTML = '<span class="good">맞았어! 🔗</span>';
+    if(Object.keys(V.done).length >= V.rows.length) setTimeout(midMatchDone, 500);
+  } else {
+    V.wrong++; Sfx.bad(); midMissAdd(V.pick);
+    const row = $("#mrow"+i);
+    if(row){ row.classList.remove("bad"); void row.offsetWidth; row.classList.add("bad"); }
+    if(f) f.innerHTML = '<span class="oops"><b>'+esc(V.pick)+'</b>는 여기가 아니야. 다시 찾아보자!</span>';
+    V.pick = null;
+    setTimeout(function(){ if(V && V.mode==="match") renderMidMatch(); }, 380);
+  }
+}
+function midMatchDone(){
+  if(!V || V.mode!=="match") return;
+  V.mode = "done";
+  const b = midFinish("v"+(MIDD+1)+"m"+V.part);
+  Sfx.tada(); if(V.wrong===0) confetti();
+  const other = V.part ? 0 : 1;
+  $("#scr-mid").innerHTML = '<div class="card center" style="padding:26px 18px"><div class="bigemo">'+(V.wrong===0?"💯":"🔗")+'</div>'
+   +'<h3 style="font-size:21px">짝 맞추기 끝!</h3>'
+   +'<p class="sub" style="margin:8px 0">'+(V.wrong===0 ? '한 번도 안 틀렸어! 😎' : '틀린 횟수 <b>'+V.wrong+'번</b> — 한 번 더 하면 훨씬 빨라져!')+'</p>'+b
+   +'<div class="btnrow"><button class="btn ghost" onclick="midMatch('+V.part+')">🔁 한 번 더</button>'
+   +'<button class="btn" onclick="midMatch('+other+')">🔗 '+(other*10+1)+'~'+(other*10+10)+'번 하기</button></div>'
+   +'<button class="btn yellow" style="margin-top:9px" onclick="midFill()">✏️ 문장 빈칸 채우기</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button></div>';
+}
+
+/* ── ✏️ 문장 빈칸: 시험지 Part B·C 문장 + 나머지 단어 문장. 틀린 문장은 끝에 다시 ── */
+function midFill(){
+  V = {mode:"fill", q: shuffle(MID[MIDD].fill.map((x,i)=>i)), n:0, first:0, tried:{}, ans:null};
+  midFillNew(); show("mid");
+}
+function midWordOf(w){ return MID[MIDD].ws.find(x=>x[0]===w) || [w,"",""]; }
+function midFillNew(){
+  const it = MID[MIDD].fill[V.q[0]];
+  const pool = shuffle(MID[MIDD].ws.map(x=>x[0]).filter(x=>x!==it[1])).slice(0,3);
+  V.opts = shuffle(pool.concat([it[1]]));
+  V.ans = null;
+  renderMidFill();
+}
+function renderMidFill(){
+  const tot = MID[MIDD].fill.length, it = MID[MIDD].fill[V.q[0]];
+  let opts = "";
+  V.opts.forEach((o,i)=>{
+    let cls = "opt";
+    if(V.ans!==null){ if(o===it[1]) cls += " ok"; else if(i===V.ans) cls += " bad"; }
+    opts += '<button class="'+cls+'" onclick="midFillAns('+i+')">'+esc(o)+'</button>';
+  });
+  let feed = "";
+  if(V.ans!==null){
+    const w = midWordOf(it[1]), right = V.opts[V.ans]===it[1];
+    feed = '<div class="card" style="padding:12px 14px;margin-top:12px">'
+     +(right ? '<div class="good" style="font-size:17px;color:var(--ok)">정답! 🎉</div>' : '<div style="font-size:17px;color:var(--bad)">정답은 <b>'+esc(it[1])+'</b> · 이따 다시 나와!</div>')
+     +'<div style="margin:8px 0;font-size:16px;line-height:1.5">'+midBlank(it[0], it[1])
+     +' <button class="spk sm2" onclick="speak(MID['+MIDD+'].fill[V.q[0]][0].replace(\'___\',MID['+MIDD+'].fill[V.q[0]][1]))">🔊</button></div>'
+     +'<div class="sub" style="font-size:14px"><b>'+esc(w[0])+'</b> = '+esc(w[1])+'</div>'
+     +'<button class="spk sm2" style="margin-top:6px" onclick="midKo(\'fko\')">🇰🇷 한글 뜻</button><div class="midko" id="fko">'+esc(w[2])+'</div></div>'
+     +'<button class="btn" style="margin-top:10px" onclick="midFillNext()">다음 ▶</button>';
+  }
+  $("#scr-mid").innerHTML = midHead("✏️ 빈칸 "+Math.min(V.n+1,tot)+" / "+tot)
+   +'<div class="card qbox"><div class="qtype">알맞은 단어를 골라 문장을 완성해!</div>'
+   +'<div class="scask">'+midBlank(it[0])+'</div></div>'
+   +'<div class="opts">'+opts+'</div>' + feed;
+}
+function midFillAns(i){
+  if(V.ans!==null) return;
+  const qi = V.q[0], it = MID[MIDD].fill[qi];
+  V.ans = i;
+  if(V.opts[i]===it[1]){ Sfx.ok(); if(!V.tried[qi]) V.first++; }
+  else { Sfx.bad(); V.tried[qi] = 1; midMissAdd(it[1]); }
+  renderMidFill();
+}
+function midFillNext(){
+  const qi = V.q.shift(), it = MID[MIDD].fill[qi];
+  if(V.opts[V.ans]===it[1]) V.n++;
+  else V.q.splice(Math.min(4, V.q.length), 0, qi);   /* 틀린 문장은 조금 뒤에 다시 */
+  if(!V.q.length){ midFillDone(); return; }
+  midFillNew();
+}
+function midFillDone(){
+  V.mode = "done";
+  const tot = MID[MIDD].fill.length;
+  const b = midFinish("v"+(MIDD+1)+"f");
+  Sfx.tada(); if(V.first===tot) confetti();
+  $("#scr-mid").innerHTML = '<div class="card center" style="padding:26px 18px"><div class="bigemo">'+(V.first===tot?"💯":"✏️")+'</div>'
+   +'<h3 style="font-size:21px">빈칸 '+tot+'문제 끝!</h3>'
+   +'<p class="sub" style="margin:8px 0">한 번에 맞힌 문제 <b>'+V.first+' / '+tot+'</b></p>'+b
+   +'<div class="btnrow"><button class="btn ghost" onclick="midFill()">🔁 한 번 더</button>'
+   +'<button class="btn" onclick="midGram()">✍️ 문법 연습</button></div>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button></div>';
+}
+
+/* ── 🔁 헷갈린 단어 다시: 영어 뜻 보고 단어 고르기. 맞히면 목록에서 빠지고, 틀리면 조금 뒤에 또 ── */
+function midAllWords(){ const a = []; MID.forEach(D=>D.ws.forEach(w=>a.push(w))); return a; }
+function midMiss(){
+  const m = midSt().miss, all = midAllWords();
+  const list = all.filter(w=>m[w[0]]);
+  if(!list.length){ goMid(); return; }
+  V = {mode:"miss", q: shuffle(list), ok:0, ans:null, tot:list.length};
+  midMissNew(); show("mid");
+}
+function midMissNew(){
+  const w = V.q[0], all = midAllWords();
+  V.opts = shuffle(shuffle(all.filter(x=>x[0]!==w[0])).slice(0,3).map(x=>x[0]).concat([w[0]]));
+  V.ans = null; renderMidMiss();
+}
+function renderMidMiss(){
+  const w = V.q[0];
+  let opts = "";
+  V.opts.forEach((o,i)=>{
+    let cls = "opt";
+    if(V.ans!==null){ if(o===w[0]) cls += " ok"; else if(i===V.ans) cls += " bad"; }
+    opts += '<button class="'+cls+'" onclick="midMissAns('+i+')">'+esc(o)+'</button>';
+  });
+  $("#scr-mid").innerHTML = midHead("🔁 남은 단어 "+V.q.length)
+   +'<div class="card qbox"><div class="qtype">이 뜻을 가진 단어는?</div>'
+   +'<div class="scask">'+esc(w[1])+'</div>'
+   +'<button class="spk" style="margin-top:10px" onclick="midKo(\'mko\')">🇰🇷 한글 뜻</button><div class="midko" id="mko">'+esc(w[2])+'</div></div>'
+   +'<div class="opts">'+opts+'</div>'
+   +(V.ans!==null ? '<div class="qfeed">'+(V.opts[V.ans]===w[0] ? '<span class="good">정답! 이제 하나 줄었어 🎉</span>' : '<span class="oops">정답은 <b>'+esc(w[0])+'</b> · 이따 다시!</span>')+'</div>'
+       +'<button class="btn" onclick="midMissNext()">다음 ▶</button>' : '');
+}
+function midMissAns(i){
+  if(V.ans!==null) return;
+  const w = V.q[0], m = midSt().miss;
+  V.ans = i;
+  if(V.opts[i]===w[0]){ Sfx.ok(); speak(w[0]); delete m[w[0]]; }
+  else { Sfx.bad(); m[w[0]] = (m[w[0]]||0) + 1; }
+  save(); renderMidMiss();
+}
+function midMissNext(){
+  const w = V.q.shift();
+  if(V.opts[V.ans]!==w[0]) V.q.splice(Math.min(3, V.q.length), 0, w);
+  if(!V.q.length){
+    V.mode = "done";
+    const b = midFinish("miss");
+    Sfx.tada(); confetti();
+    $("#scr-mid").innerHTML = '<div class="card center" style="padding:26px 18px"><div class="bigemo">🧹</div>'
+     +'<h3 style="font-size:21px">헷갈린 단어 싹 정리!</h3>'+b
+     +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button></div>';
+    return;
+  }
+  midMissNew();
+}
+
+/* ── 📖 문법 규칙 카드 (시험지 Study Guide 그대로 + 🇰🇷 설명) ── */
+function midRules(){
+  const D = MID[MIDD];
+  let h = "";
+  D.rules.forEach((r,i)=>{
+    h += '<div class="card"><div class="mtitle">'+esc(r[0])+'</div>'
+     +'<div style="font-size:16px;line-height:1.5;margin:4px 0 8px">'+esc(r[1])+'</div>'
+     +'<div class="ex" style="font-size:16px;background:var(--green-lt);border-radius:10px;padding:8px 12px">'+esc(r[2])
+     +' <button class="spk sm2" onclick="speak(MID['+MIDD+'].rules['+i+'][2].replace(\'/\',\'\'))">🔊</button></div>'
+     +'<button class="spk sm2" style="margin-top:8px" onclick="midKo(\'rko'+i+'\')">🇰🇷 한글 설명</button>'
+     +'<div class="midko" id="rko'+i+'">'+esc(r[3])+'</div></div>';
+  });
+  V = {mode:"rules"};
+  $("#scr-mid").innerHTML = midHead("📖 Grammar Day "+(MIDD+1))
+   +'<h2 class="sec" style="font-size:17px">'+esc(D.gt)+'</h2>' + h
+   +'<button class="btn" onclick="midGram()">✍️ 연습 문제 풀기</button>';
+  show("mid");
+}
+
+/* ── ✍️ 문법 연습. 문제 모양 넷:
+   sf  [ "sf", 문장, "S"|"F", 이유 ]          — 완전한 문장(S)? 조각(F)?
+   pick[ "pick", 질문, [보기...], 정답번호, 이유 ]
+   type[ "type", 끝 부호 없는 문장, "Q"|"S"|"C"|"E"(여럿이면 모두 정답), 이유 ]
+   cut [ "cut", 완전한 주어, 완전한 서술어 ]   — 서술어가 시작하는 단어를 눌러 선 긋기
+   틀린 문제는 조금 뒤에 한 번 더 나온다. ── */
+const MID_TYPES = [["S","Statement","평서문","."],["Q","Question","의문문","?"],["C","Command","명령문","."],["E","Exclamation","감탄문","!"]];
+function midGram(mix){
+  let list;
+  if(mix){ list = []; MID.forEach(D=>D.gq.forEach(g=>list.push(g))); list = shuffle(list).slice(0,15); }
+  else list = MID[MIDD].gq.slice();
+  V = {mode:"gram", mix:!!mix, q:list, n:0, first:0, tot:list.length, tried:new Set(), ans:null};
+  renderMidGram(); show("mid");
+}
+function midGramRight(g, a){
+  if(g[0]==="sf") return a===g[2];
+  if(g[0]==="pick") return a===g[3];
+  if(g[0]==="type") return g[2].indexOf(a)>=0;
+  if(g[0]==="cut") return a===g[1].split(" ").length;
+  return false;
+}
+function renderMidGram(){
+  const g = V.q[0], done = V.ans!==null, right = done && midGramRight(g, V.ans);
+  let body = "", why = "";
+  if(g[0]==="sf"){
+    body = '<div class="qtype">완전한 문장이면 S, 조각이면 F!</div><div class="scask">'+esc(g[1])+'</div>';
+    why = g[3];
+  } else if(g[0]==="pick"){
+    body = '<div class="qtype">'+esc(g[1])+'</div>';
+    why = g[4];
+  } else if(g[0]==="type"){
+    const mk = MID_TYPES.find(t=>t[0]===g[2][0])[3];
+    body = '<div class="qtype">어떤 문장일까? 끝에 올 부호도 생각해 봐!</div><div class="scask">'+esc(g[1])+(done?'<b class="midfill">'+mk+'</b>':' ___')+'</div>';
+    why = g[3];
+  } else if(g[0]==="cut"){
+    const ws = (g[1]+" "+g[2]).split(" "), k = g[1].split(" ").length;
+    let line = "";
+    ws.forEach((w,i)=>{
+      if(i>0) line += done && i===k ? '<span class="cutbar">|</span>' : ' ';
+      if(done) line += '<span class="'+(i<k?"cutsb":"cutpr")+'">'+esc(w)+'</span>';
+      else line += (i===0 ? '<span class="cutw0">'+esc(w)+'</span>' : '<button class="cutw" onclick="midGramAns('+i+')">'+esc(w)+'</button>');
+    });
+    body = '<div class="qtype">주어 | 서술어 사이에 선을 긋자! <b>서술어가 시작하는 단어</b>를 눌러 👇</div><div class="cutline">'+line+'</div>'
+     +(done ? '<div class="sub" style="font-size:13px;margin-top:8px"><span class="cutsb">완전한 주어</span> · <span class="cutpr">완전한 서술어</span></div>' : '');
+    why = "동작 단어 <b>"+esc(g[2].split(" ")[0])+"</b> 바로 앞에 선!";
+  }
+  let opts = "";
+  if(g[0]==="sf"){
+    [["S","S · 완전한 문장"],["F","F · 조각 문장"]].forEach(o=>{
+      let cls = "opt"; if(done){ if(o[0]===g[2]) cls+=" ok"; else if(o[0]===V.ans) cls+=" bad"; }
+      opts += '<button class="'+cls+'" onclick="midGramAns(\''+o[0]+'\')">'+o[1]+'</button>';
+    });
+  } else if(g[0]==="pick"){
+    g[2].forEach((o,i)=>{
+      let cls = "opt"; if(done){ if(i===g[3]) cls+=" ok"; else if(i===V.ans) cls+=" bad"; }
+      opts += '<button class="'+cls+'" onclick="midGramAns('+i+')">'+esc(o)+'</button>';
+    });
+  } else if(g[0]==="type"){
+    MID_TYPES.forEach(t=>{
+      let cls = "opt"; if(done){ if(g[2].indexOf(t[0])>=0) cls+=" ok"; else if(t[0]===V.ans) cls+=" bad"; }
+      opts += '<button class="'+cls+'" onclick="midGramAns(\''+t[0]+'\')">'+t[1]+' ( '+t[3]+' ) · '+t[2]+'</button>';
+    });
+  }
+  const label = (V.mix ? "🔀 섞어서 복습 " : "✍️ Grammar Day "+(MIDD+1)+" · ")+Math.min(V.n+1,V.tot)+" / "+V.tot;
+  $("#scr-mid").innerHTML = midHead(label)
+   +'<div class="card qbox">'+body+'</div>'
+   +(opts ? '<div class="opts">'+opts+'</div>' : '')
+   +(done ? '<div class="card" style="padding:12px 14px;margin-top:12px">'
+      +(right ? '<div style="font-size:17px;color:var(--ok)">정답! 🎉</div>' : '<div style="font-size:17px;color:var(--bad)">아쉬워! 이따 다시 나와.</div>')
+      +'<div style="font-size:15px;line-height:1.6;margin-top:6px">'+why+'</div></div>'
+      +'<button class="btn" style="margin-top:10px" onclick="midGramNext()">다음 ▶</button>' : '');
+}
+function midGramAns(a){
+  if(!V || V.mode!=="gram" || V.ans!==null) return;
+  const g = V.q[0];
+  V.ans = a;
+  if(midGramRight(g, a)){ Sfx.ok(); if(!V.tried.has(g)) V.first++; }
+  else { Sfx.bad(); V.tried.add(g); }
+  renderMidGram();
+}
+function midGramNext(){
+  const g = V.q.shift();
+  if(midGramRight(g, V.ans)) V.n++;
+  else V.q.splice(Math.min(3, V.q.length), 0, g);
+  V.ans = null;
+  if(!V.q.length){ midGramDone(); return; }
+  renderMidGram();
+}
+function midGramDone(){
+  V.mode = "done";
+  const b = midFinish(V.mix ? "gmix" : "g"+(MIDD+1));
+  Sfx.tada(); if(V.first===V.tot) confetti();
+  $("#scr-mid").innerHTML = '<div class="card center" style="padding:26px 18px"><div class="bigemo">'+(V.first===V.tot?"💯":"✍️")+'</div>'
+   +'<h3 style="font-size:21px">문법 '+V.tot+'문제 끝!</h3>'
+   +'<p class="sub" style="margin:8px 0">한 번에 맞힌 문제 <b>'+V.first+' / '+V.tot+'</b></p>'+b
+   +'<div class="btnrow"><button class="btn ghost" onclick="midGram('+(V.mix?1:0)+')">🔁 한 번 더</button>'
+   +'<button class="btn" onclick="goMid()">목록으로</button></div></div>';
 }
 
 /* ── 부모용: 학교 단어 넣기·고치기 ── */
