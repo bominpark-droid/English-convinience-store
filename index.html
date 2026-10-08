@@ -693,9 +693,66 @@ let CURA = null;
 const TTSCACHE = new Map();
 let ttsSeq = 0;   /* 소리 부탁 번호 — 늦게 온 소리를 버리는 데 쓴다 (speakServer 참고) */
 function stopAudio(){ ttsSeq++; try{ clearTimeout(ttsT); clearTimeout(ttsRetryT); }catch(e){} try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
+/* ── 미리 만든 발음 파일 (2026-10-08 대표: 「발음이 너무 느리다」) ──
+   앱에 나오는 단어·예문 약 1,500개를 무료 공개 음성(Kokoro, af_heart)으로 미리 mp3 로 만들어
+   audio/<해시>.mp3 에 넣었다. 서버를 안 거치니 누르자마자 나오고, 한 번 받으면 오프라인에서도 나온다.
+   - 파일 이름 = 글자 그대로의 FNV-1a 해시(audioHash). 글자가 한 글자라도 다르면 다른 파일이다.
+     WORDS·MID·seedSchool 의 글을 고치면 소리 파일도 다시 만들어야 한다(없으면 아래 대체 경로로 나온다).
+   - 파일이 없는 글(부모가 넣은 학교 단어 등)은 AUDIO_MISS 에 적고 예전 경로(서버 → 기기 음성)로 읽는다.
+   - <audio> 하나(AEL)를 계속 다시 쓴다. 아이폰은 사용자가 한 번 누를 때 재생해 둔 요소만
+     나중에(파일을 받은 뒤) 틀어 주기 때문이다 — unlockAudio() 가 무음을 한 번 틀어 둔다.
+   - 파일은 fetch → blob 으로 받는다. <audio src=파일> 로 바로 걸면 사파리가 조각(Range) 요청을 해서
+     서비스 워커 저장본으로 재생이 안 될 수 있다. */
+const AUDIO_DIR = "audio/";
+const AUDIO_MISS = new Set();
+const AUDIO_BLOB = new Map();   /* 글 → blob 주소 */
+const SILENT_MP3 = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//OEwAAAAAAAAAAAAEluZm8AAAAPAAAABwAAA2AAVVVVVVVVVVVVVVVVVVVxcXFxcXFxcXFxcXFxcY6Ojo6Ojo6Ojo6Ojo6Oqqqqqqqqqqqqqqqqqqqqx8fHx8fHx8fHx8fHx8fj4+Pj4+Pj4+Pj4+Pj4///////////////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQEIAAAAAAAAANgmVBi7QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//NExAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExFMAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKYAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVTEFNRTMu//NExKwAAANIAAAAADEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NExKwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+let AEL = null;
+function audioEl(){ if(!AEL){ AEL = new Audio(); AEL.preload = "auto"; } return AEL; }
+function audioHash(t){ let x = 0x811c9dc5; for(let i=0;i<t.length;i++){ x ^= t.charCodeAt(i); x = Math.imul(x, 0x01000193) >>> 0; } return ("0000000"+x.toString(16)).slice(-8); }
+function audioLoad(t){
+  if(AUDIO_BLOB.has(t)) return Promise.resolve(AUDIO_BLOB.get(t));
+  return fetch(AUDIO_DIR + audioHash(t) + ".mp3").then(function(r){
+    if(!r.ok || !/audio|mpeg/.test(r.headers.get("content-type")||"")) throw new Error("miss");
+    return r.blob();
+  }).then(function(b){
+    const u = URL.createObjectURL(b);
+    AUDIO_BLOB.set(t, u);
+    if(AUDIO_BLOB.size > 300){ const k = AUDIO_BLOB.keys().next().value; if(k!==t){ try{ URL.revokeObjectURL(AUDIO_BLOB.get(k)); }catch(e){} AUDIO_BLOB.delete(k); } }
+    return u;
+  });
+}
+/* 공용 <audio> 로 재생. 못 틀면 onFail (CLAUDE.md: play() 의 거절은 반드시 잡아서 대체 경로로) */
+function playEl(src, rate, onFail){
+  const a = audioEl();
+  let failed = false;
+  const fail = function(){ if(failed) return; failed = true; onFail(); };
+  try{ a.pause(); }catch(e){}
+  a.onerror = fail;
+  a.src = src;
+  const r = ((rate || (S && S.rate) || 0.85) + 0.15);
+  try{ a.defaultPlaybackRate = r; a.playbackRate = r; }catch(e){}
+  CURA = a;
+  const pr = a.play();
+  if(pr && pr.catch) pr.catch(function(e){ if(e && e.name==="AbortError") return; fail(); });
+}
 function speak(text, rate){
-  if(SESSION && SESSION.tts && S && S.ttsHQ!==false){ speakServer(text, rate); return; }
+  if(!text) return;
+  if(!AUDIO_MISS.has(text)){ speakFile(text, rate); return; }
+  speakAlt(text, rate);
+}
+/* 파일이 없을 때의 예전 경로: 서버 원어민 음성 → 기기 음성 */
+function speakAlt(text, rate){
+  if(ttsOn()){ speakServer(text, rate); return; }
   speakLocal(text, rate);
+}
+function speakFile(text, rate){
+  stopAudio();
+  const my = ttsSeq;
+  const play = function(u){ if(my!==ttsSeq) return; playEl(u, rate, function(){ if(my===ttsSeq) speakLocal(text, rate); }); };
+  const hit = AUDIO_BLOB.get(text);
+  if(hit){ play(hit); return; }
+  audioLoad(text).then(play, function(){ AUDIO_MISS.add(text); if(my===ttsSeq) speakAlt(text, rate); });
 }
 function mkUtter(text, rate){
   const u = new SpeechSynthesisUtterance(text);
@@ -765,12 +822,16 @@ function ttsFetch(text){
   p.then(()=>TTSPEND.delete(text), ()=>TTSPEND.delete(text));
   return p;
 }
+/* 화면에 나올 글의 소리를 미리 받아 둔다: 미리 만든 파일 먼저, 없으면 서버 소리 */
 function ttsPrefetch(list){
-  if(!ttsOn()) return;
-  const q = (list||[]).filter((t,i,a)=>t && a.indexOf(t)===i && !TTSCACHE.has(t));
+  const q = (list||[]).filter((t,i,a)=>t && a.indexOf(t)===i && !AUDIO_BLOB.has(t) && !TTSCACHE.has(t));
   let k = 0;
-  const run = function(){ if(k>=q.length) return; const t = q[k++]; ttsFetch(t).catch(()=>{}).then(run); };
-  for(let i=0;i<3;i++) run();
+  const one = function(t){
+    if(AUDIO_MISS.has(t)) return ttsOn() ? ttsFetch(t).catch(()=>{}) : Promise.resolve();
+    return audioLoad(t).catch(function(){ AUDIO_MISS.add(t); return ttsOn() ? ttsFetch(t).catch(()=>{}) : null; });
+  };
+  const run = function(){ if(k>=q.length) return; one(q[k++]).then(run, run); };
+  for(let i=0;i<4;i++) run();
 }
 async function speakServer(text, rate){
   stopAudio();
@@ -782,15 +843,9 @@ async function speakServer(text, rate){
   }
   if(my !== ttsSeq) return;            /* 그사이 다른 소리를 부탁했거나 화면을 떠났다 → 늦은 소리는 버린다 */
   if(!b64){ speakLocal(text, rate); return; }
-  try{
-    const a = new Audio("data:audio/mp3;base64," + b64);
-    a.playbackRate = ((rate || (S && S.rate) || 0.85) + 0.15);
-    a.onerror = function(){ if(my===ttsSeq) speakLocal(text, rate); };
-    CURA = a;
-    const pr = a.play();
-    /* 재생이 막히면(아이폰 자동재생 차단 등) 조용히 실패한다 → 기기 음성으로 대체 */
-    if(pr && pr.catch) pr.catch(function(){ if(my===ttsSeq) speakLocal(text, rate); });
-  }catch(e){ speakLocal(text, rate); }
+  /* 재생이 막히면(아이폰 자동재생 차단 등) 조용히 실패한다 → 기기 음성으로 대체 (playEl 이 잡는다) */
+  try{ playEl("data:audio/mp3;base64," + b64, rate, function(){ if(my===ttsSeq) speakLocal(text, rate); }); }
+  catch(e){ speakLocal(text, rate); }
 }
 
 /* ═══════════ 말하기 인식 (마이크 안 되면 자가 체크로 자동 전환) ═══════════ */
@@ -4040,7 +4095,7 @@ function soundCheck(){
   L.push((vs.length?"✅":"❌")+" 설치된 영어 음성 — "+vs.length+"개");
   const pv = pickVoice();
   L.push((pv?"✅":"⚠️")+" 지금 쓰는 음성 — "+(pv?esc(pv.name):"기본 음성"));
-  L.push((SESSION && SESSION.tts && S.ttsHQ!==false) ? "☁️ 서버 원어민 음성을 쓰는 중" : "📱 기기 음성을 쓰는 중");
+  L.push("🎵 미리 만든 발음 파일을 먼저 써요 · 없는 단어는 "+((SESSION && SESSION.tts && S.ttsHQ!==false) ? "☁️ 서버 원어민 음성" : "📱 기기 음성"));
   let ctx = "없음"; try{ const c = ac(); ctx = c ? c.state : "없음"; }catch(e){}
   L.push((ctx==="running"?"✅":"⚠️")+" 효과음 장치 — "+ctx);
   openModal('<h3>🔊 소리 검사</h3><div class="sub" style="line-height:2;font-size:13.5px" id="scBox">'+L.join("<br>")+'<br>⏳ 지금 소리를 내 보는 중...</div>'
@@ -4092,6 +4147,9 @@ let audioReady = false;
 function unlockAudio(){
   if(audioReady) return; audioReady = true;
   try{ const c = ac(); if(c && c.state === "suspended") c.resume(); }catch(e){}
+  /* 발음용 <audio> 를 사용자가 누른 순간에 한 번 틀어 둔다 → 아이폰이 나중 재생도 허락한다.
+     (이미 이번 누름에서 발음을 틀었으면 덮어쓰지 않는다) */
+  try{ const a = audioEl(); if(!a.src){ a.src = SILENT_MP3; const p = a.play(); if(p && p.catch) p.catch(()=>{}); } }catch(e){}
   try{ loadVoices(); const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); }catch(e){}
 }
 document.addEventListener("touchend", unlockAudio, {passive:true});
