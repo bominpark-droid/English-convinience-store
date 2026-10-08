@@ -691,7 +691,8 @@ function pickVoice(){
 }
 let CURA = null;
 const TTSCACHE = new Map();
-function stopAudio(){ try{ clearTimeout(ttsT); clearTimeout(ttsRetryT); }catch(e){} try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
+let ttsSeq = 0;   /* 소리 부탁 번호 — 늦게 온 소리를 버리는 데 쓴다 (speakServer 참고) */
+function stopAudio(){ ttsSeq++; try{ clearTimeout(ttsT); clearTimeout(ttsRetryT); }catch(e){} try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
 function speak(text, rate){
   if(SESSION && SESSION.tts && S && S.ttsHQ!==false){ speakServer(text, rate); return; }
   speakLocal(text, rate);
@@ -725,23 +726,70 @@ function speakLocal(text, rate){
     }, 320);
   }, 60);
 }
-async function speakServer(text, rate){
-  try{
-    let b64 = TTSCACHE.get(text);
+/* ── 서버 원어민 음성이 늦게·엉뚱하게 나오던 문제 (2026-10-08 대표 신고: 「8초 렉, 발음 이상」) ──
+   원인: 단어마다 서버(앱스스크립트)를 한 번씩 왕복했다 — 한 번에 수 초, 길면 8초.
+   그사이 다음 카드로 넘어가면 앞 단어 소리가 뒤늦게 도착해 지금 단어 대신(또는 겹쳐서) 나왔다.
+   고친 것 (되돌리지 말 것):
+   ① 받은 소리는 기기 저장소(Cache API 'ecvs-tts')에 계속 보관 → 한 번 받은 단어는 다음부터 즉시.
+      sw.js 가 이 저장소를 지우지 않게 예외로 두었다.
+   ② 화면에 나올 단어를 미리 받아 둔다(ttsPrefetch, 동시에 3개씩).
+   ③ 늦게 도착한 소리는 틀지 않는다 — stopAudio()/새 speak() 가 ttsSeq 를 올리면 앞의 부탁은 무효.
+   ④ 아직 없는 소리는 서버를 TTS_WAIT 만큼만 기다리고, 넘으면 기기 음성으로 바로 읽는다
+      (서버 소리는 뒤에서 마저 받아 저장해 두었다가 다음 번에 쓴다). */
+const TTS_STORE = "ecvs-tts", TTS_WAIT = 2500;
+const TTSPEND = new Map();
+function ttsOn(){ return !!(SESSION && SESSION.tts && S && S.ttsHQ!==false); }
+function ttsKey(text){ return new Request(location.href.split(/[?#]/)[0].replace(/[^\/]*$/,"") + "__tts/" + encodeURIComponent(text)); }
+async function ttsDiskGet(text){
+  try{ if(!window.caches) return null; const c = await caches.open(TTS_STORE); const r = await c.match(ttsKey(text)); return r ? await r.text() : null; }
+  catch(e){ return null; }
+}
+function ttsDiskPut(text, b64){
+  try{ if(window.caches) caches.open(TTS_STORE).then(c=>c.put(ttsKey(text), new Response(b64))).catch(()=>{}); }catch(e){}
+}
+function ttsFetch(text){
+  if(TTSCACHE.has(text)) return Promise.resolve(TTSCACHE.get(text));
+  if(TTSPEND.has(text)) return TTSPEND.get(text);
+  const p = (async function(){
+    let b64 = await ttsDiskGet(text);
     if(!b64){
       const j = await api("tts", {uid:SESSION.uid, token:SESSION.token, text});
       b64 = j.audio; if(!b64) throw new Error("noaudio");
-      TTSCACHE.set(text, b64);
-      if(TTSCACHE.size>250) TTSCACHE.delete(TTSCACHE.keys().next().value);
+      ttsDiskPut(text, b64);
     }
-    stopAudio();
+    TTSCACHE.set(text, b64);
+    if(TTSCACHE.size>250) TTSCACHE.delete(TTSCACHE.keys().next().value);
+    return b64;
+  })();
+  TTSPEND.set(text, p);
+  p.then(()=>TTSPEND.delete(text), ()=>TTSPEND.delete(text));
+  return p;
+}
+function ttsPrefetch(list){
+  if(!ttsOn()) return;
+  const q = (list||[]).filter((t,i,a)=>t && a.indexOf(t)===i && !TTSCACHE.has(t));
+  let k = 0;
+  const run = function(){ if(k>=q.length) return; const t = q[k++]; ttsFetch(t).catch(()=>{}).then(run); };
+  for(let i=0;i<3;i++) run();
+}
+async function speakServer(text, rate){
+  stopAudio();
+  const my = ttsSeq;
+  let b64 = TTSCACHE.get(text);
+  if(!b64){
+    try{ b64 = await Promise.race([ttsFetch(text), new Promise(r=>setTimeout(()=>r(null), TTS_WAIT))]); }
+    catch(e){ b64 = null; }
+  }
+  if(my !== ttsSeq) return;            /* 그사이 다른 소리를 부탁했거나 화면을 떠났다 → 늦은 소리는 버린다 */
+  if(!b64){ speakLocal(text, rate); return; }
+  try{
     const a = new Audio("data:audio/mp3;base64," + b64);
     a.playbackRate = ((rate || (S && S.rate) || 0.85) + 0.15);
-    a.onerror = function(){ speakLocal(text, rate); };
+    a.onerror = function(){ if(my===ttsSeq) speakLocal(text, rate); };
     CURA = a;
     const pr = a.play();
     /* 재생이 막히면(아이폰 자동재생 차단 등) 조용히 실패한다 → 기기 음성으로 대체 */
-    if(pr && pr.catch) pr.catch(function(){ speakLocal(text, rate); });
+    if(pr && pr.catch) pr.catch(function(){ if(my===ttsSeq) speakLocal(text, rate); });
   }catch(e){ speakLocal(text, rate); }
 }
 
@@ -1670,6 +1718,7 @@ function startLearn(){
   if(!s || !s.words.length){ go("home"); return; }
   const start = s.seenAll ? 0 : Math.min(s.seen, s.words.length-1);
   L = {i:start};
+  ttsPrefetch(s.words.map(x=>x.w).concat(s.words.map(x=>x.e)));
   renderCard(); show("learn");
 }
 function renderCard(){
@@ -2958,7 +3007,7 @@ function renderSchool(){
    +'<button class="btn ghost" onclick="go(\'home\')">← 홈으로</button>';
 }
 /* ── 단어 보기 ── */
-function scLearn(si){ SC = {si, i:0}; renderScLearn(); show("school"); }
+function scLearn(si){ SC = {si, i:0}; ttsPrefetch(S.school[si].ws.map(w=>w[0])); renderScLearn(); show("school"); }
 function renderScLearn(){
   const st = S.school[SC.si], nn = st.ws.length, w = st.ws[SC.i];
   let dots=""; for(let i=0;i<nn;i++) dots += '<i class="'+(i<SC.i?"done":(i===SC.i?"now":""))+'"></i>';
@@ -3453,7 +3502,7 @@ function midBlank(s, fillWord){
 /* ── 중간고사 첫 화면 ── */
 let MIDD = 0;     /* 지금 보고 있는 Day (0~2) */
 let V = null;     /* 지금 하는 활동 */
-function goMid(d){ stopAudio(); if(typeof d==="number") MIDD = d; V = null; renderMid(); show("mid"); }
+function goMid(d){ stopAudio(); if(typeof d==="number") MIDD = d; V = null; renderMid(); show("mid"); ttsPrefetch(MID[MIDD].ws.map(w=>w[0])); }
 function renderMid(){
   midSt();
   const D = MID[MIDD], n = MIDD+1;
