@@ -371,6 +371,7 @@ nav button.on .ni{transform:scale(1.12)}
 .mrow.bad{animation:shake .35s;border-color:var(--red);background:#FFECE7}
 /* ── 중간고사 대비 (scr-mid) ── */
 .middone{font-size:12px}
+.midgain{display:inline-block;color:#8A5A00;background:var(--yellow-lt);border:2px solid var(--coin);border-radius:999px;padding:0 9px;font-size:15px;margin-left:4px}
 .midword{font-size:32px;word-break:break-word}
 .midmean{font-size:20px;line-height:1.45;color:var(--green-dk);margin:14px 4px 4px;word-break:keep-all}
 .midko{display:none;margin-top:8px;font-size:17px;color:#5A3E00;background:#FFF6D6;border-radius:10px;padding:7px 12px}
@@ -454,7 +455,7 @@ nav button.on .ni{transform:scale(1.12)}
 </div>
 <script>
 /* ═══════════ 설정/상수 (v2 보상 체계) ═══════════ */
-const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20, SPELL_MATCH:20, MID:20 };
+const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20, SPELL_MATCH:20, MID:20, MID_Q:10 };
 const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑","🎓"];
 const DAILY_N = 10;
 const LV_NAME = ["왕초보 🐥", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
@@ -1840,10 +1841,20 @@ function startEx(){
   if(!s.seenAll){ startLearn(); return; }
   renderEx(); show("learn");
 }
+/* 예문 순서는 카드 순서와 다르게 섞는다 — 카드에서 본 순서(알파벳 순)대로 나오면 문장을 안 읽고도 답을 안다
+   (대표 지시 2026-10-09 「답을 예측할 수 없게」). 이미 푼 앞부분은 그대로 두고 남은 것만 섞는다. */
+function exWord(s){
+  if(!Array.isArray(s.exOrder) || s.exOrder.length!==s.words.length){
+    const ix = s.words.map((w,i)=>i);
+    s.exOrder = ix.slice(0, s.exIdx).concat(shuffle(ix.slice(s.exIdx)));
+    save();
+  }
+  return s.words[s.exOrder[s.exIdx]];
+}
 function renderEx(){
   const s = curSession();
   if(s.exIdx >= s.words.length){ s.exDone = true; save(); startSpeak(); return; }
-  const w = s.words[s.exIdx];
+  const w = exWord(s);
   const others = shuffle(WORDS[w.lv].filter(a=>a[0]!==w.w)).slice(0,3).map(a=>a[0]);
   EXQ = { w, opts: shuffle([w.w].concat(others)) };
   EXQ.correct = EXQ.opts.indexOf(w.w);
@@ -3086,7 +3097,7 @@ function scLPrev(){ if(SC.i > 0){ SC.i--; renderScLearn(); } }
 /* ── 스펠링 연습: 보고 → 가리고 → 쓰기 (맞을 때까지) ── */
 function scPractice(si, idxs){
   const st = S.school[si];
-  SC = {si, list: idxs || st.ws.map((w,i)=>i), i:0, step:0, lock:false};
+  SC = {si, list: shuffle(idxs || st.ws.map((w,i)=>i)), i:0, step:0, lock:false};   /* 단어 보기와 다른 순서로 */
   renderScPr(); show("school");
 }
 function renderScPr(){
@@ -3319,7 +3330,7 @@ function scMatchDone(){
      영어 뜻 밑에 나온다 (대표 지시 2026-10-08). 처음부터 한글이 보이게 바꾸지 말 것.
    - ws 한 줄 = [단어, 영어 뜻(시험지), 한글 뜻]. fill 한 줄 = [빈칸(___) 문장, 답].
      fill 의 앞 10개는 시험지 Part B·C 문장 그대로, 뒤 10개는 나머지 단어용으로 새로 쓴 것.
-   - 진행 기록은 S.mid = {miss:{단어:횟수}, done:{활동키:횟수}, day:{date, got:{}}}.
+   - 진행 기록은 S.mid = {miss:{단어:횟수}, done:{활동키:횟수}, day:{date, got:{완주 보너스}, q:{문제당 영머니}}}.
    - 실전 테스트는 나중에 연다 (MID_TEST_READY). */
 const MID_TEST_READY = false;
 const MID = [
@@ -3529,20 +3540,45 @@ function midSt(){
   if(!S.mid.miss) S.mid.miss = {};
   if(!S.mid.done) S.mid.done = {};
   const t = todayStr();
-  if(!S.mid.day || S.mid.day.date!==t) S.mid.day = {date:t, got:{}};
+  if(!S.mid.day || S.mid.day.date!==t) S.mid.day = {date:t, got:{}, q:{}};
+  if(!S.mid.day.q) S.mid.day.q = {};
   return S.mid;
 }
 function midMissN(){ return Object.keys(midSt().miss).length; }
 function midMissAdd(w){ const m = midSt().miss; m[w] = (m[w]||0) + 1; }
+/* 맞힐 때마다 영머니 REWARD.MID_Q (대표 지시 2026-10-09 「중간고사 공부할 때마다 영머니」).
+   · 한 번에 맞힌 문제만 준다. 틀리고 다시 맞힌 건 0원 — 아무거나 눌러 맞혀도 돈이 나오면 찍기 게임이 된다.
+   · 같은 문제는 하루 한 번만 (S.mid.day.q). 같은 걸 계속 돌려 무한히 벌 수 없게.
+   · 📇 카드 「알아!」·📋 단어장은 아이가 스스로 누르는 거라 문제당 돈은 없고 완주 보너스만.
+   key = 활동+Day+문제 (f1:3 · m2:abandon · g3:5 · x:word). 🔀 섞어서 복습은 Day 문법과 같은 key 라 두 번 못 받는다.
+   돈 계산(midEarn)은 그리기 전에, 동전 날리기(midPay)는 그린 뒤에 — 「+10원」 글씨와 동전이 같이 보이게. */
+function midEarn(key){
+  const q = midSt().day.q;
+  if(q[key]) return -1;              /* 오늘 이미 받음 */
+  q[key] = 1;
+  V.earned = (V.earned||0) + REWARD.MID_Q;
+  return REWARD.MID_Q;
+}
+function midPay(n, el){ if(n>0) addMoney(n, el || $("#scr-mid .opt.ok") || $("#scr-mid .qbox")); }
+function midGainTxt(g){
+  if(g>0) return ' <b class="midgain">+'+g+'원</b>';
+  if(g<0) return '<div class="sub" style="font-size:12px;margin-top:4px">이 문제 영머니는 오늘 벌써 받았어. 내일 또 받자!</div>';
+  if(g===0) return '<div class="sub" style="font-size:12px;margin-top:4px">다시 맞힌 건 영머니가 없어. 한 번에 맞히면 +'+REWARD.MID_Q+'원!</div>';
+  return '';
+}
+function midTodayWon(){
+  const d = midSt().day;
+  return Object.keys(d.q).length*REWARD.MID_Q + Object.keys(d.got).length*REWARD.MID;
+}
 /* 활동 하나를 끝까지 하면: 기록 + 하루 한 번 보너스 */
 function midFinish(key){
   const st = midSt();
   st.done[key] = (st.done[key]||0) + 1;
-  let bonus = "";
+  let bonus = (V && V.earned) ? '<p class="sub" style="margin:6px 0">문제 맞혀서 번 영머니 <b>+'+V.earned+'원</b> 💰</p>' : "";
   if(!st.day.got[key]){
     st.day.got[key] = 1;
     S.money += REWARD.MID; S.earned += REWARD.MID; updateMoney();
-    bonus = '<p class="sub" style="margin:6px 0">오늘 첫 완주 보너스 <b>+'+REWARD.MID+'원</b>!</p>';
+    bonus += '<p class="sub" style="margin:6px 0">오늘 첫 완주 보너스 <b>+'+REWARD.MID+'원</b>!</p>';
   }
   logEv("mid",{k:key}); save();
   return bonus;
@@ -3567,7 +3603,9 @@ function renderMid(){
   const miss = midMissN();
   $("#scr-mid").innerHTML =
    '<h2 class="sec">📚 중간고사 대비</h2>'
-   +'<p class="sub" style="font-size:13px;margin:-6px 2px 10px">E3 Midterm · 하루에 단어 1개 + 문법 1개씩!</p>'
+   +'<p class="sub" style="font-size:13px;margin:-6px 2px 4px">E3 Midterm · 하루에 단어 1개 + 문법 1개씩!</p>'
+   +'<p class="sub" style="font-size:13px;margin:0 2px 10px">💰 한 번에 맞히면 <b>+'+REWARD.MID_Q+'원</b> · 끝까지 하면 <b>+'+REWARD.MID+'원</b> (같은 문제는 하루 한 번)'
+   +(midTodayWon() ? '<br>오늘 중간고사로 번 영머니 <b>'+comma(midTodayWon())+'원</b> 🎉' : '')+'</p>'
    + tabs
    +'<div class="card"><div class="mtitle">📗 Vocabulary Day '+n+' <span class="sub" style="font-size:12px">'+esc(D.vt)+' · 20단어</span></div>'
    +'<div class="mdesc">뜻은 시험지처럼 <b>영어</b>로 나와. 모르겠으면 <b>🇰🇷</b> 를 눌러 봐!</div>'
@@ -3630,7 +3668,7 @@ function midListDone(){
 /* ── 📇 카드: 단어 → (누르면) 영어 뜻 → (🇰🇷) 한글 뜻.
    「아직 헷갈려」는 3장 뒤에 다시 나온다. 다 「알아!」가 될 때까지. ── */
 function midCard(){
-  V = {mode:"card", q: MID[MIDD].ws.map((w,i)=>i), open:false, again:0, seen:{}};
+  V = {mode:"card", q: shuffle(MID[MIDD].ws.map((w,i)=>i)), open:false, again:0, seen:{}};   /* 시험지 순서 그대로 내지 않는다 */
   renderMidCard(); show("mid");
 }
 function renderMidCard(){
@@ -3681,7 +3719,7 @@ function midCardDone(){
 function midMatch(part){
   ac();
   const ws = MID[MIDD].ws.slice(part*10, part*10+10);
-  V = {mode:"match", part, rows: shuffle(ws), chips: shuffle(ws), done:{}, pick:null, wrong:0, ko:false};
+  V = {mode:"match", part, rows: shuffle(ws), chips: shuffle(ws), done:{}, pick:null, wrong:0, ko:false, bad:{}};
   renderMidMatch(); show("mid");
 }
 function renderMidMatch(){
@@ -3720,11 +3758,13 @@ function midMatchDrop(i){
   if(!V.pick){ if(f) f.innerHTML = '<span class="sub">먼저 위에서 단어를 골라 줘 👆</span>'; return; }
   if(V.pick === w[0]){
     V.done[w[0]] = 1; V.pick = null; Sfx.ok();
+    const gain = V.bad[w[0]] ? 0 : midEarn("m"+(MIDD+1)+":"+w[0]);
     renderMidMatch();
-    const f2 = $("#midFeed"); if(f2) f2.innerHTML = '<span class="good">맞았어! 🔗</span>';
+    const f2 = $("#midFeed"); if(f2) f2.innerHTML = '<span class="good">맞았어! 🔗</span>'+midGainTxt(gain);
+    midPay(gain, $("#mrow"+i));
     if(Object.keys(V.done).length >= V.rows.length) setTimeout(midMatchDone, 500);
   } else {
-    V.wrong++; Sfx.bad(); midMissAdd(V.pick);
+    V.wrong++; Sfx.bad(); midMissAdd(V.pick); V.bad[V.pick] = 1;
     const row = $("#mrow"+i);
     if(row){ row.classList.remove("bad"); void row.offsetWidth; row.classList.add("bad"); }
     if(f) f.innerHTML = '<span class="oops"><b>'+esc(V.pick)+'</b>는 여기가 아니야. 다시 찾아보자!</span>';
@@ -3757,7 +3797,7 @@ function midFillNew(){
   const it = MID[MIDD].fill[V.q[0]];
   const pool = shuffle(MID[MIDD].ws.map(x=>x[0]).filter(x=>x!==it[1])).slice(0,3);
   V.opts = shuffle(pool.concat([it[1]]));
-  V.ans = null;
+  V.ans = null; V.gain = null;
   renderMidFill();
 }
 function renderMidFill(){
@@ -3772,7 +3812,7 @@ function renderMidFill(){
   if(V.ans!==null){
     const w = midWordOf(it[1]), right = V.opts[V.ans]===it[1];
     feed = '<div class="card" style="padding:12px 14px;margin-top:12px">'
-     +(right ? '<div class="good" style="font-size:17px;color:var(--ok)">정답! 🎉</div>' : '<div style="font-size:17px;color:var(--bad)">정답은 <b>'+esc(it[1])+'</b> · 이따 다시 나와!</div>')
+     +(right ? '<div class="good" style="font-size:17px;color:var(--ok)">정답! 🎉'+midGainTxt(V.gain)+'</div>' : '<div style="font-size:17px;color:var(--bad)">정답은 <b>'+esc(it[1])+'</b> · 이따 다시 나와!</div>')
      +'<div style="margin:8px 0;font-size:16px;line-height:1.5">'+midBlank(it[0], it[1])
      +' <button class="spk sm2" onclick="speak(MID['+MIDD+'].fill[V.q[0]][0].replace(\'___\',MID['+MIDD+'].fill[V.q[0]][1]))">🔊</button></div>'
      +'<div class="sub" style="font-size:14px"><b>'+esc(w[0])+'</b> = '+esc(w[1])+'</div>'
@@ -3788,9 +3828,9 @@ function midFillAns(i){
   if(V.ans!==null) return;
   const qi = V.q[0], it = MID[MIDD].fill[qi];
   V.ans = i;
-  if(V.opts[i]===it[1]){ Sfx.ok(); if(!V.tried[qi]) V.first++; }
+  if(V.opts[i]===it[1]){ Sfx.ok(); if(!V.tried[qi]){ V.first++; V.gain = midEarn("f"+(MIDD+1)+":"+qi); } else V.gain = 0; }
   else { Sfx.bad(); V.tried[qi] = 1; midMissAdd(it[1]); }
-  renderMidFill();
+  renderMidFill(); midPay(V.gain);
 }
 function midFillNext(){
   const qi = V.q.shift(), it = MID[MIDD].fill[qi];
@@ -3818,13 +3858,13 @@ function midMiss(){
   const m = midSt().miss, all = midAllWords();
   const list = all.filter(w=>m[w[0]]);
   if(!list.length){ goMid(); return; }
-  V = {mode:"miss", q: shuffle(list), ok:0, ans:null, tot:list.length};
+  V = {mode:"miss", q: shuffle(list), ok:0, ans:null, tot:list.length, tried:{}};
   midMissNew(); show("mid");
 }
 function midMissNew(){
   const w = V.q[0], all = midAllWords();
   V.opts = shuffle(shuffle(all.filter(x=>x[0]!==w[0])).slice(0,3).map(x=>x[0]).concat([w[0]]));
-  V.ans = null; renderMidMiss();
+  V.ans = null; V.gain = null; renderMidMiss();
 }
 function renderMidMiss(){
   const w = V.q[0];
@@ -3839,16 +3879,16 @@ function renderMidMiss(){
    +'<div class="scask">'+esc(w[1])+'</div>'
    +'<button class="spk" style="margin-top:10px" onclick="midKo(\'mko\')">🇰🇷 한글 뜻</button><div class="midko" id="mko">'+esc(w[2])+'</div></div>'
    +'<div class="opts">'+opts+'</div>'
-   +(V.ans!==null ? '<div class="qfeed">'+(V.opts[V.ans]===w[0] ? '<span class="good">정답! 이제 하나 줄었어 🎉</span>' : '<span class="oops">정답은 <b>'+esc(w[0])+'</b> · 이따 다시!</span>')+'</div>'
+   +(V.ans!==null ? '<div class="qfeed">'+(V.opts[V.ans]===w[0] ? '<span class="good">정답! 이제 하나 줄었어 🎉</span>'+midGainTxt(V.gain) : '<span class="oops">정답은 <b>'+esc(w[0])+'</b> · 이따 다시!</span>')+'</div>'
        +'<button class="btn" onclick="midMissNext()">다음 ▶</button>' : '');
 }
 function midMissAns(i){
   if(V.ans!==null) return;
   const w = V.q[0], m = midSt().miss;
   V.ans = i;
-  if(V.opts[i]===w[0]){ Sfx.ok(); speak(w[0]); delete m[w[0]]; }
-  else { Sfx.bad(); m[w[0]] = (m[w[0]]||0) + 1; }
-  save(); renderMidMiss();
+  if(V.opts[i]===w[0]){ Sfx.ok(); speak(w[0]); delete m[w[0]]; V.gain = V.tried[w[0]] ? 0 : midEarn("x:"+w[0]); }
+  else { Sfx.bad(); m[w[0]] = (m[w[0]]||0) + 1; V.tried[w[0]] = 1; }
+  save(); renderMidMiss(); midPay(V.gain);
 }
 function midMissNext(){
   const w = V.q.shift();
@@ -3897,12 +3937,24 @@ function midDir(en, ko){
    +(ko ? '<button class="spk sm2" style="margin-top:6px" onclick="midKo(\'gko\')">🇰🇷</button><div class="midko" id="gko" style="font-size:14px">'+esc(ko)+'</div>' : '');
 }
 const MID_TYPES = [["S","Statement","평서문","."],["Q","Question","의문문","?"],["C","Command","명령문","."],["E","Exclamation","감탄문","!"]];
+const MID_SF = [["S","S · Complete sentence"],["F","F · Sentence fragment"]];
+/* 문법 문제마다 영머니 key — Day 연습과 🔀 섞어서 복습이 같은 문제면 같은 key */
+const MID_GID = new Map();
+MID.forEach((D,d)=>D.gq.forEach((g,i)=>MID_GID.set(g, "g"+(d+1)+":"+i)));
+/* 답을 예측할 수 없게 (대표 지시 2026-10-09 「1번 2번 1번 2번 같은 패턴이 안 나오게」):
+   문제 순서를 섞고(워크북 Part A 는 답이 S F S F 로 번갈아 나온다), 보기 자리도 문제마다 새로 섞는다.
+   정답은 자리 번호가 아니라 값(S/F · 원래 보기 번호 · 문장 종류)으로 맞춘다. 다시 나온 문제도 새로 섞는다. */
 function midGram(mix){
   let list;
   if(mix){ list = []; MID.forEach(D=>D.gq.forEach(g=>list.push(g))); list = shuffle(list).slice(0,15); }
-  else list = MID[MIDD].gq.slice();
+  else list = shuffle(MID[MIDD].gq);
   V = {mode:"gram", mix:!!mix, q:list, n:0, first:0, tot:list.length, tried:new Set(), ans:null};
-  renderMidGram(); show("mid");
+  midGramSet(); renderMidGram(); show("mid");
+}
+function midGramSet(){
+  const g = V.q[0];
+  V.ans = null; V.gain = null;
+  V.opts = g[0]==="sf" ? shuffle(MID_SF) : g[0]==="type" ? shuffle(MID_TYPES) : g[0]==="pick" ? shuffle(g[2].map((o,i)=>i)) : [];
 }
 function midGramRight(g, a){
   if(g[0]==="sf") return a===g[2];
@@ -3938,17 +3990,17 @@ function renderMidGram(){
   }
   let opts = "";
   if(g[0]==="sf"){
-    [["S","S · Complete sentence"],["F","F · Sentence fragment"]].forEach(o=>{
+    V.opts.forEach(o=>{
       let cls = "opt"; if(done){ if(o[0]===g[2]) cls+=" ok"; else if(o[0]===V.ans) cls+=" bad"; }
       opts += '<button class="'+cls+'" onclick="midGramAns(\''+o[0]+'\')">'+o[1]+'</button>';
     });
   } else if(g[0]==="pick"){
-    g[2].forEach((o,i)=>{
+    V.opts.forEach(i=>{
       let cls = "opt"; if(done){ if(i===g[3]) cls+=" ok"; else if(i===V.ans) cls+=" bad"; }
-      opts += '<button class="'+cls+'" onclick="midGramAns('+i+')">'+esc(o)+'</button>';
+      opts += '<button class="'+cls+'" onclick="midGramAns('+i+')">'+esc(g[2][i])+'</button>';
     });
   } else if(g[0]==="type"){
-    MID_TYPES.forEach(t=>{
+    V.opts.forEach(t=>{
       let cls = "opt"; if(done){ if(g[2].indexOf(t[0])>=0) cls+=" ok"; else if(t[0]===V.ans) cls+=" bad"; }
       opts += '<button class="'+cls+'" onclick="midGramAns(\''+t[0]+'\')">'+t[1]+' ( '+t[3]+' )</button>';
     });
@@ -3958,7 +4010,7 @@ function renderMidGram(){
    +'<div class="card qbox">'+body+'</div>'
    +(opts ? '<div class="opts">'+opts+'</div>' : '')
    +(done ? '<div class="card" style="padding:12px 14px;margin-top:12px">'
-      +(right ? '<div style="font-size:17px;color:var(--ok)">정답! 🎉</div>' : '<div style="font-size:17px;color:var(--bad)">아쉬워! 이따 다시 나와.</div>')
+      +(right ? '<div style="font-size:17px;color:var(--ok)">정답! 🎉'+midGainTxt(V.gain)+'</div>' : '<div style="font-size:17px;color:var(--bad)">아쉬워! 이따 다시 나와.</div>')
       +'<div style="font-size:15px;line-height:1.6;margin-top:6px">'+why+'</div></div>'
       +'<button class="btn" style="margin-top:10px" onclick="midGramNext()">다음 ▶</button>' : '');
 }
@@ -3966,9 +4018,9 @@ function midGramAns(a){
   if(!V || V.mode!=="gram" || V.ans!==null) return;
   const g = V.q[0];
   V.ans = a;
-  if(midGramRight(g, a)){ Sfx.ok(); if(!V.tried.has(g)) V.first++; }
+  if(midGramRight(g, a)){ Sfx.ok(); if(!V.tried.has(g)){ V.first++; V.gain = midEarn(MID_GID.get(g)); } else V.gain = 0; }
   else { Sfx.bad(); V.tried.add(g); }
-  renderMidGram();
+  renderMidGram(); midPay(V.gain, $("#scr-mid .opt.ok") || $("#scr-mid .cutline"));
 }
 function midGramNext(){
   const g = V.q.shift();
@@ -3976,7 +4028,7 @@ function midGramNext(){
   else V.q.splice(Math.min(3, V.q.length), 0, g);
   V.ans = null;
   if(!V.q.length){ midGramDone(); return; }
-  renderMidGram();
+  midGramSet(); renderMidGram();
 }
 function midGramDone(){
   V.mode = "done";
