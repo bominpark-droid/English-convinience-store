@@ -371,6 +371,7 @@ nav button.on .ni{transform:scale(1.12)}
 .mrow.bad{animation:shake .35s;border-color:var(--red);background:#FFECE7}
 /* ── 중간고사 대비 (scr-mid) ── */
 .middone{font-size:12px}
+#verBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 64px);z-index:60;max-width:calc(100% - 32px);background:var(--yellow);color:#4A3500;border:2px solid var(--yellow-dk);border-radius:999px;padding:9px 16px;font-family:inherit;font-size:15px;box-shadow:0 4px 0 var(--yellow-dk);cursor:pointer}
 .midgain{display:inline-block;color:#8A5A00;background:var(--yellow-lt);border:2px solid var(--coin);border-radius:999px;padding:0 9px;font-size:15px;margin-left:4px}
 .midword{font-size:32px;word-break:break-word}
 .midmean{font-size:20px;line-height:1.45;color:var(--green-dk);margin:14px 4px 4px;word-break:keep-all}
@@ -548,6 +549,9 @@ async function loadItemsServer(){
 /* ═══════════ 서버 연결 설정 ═══════════
    ▼ 아래 따옴표 안에 Apps Script 웹앱 배포 URL을 붙여넣으세요. (설치가이드.md 참고)
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
+/* 앱 판 번호 = 날짜(YYYYMMDD) + 그날 몇 번째(2자리). **index.html 을 고쳐 올릴 때마다 반드시 올린다.**
+   설정 맨 아래에 보이고, 켜져 있는 앱이 서버의 판과 비교해 새 판이면 바꿔 준다(checkNewVer). */
+const APP_VER = 2026100903;
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
@@ -4082,6 +4086,9 @@ function openSettings(){
       : '<div class="setrow"><span>🔒 부모 모드</span><button class="minibtn" onclick="openParent()">'+(S.ppin?"열기":"시작하기")+'</button></div>')
    +(SERVER_URL ? '<div class="setrow"><span>계정</span>'+(SESSION ? '<div class="mini"><span class="sub" style="font-size:12px;align-self:center">'+esc(SESSION.uid)+' ☁️</span><button class="minibtn" onclick="logout()">로그아웃</button></div>' : '<button class="minibtn" onclick="closeModal();renderAuth();show(\'auth\')">로그인 / 가입</button>')+'</div>' : '')
    +'<div class="setrow"><span>저장 위치</span><span class="sub" style="font-size:12px">'+modeTxt+'</span></div>'
+   +'<div class="setrow"><span style="flex:none">앱 버전</span><div class="mini" style="align-items:center;justify-content:flex-end">'
+   +'<span class="sub" style="font-size:12px">'+verTxt(APP_VER)+'</span><button class="minibtn" onclick="checkNewVer(1)">🔄 새 버전 확인</button></div></div>'
+   +'<div class="sub" id="verMsg" style="font-size:12px;text-align:right"></div>'
    +(isParent() ? '<div style="margin-top:16px"><button class="btn red sm" onclick="askReset()">데이터 전체 초기화</button></div>' : ''));
 }
 function setVoice(){
@@ -4233,6 +4240,55 @@ if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
     navigator.serviceWorker.register("sw.js").catch(function(){});
   });
 }
+/* ═══════════ 새 판 확인 (2026-10-09 대표 신고: 「앱을 껐다 켜도 고친 게 안 보인다」) ═══════════
+   아이폰 홈 화면 앱은 홈으로 나갔다 들어오면 페이지를 새로 읽지 않고 멈췄던 화면을 그대로 보여 준다.
+   그래서 앱이 다시 보일 때마다(1분에 한 번까지) 서버의 index.html 에서 APP_VER 를 읽어 비교한다.
+   서버 판이 더 새것이면: 홈·로그인 화면이면 저장하고 바로 새로 읽고, 공부 중이면 위에 띠만 띄운다(누르면 바꿈).
+   같은 판으로 두 번 자동 새로 읽기는 안 한다(sessionStorage) — 혹시 옛 판이 또 와도 계속 깜빡이지 않게. */
+let verAt = 0, verNew = 0;
+function verTxt(n){ const s = String(n); return Number(s.slice(4,6))+"월 "+Number(s.slice(6,8))+"일 · "+Number(s.slice(8))+"번째 판"; }
+async function checkNewVer(force){
+  const msg = t=>{ const el = $("#verMsg"); if(el) el.textContent = t; };
+  if(location.protocol.indexOf("http")!==0) return;
+  if(navigator.onLine===false){ if(force) msg("인터넷이 꺼져 있어 📴"); return; }
+  if(!force && Date.now()-verAt < 60000) return;
+  verAt = Date.now();
+  if(force) msg("확인하는 중…");
+  let v = 0;
+  try{
+    const r = await fetch("index.html", {cache:"no-cache"});
+    const m = (await r.text()).match(/const APP_VER = (\d+)/);
+    v = m ? Number(m[1]) : 0;
+  }catch(e){ if(force) msg("확인 못 했어. 잠시 뒤 다시!"); return; }
+  if(!(v > APP_VER)){ if(force) msg("지금이 최신이야 ✅"); return; }
+  verNew = v;
+  let tried = "";
+  try{ tried = sessionStorage.getItem("ecvs-ver-try") || ""; }catch(e){}
+  const on = document.querySelector(".screen.on");
+  const safe = on && /^scr-(home|auth|welcome)$/.test(on.id) && !$("#modalBg").classList.contains("on");
+  if(force || (safe && tried!==String(v))) applyNewVer();
+  else showVerBar();
+}
+function showVerBar(){
+  let b = $("#verBar");
+  if(!b){ b = document.createElement("button"); b.id = "verBar"; b.addEventListener("click", applyNewVer); document.body.appendChild(b); }
+  b.textContent = "🆕 새 버전이 나왔어! 여기를 누르면 바뀌어 🔄";
+}
+async function applyNewVer(){
+  const b = $("#verBar"); if(b) b.textContent = "새 버전으로 바꾸는 중… 🔄";
+  try{ sessionStorage.setItem("ecvs-ver-try", String(verNew)); }catch(e){}
+  if(S){
+    try{ clearTimeout(Store._t); S.savedAt = Date.now(); localStorage.setItem(storeKey(), JSON.stringify(S)); }catch(e){}
+    if(SESSION){
+      clearTimeout(flushT);
+      try{ await Promise.race([api("save", {uid:SESSION.uid, token:SESSION.token, state:S, events:EVQ.slice()}), new Promise(r=>setTimeout(r, 2500))]); }catch(e){}
+    }
+  }
+  location.reload();
+}
+document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") checkNewVer(); });
+window.addEventListener("pageshow", function(e){ if(e.persisted) checkNewVer(); });
+window.addEventListener("load", function(){ setTimeout(checkNewVer, 5000); });   /* 인터넷이 느려 저장해 둔 옛 판이 열렸을 때 */
 window.addEventListener("online",  function(){ updateSyncDot(); if(SESSION) flushServer(); });
 window.addEventListener("offline", function(){ updateSyncDot(); });
 
