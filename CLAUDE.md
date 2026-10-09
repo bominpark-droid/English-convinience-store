@@ -192,6 +192,8 @@ auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store
   → 🔗 짝 맞추기(`midMatch(0|1)` — 시험지 Part A 처럼 10개씩) → ✏️ 문장 빈칸(`midFill` — 틀린 문장은 조금 뒤 다시).
 - 문법: 📖 규칙(`midRules`, 시험지 Study Guide + 🇰🇷 설명) · ✍️ 연습(`midGram`) · Day 3 에 🔀 섞어서 복습(`midGram(1)`).
   문제 모양 넷 `sf | pick | type | cut` (주석 참고). `cut` 은 서술어가 시작하는 단어를 눌러 선을 긋는다.
+- **문법 문제의 보기·안내문은 워크북처럼 영어**다 (대표 지시 2026-10-09 — 「S · Complete sentence / F · Sentence fragment」).
+  안내문은 `midDir(영어, 한글)` 로 그리고 한글은 🇰🇷 를 눌러야 보인다. 정답 뒤 해설만 한국어. 보기를 한국어로 되돌리지 말 것.
 - 틀리거나 「헷갈려」 한 단어는 `S.mid.miss` 에 모이고 🔁 「헷갈린 단어 다시」(`midMiss`)에서 맞히면 빠진다.
 - 보상: 활동 하나 완주마다 `REWARD.MID`(20원), 활동별 하루 1회. 기록 `S.mid = {miss, done, day}`.
 - **실전 테스트는 아직 안 만들었다** (대표: 「나중에는 테스트도」). `MID_TEST_READY` 를 true 로 바꾸고 화면을 붙이면 된다.
