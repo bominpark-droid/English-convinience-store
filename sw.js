@@ -59,6 +59,7 @@ async function pageFirst(e, req, url) {
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;                       /* 저장 요청(POST)은 손대지 않는다 */
+  if (req.headers.has("range")) return;                   /* 소리·영상의 「일부분만」 요청은 그대로 인터넷에 (저장본은 통째라 못 준다) */
   let url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.hostname.indexOf("script.google") >= 0) return; /* 서버는 언제나 실시간으로 */
