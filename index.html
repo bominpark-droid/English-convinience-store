@@ -551,7 +551,7 @@ async function loadItemsServer(){
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
 /* 앱 판 번호 = 날짜(YYYYMMDD) + 그날 몇 번째(2자리). **index.html 을 고쳐 올릴 때마다 반드시 올린다.**
    설정 맨 아래에 보이고, 켜져 있는 앱이 서버의 판과 비교해 새 판이면 바꿔 준다(checkNewVer). */
-const APP_VER = 2026100903;
+const APP_VER = 2026101001;
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
@@ -697,7 +697,8 @@ function pickVoice(){
 let CURA = null;
 const TTSCACHE = new Map();
 let ttsSeq = 0;   /* 소리 부탁 번호 — 늦게 온 소리를 버리는 데 쓴다 (speakServer 참고) */
-function stopAudio(){ ttsSeq++; try{ clearTimeout(ttsT); clearTimeout(ttsRetryT); }catch(e){} try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
+let MIDAU = null; /* 중간고사 오디오북 재생기 (midListen) */
+function stopAudio(){ ttsSeq++; try{ if(MIDAU) MIDAU.pause(); }catch(e){} try{ clearTimeout(ttsT); clearTimeout(ttsRetryT); }catch(e){} try{ if(CURA){ CURA.pause(); CURA=null; } }catch(e){} try{ speechSynthesis.cancel(); }catch(e){} }
 function speak(text, rate){
   if(SESSION && SESSION.tts && S && S.ttsHQ!==false){ speakServer(text, rate); return; }
   speakLocal(text, rate);
@@ -1506,6 +1507,7 @@ function show(id){
 }
 function go(tab){
   stopListen();
+  try{ if(MIDAU) MIDAU.pause(); }catch(e){}
   try{ recStop(); }catch(e){}
   try{ arcStop(); }catch(e){}
   if(!S.placed && tab!=="store"){ renderWelcome(); show("welcome"); return; }
@@ -3556,6 +3558,10 @@ function renderMid(){
    +'<p class="sub" style="font-size:13px;margin:0 2px 10px">💰 한 번에 맞히면 <b>+'+REWARD.MID_Q+'원</b> · 끝까지 하면 <b>+'+REWARD.MID+'원</b> (같은 문제는 하루 한 번)'
    +(midTodayWon() ? '<br>오늘 중간고사로 번 영머니 <b>'+comma(midTodayWon())+'원</b> 🎉' : '')+'</p>'
    + tabs
+   +'<div class="card" style="display:flex;align-items:center;gap:12px">'
+   +'<span style="font-size:30px">🎧</span><div style="flex:1"><div style="font-size:16px">60단어 오디오북</div>'
+   +'<div class="sub" style="font-size:12.5px">단어 → 영어 뜻 → 단어 → 한글 뜻 · 약 9분</div></div>'
+   +'<button class="btn sm" style="width:auto" onclick="midListen()">듣기</button></div>'
    +'<div class="card"><div class="mtitle">📗 Vocabulary Day '+n+' <span class="sub" style="font-size:12px">'+esc(D.vt)+' · 20단어</span></div>'
    +'<div class="mdesc">뜻은 시험지처럼 <b>영어</b>로 나와. 모르겠으면 <b>🇰🇷</b> 를 눌러 봐!</div>'
    +'<button class="btn ghost" onclick="midList()">📋 단어장 보기'+midDoneMark("v"+n+"l")+'</button>'
@@ -3988,6 +3994,130 @@ function midGramDone(){
    +'<p class="sub" style="margin:8px 0">한 번에 맞힌 문제 <b>'+V.first+' / '+V.tot+'</b></p>'+b
    +'<div class="btnrow"><button class="btn ghost" onclick="midGram('+(V.mix?1:0)+')">🔁 한 번 더</button>'
    +'<button class="btn" onclick="goMid()">목록으로</button></div></div>';
+}
+
+/* ── 🎧 60단어 오디오북 (대표 지시 2026-10-10) ──
+   한 세트 = 영어 단어 → 영어 뜻(시험지) → 영어 단어 → 한글 뜻. Day 1→2→3 워크북 순서 그대로
+   (듣기라서 「문제 섞기」 규칙 7 과 상관없다). 소리 파일은 audio/mid-60.mp3 하나.
+   영어 = Kokoro(af_heart), 한국어 = Supertonic 3 — 둘 다 무료 오픈소스로 미리 만들어 둔 것 (만드는 법: CLAUDE.md).
+   MID_AU.t = 각 단어 세트가 시작하는 초, day = 각 Day 안내가 시작하는 초.
+   **MID 단어를 고치면 mp3 와 이 시각표를 다시 만들어야 한다.**
+   파일은 fetch 로 통째로 받아 blob 으로 튼다 — 서비스 워커가 저장해 두면 인터넷 없이도 들린다.
+   화면에는 단어와 영어 뜻만, 한글 뜻은 🇰🇷 를 눌러야 (중간고사 화면 규칙과 같게). 들은 자리는 기기에 기억(ecvs-mid-au). */
+const MID_AU = { src:"audio/mid-60.mp3", len:535.1, day:[0.6,179.32,357.05],
+  t:[3.82,12.64,23.18,32.39,41.67,50.52,59.43,67.74,76.18,84.48,93.04,101.22,110.16,119.15,127.49,135.93,143.82,151.86,160.81,168.94,
+     182.5,192.35,200.96,208.28,217.22,226.41,234.79,243.01,251.43,260.09,268.77,278.04,287.81,296.14,305.15,312.71,321.83,329.47,338.23,347.57,
+     360.92,369.6,377.83,384.7,393.3,402.97,412.13,420.53,429.86,438.04,447.36,455.68,464.69,472.95,482.43,490.42,498.8,507.62,517.12,525.12] };
+let MIDAU_URL = "", MIDAU_K = -2;
+function midAuIdx(tm){ let k = -1; for(let i=0;i<MID_AU.t.length;i++){ if(MID_AU.t[i] <= tm+0.05) k = i; else break; } return k; }
+function midAuWord(k){ return MID[Math.floor(k/20)].ws[k%20]; }
+function midAuTime(s){ s = Math.max(0, Math.floor(s||0)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function midAuSave(){ try{ if(MIDAU) localStorage.setItem("ecvs-mid-au", String(Math.floor(MIDAU.currentTime))); }catch(e){} }
+async function midListen(){
+  stopAudio();
+  V = {mode:"listen", ko:false, slow:!!(MIDAU && MIDAU.playbackRate < 1), msg:"", loading:!MIDAU_URL};
+  MIDAU_K = -2;
+  renderMidListen(); show("mid");
+  if(!MIDAU){
+    MIDAU = new Audio(); MIDAU.preload = "auto";
+    MIDAU.addEventListener("timeupdate", midAuTick);
+    MIDAU.addEventListener("play", midAuTick); MIDAU.addEventListener("pause", function(){ midAuSave(); midAuTick(); });
+    MIDAU.addEventListener("ended", function(){ try{ localStorage.removeItem("ecvs-mid-au"); }catch(e){} midAuTick(); });
+    try{
+      if("mediaSession" in navigator){
+        navigator.mediaSession.metadata = new MediaMetadata({title:"중간고사 단어 60", artist:"영어 편의점"});
+        navigator.mediaSession.setActionHandler("previoustrack", function(){ midAuStep(-1); });
+        navigator.mediaSession.setActionHandler("nexttrack", function(){ midAuStep(1); });
+      }
+    }catch(e){}
+  }
+  if(!MIDAU_URL){
+    try{
+      const r = await fetch(MID_AU.src);
+      if(!r.ok) throw new Error("http "+r.status);
+      MIDAU_URL = URL.createObjectURL(await r.blob());
+      MIDAU.src = MIDAU_URL;
+      let at = 0; try{ at = Number(localStorage.getItem("ecvs-mid-au")) || 0; }catch(e){}
+      if(at > 0 && at < MID_AU.len - 3){ MIDAU.addEventListener("loadedmetadata", function f(){ MIDAU.removeEventListener("loadedmetadata", f); MIDAU.currentTime = at; }); }
+    }catch(e){
+      if(V && V.mode==="listen"){ V.loading = false; V.msg = "소리 파일을 못 받았어 😢 인터넷을 확인하고 다시 눌러 줘!"; renderMidListen(); }
+      return;
+    }
+  }
+  if(V && V.mode==="listen"){ V.loading = false; renderMidListen(); }
+}
+function renderMidListen(){
+  if(!V || V.mode!=="listen") return;
+  const playing = MIDAU && !MIDAU.paused;
+  let chips = '<div class="chips" style="margin-bottom:10px">';
+  MID.forEach((D,i)=>{ chips += '<button class="chip" onclick="midAuDay('+i+')">▶ Day '+(i+1)+'</button>'; });
+  chips += '</div>';
+  $("#scr-mid").innerHTML = midHead("🎧 60단어 오디오북")
+   +'<div class="card" style="padding:12px 14px"><p class="sub" style="font-size:13px;line-height:1.7">'
+   +'<b>단어 → 영어 뜻 → 단어 → 한글 뜻</b> 순서로 60개가 이어서 나와. 들으면서 <b>따라 말해</b> 봐! 🗣️</p></div>'
+   + chips
+   +'<div class="card qbox" id="auNow" style="min-height:190px"></div>'
+   +'<div class="pbar" style="margin:4px 0 4px"><i id="auBar" style="width:0%"></i></div>'
+   +'<div class="sub" id="auTime" style="font-size:12px;text-align:right;margin-bottom:8px">0:00 / '+midAuTime(MID_AU.len)+'</div>'
+   +(V.loading ? '<p class="sub center" style="margin:6px 0">소리 불러오는 중… ⏳ (처음 한 번만 조금 걸려)</p>' : '')
+   +(V.msg ? '<p class="center" style="color:var(--bad);margin:6px 0">'+V.msg+'</p>' : '')
+   +'<div class="btnrow">'
+   +'<button class="btn ghost" onclick="midAuStep(-1)">⏮ 이전</button>'
+   +'<button class="btn" id="auPlay" onclick="midAuPlay()" '+(V.loading?"disabled":"")+'>'+(playing?"⏸ 멈춤":"▶ 듣기")+'</button>'
+   +'<button class="btn ghost" onclick="midAuStep(1)">다음 ⏭</button></div>'
+   +'<button class="btn '+(V.slow?"yellow":"ghost")+' sm" style="margin-top:9px" onclick="midAuSlow()">'+(V.slow?"🐢 천천히 듣는 중 (끄기)":"🐢 천천히 듣기")+'</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button>';
+  midAuTick(true);
+}
+/* 재생 위치에 맞춰 지금 단어 칸과 막대만 고친다 (화면 전체를 다시 그리지 않는다) */
+function midAuTick(force){
+  if(!V || V.mode!=="listen") return;
+  const tm = MIDAU ? MIDAU.currentTime : 0, k = midAuIdx(tm);
+  const bar = $("#auBar"); if(bar) bar.style.width = Math.min(100, tm/MID_AU.len*100).toFixed(1)+"%";
+  const tt = $("#auTime"); if(tt) tt.textContent = midAuTime(tm)+" / "+midAuTime(MID_AU.len);
+  const pb = $("#auPlay"); if(pb && !V.loading) pb.textContent = (MIDAU && !MIDAU.paused) ? "⏸ 멈춤" : "▶ 듣기";
+  if(k===MIDAU_K && force!==true) return;
+  MIDAU_K = k;
+  const box = $("#auNow"); if(!box) return;
+  if(k < 0){
+    const d = Math.max(0, MID_AU.day.filter(x=>x<=tm+0.05).length-1);
+    box.innerHTML = '<div class="qtype">E3 Midterm Vocabulary</div><div class="qword midword" style="margin-top:20px">Day '+(d+1)+'</div><div class="sub">'+esc(MID[d].vt)+'</div>';
+    return;
+  }
+  const w = midAuWord(k), d = Math.floor(k/20);
+  box.innerHTML = '<div class="qtype">Day '+(d+1)+' · '+(k%20+1)+' / 20 · 전체 '+(k+1)+' / 60</div>'
+   +'<div class="qword midword">'+esc(w[0])+'</div>'
+   +'<div class="midmean">'+esc(w[1])+'</div>'
+   +'<button class="spk" style="margin-top:6px" onclick="V.ko=!V.ko;midAuTick(true)">🇰🇷 한글 뜻</button>'
+   +'<div class="midko'+(V.ko?" on":"")+'">'+esc(w[2])+'</div>';
+}
+function midAuGo(sec){
+  if(!MIDAU || !MIDAU_URL) return;
+  MIDAU.currentTime = Math.max(0, Math.min(MID_AU.len-0.5, sec));
+  const p = MIDAU.play(); if(p && p.catch) p.catch(function(){});
+  midAuTick(true);
+}
+function midAuPlay(){
+  if(!MIDAU || !MIDAU_URL){ midListen(); return; }
+  if(MIDAU.paused){
+    if(MIDAU.ended || MIDAU.currentTime >= MID_AU.len-0.5) MIDAU.currentTime = 0;
+    const p = MIDAU.play(); if(p && p.catch) p.catch(function(){});
+  } else MIDAU.pause();
+  midAuTick(true);
+}
+function midAuDay(d){ midAuGo(MID_AU.day[d]); }
+function midAuStep(dir){
+  if(!MIDAU || !MIDAU_URL) return;
+  const tm = MIDAU.currentTime, k = midAuIdx(tm);
+  let to;
+  if(dir < 0) to = (k >= 0 && tm - MID_AU.t[k] > 2) ? MID_AU.t[k] : (k > 0 ? MID_AU.t[k-1] : 0);
+  else to = k+1 < MID_AU.t.length ? MID_AU.t[k+1] : MID_AU.t[k];
+  midAuGo(to);
+}
+function midAuSlow(){
+  V.slow = !V.slow;
+  if(MIDAU){ MIDAU.playbackRate = V.slow ? 0.85 : 1; MIDAU.defaultPlaybackRate = MIDAU.playbackRate; }
+  renderMidListen();
 }
 
 /* ── 부모용: 학교 단어 넣기·고치기 ── */
