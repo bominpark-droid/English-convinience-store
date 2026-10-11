@@ -377,6 +377,7 @@ nav button.on .ni{transform:scale(1.12)}
 .midmean{font-size:20px;line-height:1.45;color:var(--green-dk);margin:14px 4px 4px;word-break:keep-all}
 .midko{display:none;margin-top:8px;font-size:17px;color:#5A3E00;background:#FFF6D6;border-radius:10px;padding:7px 12px}
 .midko.on{display:block}
+.midbonus{margin:10px auto 4px;max-width:300px;background:#FFF3C4;border:2px solid var(--coin);border-radius:14px;padding:10px 12px;font-size:19px;color:#5A3E00}
 .mrow .mko{font-size:13px;color:#8A6A00;margin-top:3px}
 .midblank{display:inline-block;min-width:70px;border-bottom:3px solid var(--line);color:transparent}
 .midfill{color:var(--green-dk);text-decoration:underline}
@@ -551,7 +552,7 @@ async function loadItemsServer(){
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
 /* 앱 판 번호 = 날짜(YYYYMMDD) + 그날 몇 번째(2자리). **index.html 을 고쳐 올릴 때마다 반드시 올린다.**
    설정 맨 아래에 보이고, 켜져 있는 앱이 서버의 판과 비교해 새 판이면 바꿔 준다(checkNewVer). */
-const APP_VER = 2026101102;
+const APP_VER = 2026101103;
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
@@ -3519,7 +3520,7 @@ function midGainTxt(g){
 }
 function midTodayWon(){
   const d = midSt().day;
-  return Object.keys(d.q).length*REWARD.MID_Q + Object.keys(d.got).length*REWARD.MID;
+  return Object.keys(d.q).length*REWARD.MID_Q + Object.keys(d.got).length*REWARD.MID + (d.tb||0);
 }
 /* 활동 하나를 끝까지 하면: 기록 + 하루 한 번 보너스 */
 function midFinish(key){
@@ -3872,12 +3873,29 @@ function midMissNext(){
      끝까지 풀면 완주 보너스 REWARD.MID (하루 1회, key "test"). 「틀린 것만 다시」는 다시 맞힌 거라 0원.
    기록 S.mid.test = {best, last, n(본 횟수), date}. 푸는 중인 시험은 MIDT 에 남아 「← 그만」 해도 이어서 풀 수 있다
    (앱을 닫으면 처음부터). */
+/* 🎁 점수 보너스 (대표 지시 2026-10-11 「많이 맞히면 영머니로 보상을 풍부히」) — 전체 60문제 시험에만, 하루 한 번.
+   [몇 % 이상, 원]. 같은 날 더 높은 단계에 오르면 **차이만큼만** 더 준다(S.mid.day.tb = 오늘 받은 점수 보너스).
+   만점이면 하루 최대 1,500원 → 중간고사로 하루 벌 수 있는 최대치가 약 2,100원 → 약 3,600원이 됐다(대표 지시로 올림).
+   상점 간식이 700~3,400원(가운데 2,500원)이라, 만점 하루면 간식 하나 + 남는 정도. 금액을 바꿀 땐 상점 물가와 같이 볼 것. */
+const MID_TEST_BONUS = [[100,1500],[95,1000],[90,700],[80,400],[70,200]];
+function midTestTier(right, n){
+  let won = 0, next = null;
+  for(const [p, w] of MID_TEST_BONUS){
+    const need = Math.ceil(p*n/100);
+    if(right >= need){ won = w; break; }
+    next = {need: need - right, won: w};
+  }
+  return {won, next};
+}
+function midTestBonusTable(){
+  return MID_TEST_BONUS.slice().reverse().map(([p,w])=>(p===100 ? '만점' : p+'%↑')+' <b>'+comma(w)+'</b>').join(' · ');
+}
 let MIDT = null;
 function midTestOn(){ return !!(MIDT && !MIDT.done && MIDT.i < MIDT.q.length); }
 function midTestCard(){
   const t = midSt().test, on = midTestOn();
   const sub = on ? '푸는 중 · <b>'+(MIDT.i+1)+' / '+MIDT.q.length+'</b>번부터 이어서'
-                 : '60단어 전부 · 60문제'+(t && t.best ? ' · 최고 <b style="white-space:nowrap">'+t.best+' / 60</b>' : ' · 약 15분');
+                 : '60단어 전부 · 만점 보너스 <b>'+comma(MID_TEST_BONUS[0][1])+'원</b>'+(t && t.best ? ' · 최고 <b style="white-space:nowrap">'+t.best+' / 60</b>' : '');
   return '<div class="card" style="display:flex;align-items:center;gap:12px">'
    +'<span style="font-size:30px">📝</span><div style="flex:1"><div style="font-size:16px">실전 테스트</div>'
    +'<div class="sub" style="font-size:12.5px">'+sub+'</div></div>'
@@ -3896,7 +3914,8 @@ function midTest(){
    +'⏱️ 약 15분 · 중간에 ← 그만 해도 이어서 풀 수 있어<br>'
    +'🙅 시험이니까 한글 뜻 힌트는 없어! 답하면 알려 줄게<br>'
    +'💰 한 번에 맞히면 <b>+'+REWARD.MID_Q+'원</b> · 끝까지 풀면 <b>+'+REWARD.MID+'원</b><br>'
-   +'<span class="sub" style="font-size:12.5px">(오늘 짝 맞추기·빈칸에서 이미 받은 문제는 빼고)</span></div>'
+   +'<span class="sub" style="font-size:12.5px">(오늘 짝 맞추기·빈칸에서 이미 받은 문제는 빼고)</span><br>'
+   +'🎁 <b>점수 보너스</b> — 많이 맞힐수록 쑥쑥! (하루 한 번)<br><span style="font-size:14px">'+midTestBonusTable()+'원</span></div>'
    +(t && t.best ? '<p class="sub" style="margin:6px 0">지금 최고 기록 <b>'+t.best+' / 60</b> · '+t.n+'번 봤어</p>' : '')
    +'<button class="btn yellow" style="margin-top:6px" onclick="midTestStart(0)">시작하기 ▶</button>'
    +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button></div>';
@@ -3973,7 +3992,7 @@ function midTestNext(){
 function midTestDone(){
   const T = V; T.done = true; T.mode = "testdone";
   const n = T.q.length, right = T.q.filter(q=>q.ok).length, wrong = T.q.filter(q=>!q.ok);
-  let head = "", b = "";
+  let head = "", b = "", tbPay = 0;
   if(!T.retry){
     const st = midSt(), t = st.test || (st.test = {best:0, last:0, n:0, date:""});
     const isBest = right > (t.best||0);
@@ -3982,8 +4001,17 @@ function midTestDone(){
     MID.forEach((D,d)=>{ const all = T.q.filter(q=>q.d===d); days += (d?" · ":"")+'Day '+(d+1)+' <b>'+all.filter(q=>q.ok).length+'</b>/'+all.length; });
     head = '<p class="sub" style="margin:4px 0">100점으로 치면 <b>'+Math.round(right/n*100)+'점</b> · '+(isBest && t.n>1 ? '🎉 최고 기록!' : '최고 기록 '+t.best+' / '+n)+'</p>'
          +'<p class="sub" style="font-size:13px;margin:4px 0">'+days+'</p>';
-    logEv("mid",{k:"testscore", r:right, n:n});
     b = midFinish("test");
+    /* 🎁 점수 보너스 — 오늘 이미 받은 만큼은 빼고 */
+    const tier = midTestTier(right, n), paid = st.day.tb || 0;
+    if(tier.won > paid){
+      tbPay = tier.won - paid; st.day.tb = tier.won;
+      b += '<div class="midbonus">🎁 점수 보너스 <b>+'+comma(tbPay)+'원</b>!'+(paid ? '<div style="font-size:13px">오늘 받은 '+comma(paid)+'원에 더해서</div>' : '')+'</div>';
+    } else if(tier.won > 0){
+      b += '<p class="sub" style="margin:6px 0">🎁 점수 보너스는 오늘 벌써 받았어 ('+comma(paid)+'원). 더 높은 점수면 차이만큼 더 줄게!</p>';
+    }
+    if(tier.next) b += '<p class="sub" style="margin:6px 0">🎯 <b>'+tier.next.need+'개</b> 더 맞히면 점수 보너스 <b>'+comma(tier.next.won)+'원</b>!</p>';
+    logEv("mid",{k:"testscore", r:right, n:n, tb:tbPay});
   } else save();
   const emo = right===n ? "💯" : right/n >= 0.9 ? "🏆" : right/n >= 0.7 ? "👍" : "💪";
   let rows = "";
@@ -4004,6 +4032,7 @@ function midTestDone(){
    +'<button class="btn ghost" style="margin-top:9px" onclick="midTestStart(0)">🔁 처음부터 다시</button>'
    +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button>';
   window.scrollTo(0,0);
+  if(tbPay > 0){ addMoney(tbPay, $("#scr-mid .midbonus")); if(right < n) confetti(); }
 }
 
 /* ── 📖 문법 규칙 카드 (시험지 Study Guide 그대로 + 🇰🇷 설명) ── */
