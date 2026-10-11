@@ -551,7 +551,7 @@ async function loadItemsServer(){
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
 /* 앱 판 번호 = 날짜(YYYYMMDD) + 그날 몇 번째(2자리). **index.html 을 고쳐 올릴 때마다 반드시 올린다.**
    설정 맨 아래에 보이고, 켜져 있는 앱이 서버의 판과 비교해 새 판이면 바꿔 준다(checkNewVer). */
-const APP_VER = 2026101101;
+const APP_VER = 2026101102;
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
@@ -3282,8 +3282,8 @@ function scMatchDone(){
    - ws 한 줄 = [단어, 영어 뜻(시험지), 한글 뜻]. fill 한 줄 = [빈칸(___) 문장, 답].
      fill 의 앞 10개는 시험지 Part B·C 문장 그대로, 뒤 10개는 나머지 단어용으로 새로 쓴 것.
    - 진행 기록은 S.mid = {miss:{단어:횟수}, done:{활동키:횟수}, day:{date, got:{완주 보너스}, q:{문제당 영머니}}}.
-   - 실전 테스트는 나중에 연다 (MID_TEST_READY). */
-const MID_TEST_READY = false;
+   - 📝 실전 테스트 (2026-10-11 열림) — 60단어 전부 한 번씩. midTest 아래 주석 참고. */
+const MID_TEST_READY = true;
 const MID = [
 { vt:"School and Friendship", gt:"Complete Sentences and Fragments",
   ws:[
@@ -3562,6 +3562,7 @@ function renderMid(){
    +'<span style="font-size:30px">🎧</span><div style="flex:1"><div style="font-size:16px">60단어 오디오북</div>'
    +'<div class="sub" style="font-size:12.5px">단어 → 영어 뜻 → 단어 → 한글 뜻 · 약 9분</div></div>'
    +'<button class="btn sm" style="width:auto" onclick="midListen()">듣기</button></div>'
+   +(MID_TEST_READY ? midTestCard() : '')
    +'<div class="card"><div class="mtitle">📗 Vocabulary Day '+n+' <span class="sub" style="font-size:12px">'+esc(D.vt)+' · 20단어</span></div>'
    +'<div class="mdesc">뜻은 시험지처럼 <b>영어</b>로 나와. 모르겠으면 <b>🇰🇷</b> 를 눌러 봐!</div>'
    +'<button class="btn ghost" onclick="midList()">📋 단어장 보기'+midDoneMark("v"+n+"l")+'</button>'
@@ -3580,7 +3581,6 @@ function renderMid(){
    +'<span style="font-size:30px">🔁</span><div style="flex:1"><div style="font-size:16px">헷갈린 단어 다시</div>'
    +'<div class="sub" style="font-size:13px">'+(miss ? '지금 <b>'+miss+'개</b> — 맞히면 하나씩 빠져!' : '아직 없어! 틀린 단어가 여기 모여.')+'</div></div>'
    +'<button class="btn sm '+(miss?"yellow":"ghost")+'" style="width:auto" onclick="midMiss()" '+(miss?"":"disabled")+'>하기</button></div>'
-   +(MID_TEST_READY ? '' : '<div class="card" style="opacity:.6"><div style="font-size:16px">📝 실전 테스트</div><div class="sub" style="font-size:13px">곧 열려요! 지금은 위에서 열심히 외우자 💪</div></div>')
    +'<button class="btn ghost" onclick="go(\'home\')">← 홈으로</button>';
 }
 function midHead(label){
@@ -3858,6 +3858,152 @@ function midMissNext(){
     return;
   }
   midMissNew();
+}
+
+/* ── 📝 실전 테스트 (대표 지시 2026-10-11 「실전 테스트 열어 줘 · 60개 다 나오도록」) ──
+   60단어가 한 번씩 전부 나온다 (Day 1~3 섞어서). 문제 모양 둘, 반반을 무작위로 나눈다:
+   · def  — 시험지 영어 뜻을 보고 단어 고르기 (Which word has this meaning?)
+   · fill — 문장 빈칸에 알맞은 단어 고르기 (MID[d].fill — 단어마다 문장이 딱 하나씩 있다)
+   보기 4개 = 정답 + 같은 Day 단어 3개. 보기 자리·문제 순서는 매번 섞는다 (절대 규칙 7).
+   시험이라 문제 중에는 한글 뜻 힌트가 없다 (안내문만 🇰🇷). 답하면 맞았는지 + 뜻을 보여 주고 「다음 ▶」.
+   틀린 문제는 시험 중에 다시 안 나온다 → 끝나고 점수표에서 「틀린 것만 다시」. 틀린 단어는 헷갈린 단어에도 모인다.
+   영머니: 한 번에 맞히면 REWARD.MID_Q. 단 key 를 짝 맞추기(m)·빈칸(f)과 같이 쓴다 →
+     오늘 그 활동에서 이미 받은 문제는 또 안 준다 = 하루 최대치(약 2,100원)가 그대로다. 이 key 를 따로 떼지 말 것.
+     끝까지 풀면 완주 보너스 REWARD.MID (하루 1회, key "test"). 「틀린 것만 다시」는 다시 맞힌 거라 0원.
+   기록 S.mid.test = {best, last, n(본 횟수), date}. 푸는 중인 시험은 MIDT 에 남아 「← 그만」 해도 이어서 풀 수 있다
+   (앱을 닫으면 처음부터). */
+let MIDT = null;
+function midTestOn(){ return !!(MIDT && !MIDT.done && MIDT.i < MIDT.q.length); }
+function midTestCard(){
+  const t = midSt().test, on = midTestOn();
+  const sub = on ? '푸는 중 · <b>'+(MIDT.i+1)+' / '+MIDT.q.length+'</b>번부터 이어서'
+                 : '60단어 전부 · 60문제'+(t && t.best ? ' · 최고 <b style="white-space:nowrap">'+t.best+' / 60</b>' : ' · 약 15분');
+  return '<div class="card" style="display:flex;align-items:center;gap:12px">'
+   +'<span style="font-size:30px">📝</span><div style="flex:1"><div style="font-size:16px">실전 테스트</div>'
+   +'<div class="sub" style="font-size:12.5px">'+sub+'</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="midTest()">'+(on?"이어서":"시작")+'</button></div>';
+}
+function midTest(){
+  if(midTestOn()){ V = MIDT; renderMidTest(); show("mid"); return; }
+  const t = midSt().test;
+  V = {mode:"testintro"};
+  $("#scr-mid").innerHTML = midHead("📝 실전 테스트")
+   +'<div class="card center" style="padding:22px 18px"><div class="bigemo">📝</div>'
+   +'<h3 style="font-size:21px">중간고사 실전 테스트</h3>'
+   +'<div style="text-align:left;font-size:15px;line-height:1.8;margin:10px 4px;word-break:keep-all">'
+   +'📚 <b>60단어 전부</b> 한 번씩 나와 (Day 1~3 섞어서)<br>'
+   +'🔤 영어 뜻 보고 단어 고르기 <b>30</b> + ✏️ 문장 빈칸 <b>30</b><br>'
+   +'⏱️ 약 15분 · 중간에 ← 그만 해도 이어서 풀 수 있어<br>'
+   +'🙅 시험이니까 한글 뜻 힌트는 없어! 답하면 알려 줄게<br>'
+   +'💰 한 번에 맞히면 <b>+'+REWARD.MID_Q+'원</b> · 끝까지 풀면 <b>+'+REWARD.MID+'원</b><br>'
+   +'<span class="sub" style="font-size:12.5px">(오늘 짝 맞추기·빈칸에서 이미 받은 문제는 빼고)</span></div>'
+   +(t && t.best ? '<p class="sub" style="margin:6px 0">지금 최고 기록 <b>'+t.best+' / 60</b> · '+t.n+'번 봤어</p>' : '')
+   +'<button class="btn yellow" style="margin-top:6px" onclick="midTestStart(0)">시작하기 ▶</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button></div>';
+  show("mid");
+}
+/* retry=1 → 방금 본 시험(MIDT)에서 틀린 문제만, 같은 모양으로 순서·보기를 새로 섞어서 */
+function midTestStart(retry){
+  ac();
+  let refs = [];
+  if(retry && MIDT) refs = MIDT.q.filter(q=>!q.ok).map(q=>({d:q.d, k:q.k, t:q.t, fi:q.fi}));
+  else {
+    MID.forEach((D,d)=>D.ws.forEach((w,k)=>refs.push({d, k, fi: D.fill.findIndex(f=>f[1]===w[0])})));
+    const half = Math.ceil(refs.length/2);
+    const types = shuffle(refs.map((x,i)=> i < half ? "def" : "fill"));
+    refs.forEach((r,i)=>{ r.t = (types[i]==="fill" && r.fi >= 0) ? "fill" : "def"; });
+    retry = 0;
+  }
+  if(!refs.length){ midTest(); return; }
+  MIDT = {mode:"test", q: shuffle(refs), i:0, retry: !!retry, earned:0, done:false};
+  V = MIDT; midTestOpts(MIDT.q[0]); renderMidTest(); show("mid");
+}
+function midTestOpts(q){
+  if(q.opts) return;
+  const ws = MID[q.d].ws, ans = ws[q.k][0];
+  q.opts = shuffle(shuffle(ws.map(x=>x[0]).filter(x=>x!==ans)).slice(0,3).concat([ans]));
+}
+function renderMidTest(){
+  const T = V, q = T.q[T.i], D = MID[q.d], w = D.ws[q.k], done = q.ans != null;
+  const right = T.q.filter(x=>x.ok).length;
+  let opts = "";
+  q.opts.forEach((o,i)=>{
+    let cls = "opt";
+    if(done){ if(o===w[0]) cls += " ok"; else if(i===q.ans) cls += " bad"; }
+    opts += '<button class="'+cls+'" onclick="midTestAns('+i+')">'+esc(o)+'</button>';
+  });
+  const ask = q.t==="fill"
+    ? midDir("Choose the word that best completes the sentence.", "문장에 알맞은 단어를 골라 봐.")
+      +'<div class="scask">'+midBlank(D.fill[q.fi][0], done ? w[0] : "")+'</div>'
+    : midDir("Which word has this meaning?", "이 뜻을 가진 단어를 골라 봐.")
+      +'<div class="scask">'+esc(w[1])+'</div>';
+  let feed = "";
+  if(done){
+    feed = '<div class="card" style="padding:12px 14px;margin-top:12px">'
+     +(q.ok ? '<div style="font-size:17px;color:var(--ok)">⭕ 정답!'+midGainTxt(q.gain)+'</div>'
+            : '<div style="font-size:17px;color:var(--bad)">❌ 정답은 <b>'+esc(w[0])+'</b></div>')
+     +'<div class="sub" style="font-size:14px;margin-top:6px"><b>'+esc(w[0])+'</b> = '+esc(w[1])
+     +' <button class="spk sm2" onclick="speak(MID['+q.d+'].ws['+q.k+'][0])">🔊</button></div>'
+     +'<button class="spk sm2" style="margin-top:6px" onclick="midKo(\'tko\')">🇰🇷 한글 뜻</button><div class="midko" id="tko">'+esc(w[2])+'</div></div>'
+     +'<button class="btn" style="margin-top:10px" onclick="midTestNext()">'+(T.i+1 < T.q.length ? "다음 ▶" : "점수 보기 ▶")+'</button>';
+  }
+  $("#scr-mid").innerHTML = midHead((T.retry ? "📝 틀린 것 다시 " : "📝 실전 테스트 ")+(T.i+1)+" / "+T.q.length)
+   +'<div class="pbar" style="margin:2px 0 4px"><i style="width:'+(T.i/T.q.length*100).toFixed(1)+'%"></i></div>'
+   +'<div class="sub" style="font-size:12px;text-align:right;margin-bottom:6px">⭕ '+right+'개 맞힘</div>'
+   +'<div class="card qbox">'+ask+'</div>'
+   +'<div class="opts">'+opts+'</div>' + feed;
+}
+function midTestAns(i){
+  const T = V; if(!T || T.mode!=="test") return;
+  const q = T.q[T.i]; if(q.ans != null) return;
+  const w = MID[q.d].ws[q.k];
+  q.ans = i; q.ok = (q.opts[i]===w[0]);
+  if(q.ok){ Sfx.ok(); q.gain = T.retry ? 0 : midEarn(q.t==="fill" ? "f"+(q.d+1)+":"+q.fi : "m"+(q.d+1)+":"+w[0]); }
+  else { Sfx.bad(); midMissAdd(w[0]); }
+  save(); renderMidTest(); midPay(q.gain);
+}
+function midTestNext(){
+  const T = V; if(!T || T.mode!=="test") return;
+  if(T.q[T.i].ans == null) return;
+  T.i++;
+  if(T.i >= T.q.length){ midTestDone(); return; }
+  midTestOpts(T.q[T.i]); renderMidTest();
+  window.scrollTo(0,0);
+}
+function midTestDone(){
+  const T = V; T.done = true; T.mode = "testdone";
+  const n = T.q.length, right = T.q.filter(q=>q.ok).length, wrong = T.q.filter(q=>!q.ok);
+  let head = "", b = "";
+  if(!T.retry){
+    const st = midSt(), t = st.test || (st.test = {best:0, last:0, n:0, date:""});
+    const isBest = right > (t.best||0);
+    t.last = right; t.n = (t.n||0) + 1; t.date = todayStr(); if(isBest) t.best = right;
+    let days = "";
+    MID.forEach((D,d)=>{ const all = T.q.filter(q=>q.d===d); days += (d?" · ":"")+'Day '+(d+1)+' <b>'+all.filter(q=>q.ok).length+'</b>/'+all.length; });
+    head = '<p class="sub" style="margin:4px 0">100점으로 치면 <b>'+Math.round(right/n*100)+'점</b> · '+(isBest && t.n>1 ? '🎉 최고 기록!' : '최고 기록 '+t.best+' / '+n)+'</p>'
+         +'<p class="sub" style="font-size:13px;margin:4px 0">'+days+'</p>';
+    logEv("mid",{k:"testscore", r:right, n:n});
+    b = midFinish("test");
+  } else save();
+  const emo = right===n ? "💯" : right/n >= 0.9 ? "🏆" : right/n >= 0.7 ? "👍" : "💪";
+  let rows = "";
+  wrong.forEach((q,i)=>{
+    const w = MID[q.d].ws[q.k];
+    rows += '<div style="padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer" onclick="midKo(\'twk'+i+'\')">'
+     +'<b>'+esc(w[0])+'</b> <span class="sub" style="font-size:12px">Day '+(q.d+1)+'</span>'
+     +'<div style="font-size:14px;line-height:1.4">'+esc(w[1])+'</div>'
+     +'<div class="midko" id="twk'+i+'" style="font-size:14px">🇰🇷 '+esc(w[2])+'</div></div>';
+  });
+  Sfx.tada(); if(right===n) confetti();
+  $("#scr-mid").innerHTML = '<div class="card center" style="padding:24px 18px"><div class="bigemo">'+emo+'</div>'
+   +'<h3 style="font-size:21px">'+(T.retry ? "틀린 것 다시 끝!" : "실전 테스트 끝!")+'</h3>'
+   +'<div style="font-size:30px;margin:6px 0"><b>'+right+'</b> / '+n+'</div>'
+   + head + b + '</div>'
+   +(wrong.length ? '<div class="card"><div class="mtitle">❌ 틀린 단어 '+wrong.length+'개 <span class="sub" style="font-size:12px">줄을 누르면 🇰🇷</span></div>'+rows+'</div>' : '')
+   +(wrong.length ? '<button class="btn yellow" onclick="midTestStart(1)">❌ 틀린 '+wrong.length+'개만 다시 풀기</button>' : '')
+   +'<button class="btn ghost" style="margin-top:9px" onclick="midTestStart(0)">🔁 처음부터 다시</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button>';
+  window.scrollTo(0,0);
 }
 
 /* ── 📖 문법 규칙 카드 (시험지 Study Guide 그대로 + 🇰🇷 설명) ── */
