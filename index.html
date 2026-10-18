@@ -389,6 +389,11 @@ nav button.on .ni{transform:scale(1.12)}
 .vrow.on .vko{display:block}
 .vrow.hid .ven{font-size:0;background:var(--green-lt);border-radius:6px;padding:4px 8px}
 .vrow.hid .ven::before{content:"👆 눌러서 뜻 보기";color:var(--sub);font-size:13px}
+.vrow.beehid .beew{color:transparent;background:var(--green-lt);border-radius:6px;padding:0 6px}
+.beetiles{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin:10px 0 6px;min-height:10px}
+.beetile{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:40px;padding:0 4px;border-radius:9px;background:#fff;border:2px solid var(--green-dk);font-size:21px}
+.beetile.unk{border-color:var(--bad);background:#FFECEC}
+.beetile.sm{min-width:24px;height:32px;font-size:17px}
 .cutline{font-size:19px;line-height:2.3;margin-top:10px}
 .cutw{font-family:inherit;font-size:18px;border:2px dashed var(--green);background:#fff;border-radius:8px;padding:2px 8px;margin:0 1px;cursor:pointer}
 .cutsb{color:#1D5FD1} .cutpr{color:#D9480F}
@@ -445,6 +450,7 @@ nav button.on .ni{transform:scale(1.12)}
     <div class="screen" id="scr-admin"></div>
     <div class="screen" id="scr-school"></div>
     <div class="screen" id="scr-mid"></div>
+    <div class="screen" id="scr-bee"></div>
     <div class="screen" id="scr-arcade"></div>
   </main>
   <nav id="nav">
@@ -457,7 +463,7 @@ nav button.on .ni{transform:scale(1.12)}
 </div>
 <script>
 /* ═══════════ 설정/상수 (v2 보상 체계) ═══════════ */
-const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20, SPELL_MATCH:20, MID:20, MID_Q:10 };
+const REWARD = { WORD:50, RETRY:25, DAILY_BONUS:100, PERFECT:100, REVIEW:10, REVIEW_ALL:100, PLACE:300, LEVELUP:500, STREAK7:300, BOSS_WORD:10, BOSS_CLEAR:500, BOSS_PERFECT:200, DRILL_WORD:10, DRILL_CLEAR:50, SPELL:30, SPELL_RE:5, SPELL_PERFECT:100, SPELL_PRACTICE:20, SPELL_MATCH:20, MID:20, MID_Q:10, BEE:20, BEE_Q:10 };
 const STAGE = ["","🌱","🌿","🪴","🌲","🌳","👑","🎓"];
 const DAILY_N = 10;
 const LV_NAME = ["왕초보 🐥", "미국 G1 🐣", "미국 G2 🌱", "미국 G2+ 🌿", "미국 G3 🌳", "미국 G4 👑"];
@@ -552,7 +558,7 @@ async function loadItemsServer(){
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
 /* 앱 판 번호 = 날짜(YYYYMMDD) + 그날 몇 번째(2자리). **index.html 을 고쳐 올릴 때마다 반드시 올린다.**
    설정 맨 아래에 보이고, 켜져 있는 앱이 서버의 판과 비교해 새 판이면 바꿔 준다(checkNewVer). */
-const APP_VER = 2026101103;
+const APP_VER = 2026101801;
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
@@ -1361,6 +1367,7 @@ function defaultState(){ return {
   schoolSeedV:0,/* 기본 세트 몇 판까지 받았나 */
   spellDay:null,/* 스펠링 보상 하루 기록 */
   mid:null,     /* 중간고사 대비 기록 {miss, done, day} — midSt() 가 채운다 */
+  bee:null,     /* 🐝 스펠링 비 기록 {miss, done, best, day} — beeSt() 가 채운다 */
   ppin:"",      /* 부모 잠금번호 4자리 */
   learned:{},   /* word -> {lv, box, next, date} */
   day:null,     /* {date, sessions:[], reviewCleared, reviewBonusGiven} */
@@ -1502,11 +1509,12 @@ function levelUpCheck(){
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
   $("#scr-"+id).classList.add("on");
-  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz"||id==="school"||id==="mid") ? "home" : ((id==="admin"||id==="arcade") ? "store" : id);
+  const tab = (id==="auth"||id==="welcome"||id==="place"||id==="learn"||id==="quiz"||id==="school"||id==="mid"||id==="bee") ? "home" : ((id==="admin"||id==="arcade") ? "store" : id);
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.dataset.go===tab));
   window.scrollTo(0,0);
 }
 function go(tab){
+  try{ beeMicAbort(); }catch(e){}
   stopListen();
   try{ if(MIDAU) MIDAU.pause(); }catch(e){}
   try{ recStop(); }catch(e){}
@@ -1704,6 +1712,10 @@ function renderHome(){
    +'<span style="font-size:32px">🏪</span><div style="flex:1"><div style="font-size:16px">영어 편의점</div>'
    +'<div class="sub" style="font-size:13px">잔액 '+comma(S.money)+'원으로 뭘 살 수 있을까?</div></div>'
    +'<button class="btn sm" style="width:auto" onclick="go(\'store\')">구경</button></div>'
+   +'<div class="card" style="display:flex;align-items:center;gap:12px;border:2px solid var(--yellow-dk)">'
+   +'<span style="font-size:32px">🐝</span><div style="flex:1"><div style="font-size:16px">Spelling Bee</div>'
+   +'<div class="sub" style="font-size:13px">대회 단어 100개 · 🎤 실전 대회</div></div>'
+   +'<button class="btn sm yellow" style="width:auto" onclick="goBee()">가기</button></div>'
    +'<div class="card" style="display:flex;align-items:center;gap:12px;border:2px solid var(--yellow-dk)">'
    +'<span style="font-size:32px">📚</span><div style="flex:1"><div style="font-size:16px">중간고사 대비</div>'
    +'<div class="sub" style="font-size:13px">단어 60개 + 문법 · Day 1~3</div></div>'
@@ -4033,6 +4045,602 @@ function midTestDone(){
    +'<button class="btn ghost sm" style="margin-top:8px" onclick="goMid()">목록으로</button>';
   window.scrollTo(0,0);
   if(tbPay > 0){ addMoney(tbPay, $("#scr-mid .midbonus")); if(right < n) confetti(); }
+}
+
+/* ═══════════ 🐝 Spelling Bee (2026-10-18 신설) ═══════════
+   아들 학교 Lighthouse International School Elementary Spelling Bee — 4학년 단어 100개 (대표가 사진 5장으로 준 것).
+   [단어, 품사, 시험지 영어 뜻, 한글 뜻, (또 다른 정답 철자)]. 순서·영어 뜻은 시험지 그대로.
+   시험지 1쪽·3쪽은 단어 줄과 뜻 줄이 어긋나 인쇄돼 있어(13~15번, 55~71번 등) 줄 위치가 아니라 뜻으로 맞춰 옮겼다.
+   dollop/dallop · swiveled/swivelled 처럼 시험지에 「or」로 두 철자가 적힌 단어는 둘 다 정답.
+   흐름 셋: 📋 단어장(beeList) → ⌨️ 듣고 쓰기(beeType) → 🐝 실전 대회(beeCon — 듣고 철자를 소리 내어 말하면 채점).
+   데이터는 상수 BEE 에만 둔다(S 에 넣지 않는다). 기록은 S.bee. */
+const BEE = [
+ ["dense","adjective","crowded very close together.","빽빽한, 밀집한"],
+ ["groan","noun","a deep, sudden, unintentional sound that usually indicates pain, grief, or sometimes disapproval or annoyance.","신음 소리, 끙 하는 소리"],
+ ["siren","noun","an apparatus often electrically operated for producing a piercing warning sound of musical tones.","사이렌 (경보 장치)"],
+ ["angles","plural noun","the directions from which someone or something is viewed, considered or approached.","관점들, 보는 각도"],
+ ["fend","verb","to look out for oneself : manage.","스스로 꾸려 나가다 (fend for yourself)"],
+ ["rubbish","noun","assorted useless, valueless waste or rejected matter : trash.","쓰레기"],
+ ["tuneful","adjective","having a musical sound : melodious.","듣기 좋은, 곡조가 아름다운"],
+ ["artistic","adjective","characterized by taste and judgment or by art and skill.","예술적인"],
+ ["squishy","adjective","being soft, yielding and damp.","말랑하고 축축한"],
+ ["clumsy","adjective","not having ease in using the hands, skill, nimbleness or grace, such as in the use of the body or limbs or in the performance of an action.","서투른, 어설픈"],
+ ["kibble","noun","coarsely ground dried food products or grain.","굵게 간 마른 알갱이 (건사료)"],
+ ["cues","plural noun","signals (such as words or bits of stage business) to a performer to begin a specific speech or action.","신호들, (배우에게 주는) 큐"],
+ ["boasted","verb","said or told something intended to give others a high opinion of yourself : bragged.","자랑했다, 뽐냈다"],
+ ["prayer","noun","an address (such as a petition or confession) to God or a god in word or thought.","기도"],
+ ["tireless","adjective","seemingly not able to become weary or have your strength decrease or fail.","지칠 줄 모르는"],
+ ["factory","noun","a building or collection of buildings with facilities (such as machines) for making goods often from raw materials.","공장"],
+ ["borrowed","verb","received something (such as a book) from a library to use outside the library for a period of time.","빌렸다"],
+ ["shavings","plural noun","thin strips of wood pared off by a tool for smoothing or shaping wood.","대팻밥, 깎아 낸 나무 부스러기"],
+ ["poodles","plural noun","dogs of an old European breed of active, intelligent dogs that have a curly, dense, solid-colored coat and are grouped into standard, miniature and toy sizes.","푸들 (개) 여러 마리"],
+ ["gravity","noun","the tendency or state of being drawn to the mass of something in the sky (such as the earth, the moon or a planet) for bodies at or near its surface.","중력"],
+ ["abnormal","adjective","differing from the typical.","비정상적인, 보통과 다른"],
+ ["sneakers","plural noun","shoes usually of canvas with flexible rubber soles worn especially for sports or hiking.","운동화"],
+ ["crackle","verb","to make small, sharp, sudden noises repeatedly.","탁탁 소리를 내다"],
+ ["inspire","verb","to encourage or motivate.","북돋우다, 영감을 주다"],
+ ["pleats","plural noun","folds in cloth made by doubling material over on itself and that is stitched, attached or held along one side.","(치마 같은 옷의) 주름"],
+ ["shivery","adjective","frigid, cold.","으스스 추운, 덜덜 떨리는"],
+ ["briefing","noun","the process of being given usually essential information typically in little time and without unnecessary details.","간단한 설명, 브리핑"],
+ ["obtain","verb","to gain possession or disposal of usually by some planned action or method.","얻다, 손에 넣다"],
+ ["portray","verb","to represent by drawing, painting or cutting something into the surface of a material.","그리다, 묘사하다"],
+ ["squeeze","verb","to exert pressure especially on opposite sides or parts of : press together closely or tightly.","꽉 쥐다, 짜다"],
+ ["rumbling","verb","making a low, heavy rolling sound.","우르릉거리는"],
+ ["gangplank","noun","a long, narrow, movable platform or bridge used to get on or off a ship (as from a wharf).","(배에 오르내리는) 건널판"],
+ ["scratched","verb","scraped or rubbed lightly with something pointed or rough in order to relieve itching.","긁었다"],
+ ["distorted","verb","twisted out of a natural, normal or original shape or condition.","비틀어진, 일그러진"],
+ ["cardboard","noun","a stiff, thick kind of paper that sometimes has a coating and that can be used to make signs or for printed material.","판지, 두꺼운 종이"],
+ ["interviews","verb","questions or talks with especially in order to gain information or learn personal qualities.","면접하다, 인터뷰하다"],
+ ["guilty","adjective","justly chargeable with or responsible for a fault or crime.","죄가 있는, 잘못한"],
+ ["lunar","adjective","of, taking place on or relating to the moon.","달의"],
+ ["custard","noun","a sweetened mixture of milk and eggs that is baked, boiled or frozen.","커스터드 (우유·달걀로 만든 달콤한 음식)"],
+ ["shriek","noun","a shrill, usually wild or unintentional cry (as of sudden or extreme terror or pain or of violent laughter).","비명, 날카로운 외침"],
+ ["ghost","noun","a supernatural appearance : apparition.","유령"],
+ ["mission","noun","a specific task with which a person or group is charged.","임무"],
+ ["tempting","adjective","alluring, enticing.","솔깃한, 끌리는"],
+ ["majestic","adjective","having, exhibiting, or marked by magnificent or commanding power, effect, or appearance : regal.","장엄한, 위풍당당한"],
+ ["solution","noun","an answer to or a means of answering a problem : an explanation.","해결책, 답"],
+ ["signals","plural noun","sounds or gestures made to give warning or command.","신호들"],
+ ["eliminate","verb","to get rid of.","없애다, 제거하다"],
+ ["universe","noun","the entire celestial cosmos.","우주"],
+ ["locusts","plural noun","migratory grasshoppers that often travel in vast swarms and strip the areas they travel through of all vegetation.","메뚜기 떼"],
+ ["guidance","noun","advice in choosing courses, preparing for a line of work or further education, or coping with personal problems given to students by a teacher or a professional counselor.","지도, 조언"],
+ ["pored","verb","devoted oneself to attentive reading.","꼼꼼히 읽었다 (pore over)"],
+ ["mulch","noun","a protective covering spread on the ground to reduce evaporation, maintain even soil temperature, prevent erosion, control weeds or enrich the soil.","뿌리 덮개 (짚·나무껍질 등)"],
+ ["coiled","verb","wound (something) into rings laid within or on top of one another or wound spirally about an object.","둘둘 감았다, 똬리를 틀었다"],
+ ["glands","plural noun","cells or groups of cells that selectively remove materials from the blood, modify them, and send them back out so the body can further use them or eliminate them.","(몸의) 분비샘"],
+ ["axis","noun","a straight line a body or a three-dimensional figure rotates about or may be supposed to rotate.","축, 회전축"],
+ ["radish","noun","the pungent, fleshy root of a plant that is typically eaten raw.","무, 래디시"],
+ ["lure","verb","to attract : entice.","꾀다, 유혹하다"],
+ ["griddle","noun","a flat surface that is used to cook food using dry heat.","번철, 굽는 철판"],
+ ["jerkily","adverb","in a manner marked by jolting.","덜컹거리며, 홱홱"],
+ ["stylish","adjective","conforming to an accepted standard and especially to one of current fashion.","멋진, 유행에 맞는"],
+ ["knelt","verb","fell or rested on the knees.","무릎을 꿇었다 (kneel 의 과거)"],
+ ["frayed","verb","worn or worn off by or as if by rubbing.","닳아 해진"],
+ ["sprouted","verb","grew, sprung up or came forth as a shoot from a plant.","싹이 텄다"],
+ ["relics","plural noun","souvenirs, mementos.","유물, 기념품"],
+ ["discomfort","noun","mental or physical uneasiness that isn't as intense or concentrated in one area as pain.","불편함"],
+ ["creatures","plural noun","lower animals; especially : farm animals.","생물, 동물들"],
+ ["dwelling","noun","a building or construction used as a home.","집, 사는 곳"],
+ ["rickety","adjective","weak in the joints : tottering.","곧 무너질 듯 흔들거리는"],
+ ["infested","verb","overrun.","(벌레 등이) 들끓는"],
+ ["despair","noun","total loss of hope.","절망"],
+ ["thirst","noun","a sensation of dryness in the mouth and throat associated with a desire for liquids.","목마름, 갈증"],
+ ["youthful","adjective","having the lively character or freshness of a young person : vigorous.","젊은, 생기 있는"],
+ ["shrewd","adjective","marked by cleverness or discernment : astute.","영리한, 약삭빠른"],
+ ["molten","adjective","fused or liquefied by heat : melted.","(열에) 녹은"],
+ ["stalk","noun","the main stem of an herbaceous plant often with its dependent parts (such as leaves, twigs, fruit).","(식물의) 줄기"],
+ ["aromas","plural noun","distinctive pleasing odors : fragrances.","좋은 냄새들, 향기"],
+ ["champion","noun","someone whose superiority is formally acknowledged especially after a test, contest or series of tests or contests.","챔피언, 우승자"],
+ ["salesclerk","noun","a person employed to sell goods or services in a store.","점원, 판매원"],
+ ["dollop","noun","a lump or blob of something semiliquid or mushy.","(크림 같은 것의) 한 덩이, 한 숟갈","dallop"],
+ ["gentlemen","plural noun","men whose conduct conforms to a certain standard of proper or correct behavior.","신사들"],
+ ["captivity","noun","the state of being kept caged or fenced in.","갇혀 지냄"],
+ ["blathering","noun","foolish or nonsensical talk or writing.","허튼소리"],
+ ["Venus","noun","the planet second in order from the sun.","금성"],
+ ["unwavering","adjective","characterized by steadiness : fixed.","흔들림 없는, 확고한"],
+ ["spectators","plural noun","people watching an exhibition (such as a sports event).","관중"],
+ ["construction","noun","the act of putting parts together to form a complete integrated object : fabrication.","조립, 건설"],
+ ["swindle","verb","to deprive of money or property by an instance or act of trickery or deceit.","사기 치다, 속여 빼앗다"],
+ ["infinity","noun","an indefinitely great number or amount.","무한"],
+ ["mirror","noun","a polished or smooth substance that forms images by the reflection of light and that is usually made of glass with a reflective backing.","거울"],
+ ["resemble","verb","to be like or similar to.","닮다"],
+ ["citizen","noun","a native or naturalized person who owes allegiance to a government and is entitled to protection and rights.","시민"],
+ ["pronounce","verb","to declare solemnly.","엄숙히 선언하다 (발음하다라는 뜻도 있어)"],
+ ["taut","adjective","tightly drawn : tensely stretched.","팽팽한"],
+ ["monopoly","noun","ownership that allows for the total control of the means of production or a market, usually for controlling prices.","독점"],
+ ["Florence","geographical entry","a small administrative district in central Italy that is the capital of the region of Tuscany.","피렌체 (이탈리아 도시)"],
+ ["leopard","noun","a large, strong cat of southern Asia and Africa that is usually light orangish brown with black spots, spends time in trees, and often lies in ambush for its prey — called also “panther.”","표범"],
+ ["comrades","plural noun","very close friends : companions.","친한 친구들, 동료"],
+ ["swiveled","verb","swung or turned on or as if on a part that pivots freely on or as if on a headed bolt or pin.","빙 돌았다, 회전했다","swivelled"],
+ ["Borneo","geographical entry","an island of the Malay Archipelago southwest of the Philippines that is divided between Brunei, Malaysia and Indonesia.","보르네오섬"],
+ ["scaffolding","noun","a system of temporary or movable platforms that workers use to sit or stand on when working above the ground.","(공사장) 비계, 작업 발판"]
+];
+const BEE_SET = 20;   /* 한 세트 = 20단어 (시험지 순서대로 1~20, 21~40 …) */
+/* 영머니: 문제 하나 한 번에 맞히면 REWARD.BEE_Q(단어당 하루 1회 — 듣고 쓰기·실전 대회가 같은 key) ·
+   활동 완주 REWARD.BEE(하루 1회) · 🐝 100단어 전체 실전 대회 점수 보너스는 중간고사 실전 테스트와 같은 표(MID_TEST_BONUS) 하루 1회.
+   하루 최대 약 1,000 + 완주 280 + 점수 보너스 1,500원. 금액을 바꿀 땐 상점 물가와 같이 볼 것. */
+function beeWord(i){ return BEE[i][0]; }
+function beeShow(i){ return BEE[i][4] ? BEE[i][0]+" / "+BEE[i][4] : BEE[i][0]; }
+function beeAccept(i){ return [BEE[i][0]].concat(BEE[i][4] ? [BEE[i][4]] : []).map(x=>x.toLowerCase()); }
+function beeOk(i, s){ return beeAccept(i).indexOf(String(s||"").toLowerCase().replace(/[^a-z]/g,"")) >= 0; }
+function beeSt(){
+  if(!S.bee || typeof S.bee!=="object") S.bee = {};
+  if(!S.bee.miss) S.bee.miss = {};
+  if(!S.bee.done) S.bee.done = {};
+  if(!S.bee.best) S.bee.best = {};
+  const t = todayStr();
+  if(!S.bee.day || S.bee.day.date!==t) S.bee.day = {date:t, q:{}, got:{}, tb:0};
+  return S.bee;
+}
+function beeMissList(){ const m = beeSt().miss; return BEE.map((x,i)=>i).filter(i=>m[BEE[i][0]]); }
+/* 범위: "1"~"5" 세트, "all" 100단어, "miss" 헷갈린 단어 */
+let BR = "1";
+function beeRange(r){
+  if(r==="all") return BEE.map((x,i)=>i);
+  if(r==="miss") return beeMissList();
+  const s = (Number(r)-1)*BEE_SET; return BEE.map((x,i)=>i).slice(s, s+BEE_SET);
+}
+function beeRangeName(r){
+  if(r==="all") return "전체 100단어";
+  if(r==="miss") return "헷갈린 단어";
+  const s = (Number(r)-1)*BEE_SET; return "Set "+r+" ("+(s+1)+"~"+Math.min(s+BEE_SET, BEE.length)+"번)";
+}
+function beeEarn(word, noPay){
+  if(noPay) return 0;
+  const q = beeSt().day.q;
+  if(q[word]) return -1;
+  q[word] = 1;
+  return REWARD.BEE_Q;
+}
+function beeGainTxt(g){
+  if(g>0) return ' <b class="midgain">+'+g+'원</b>';
+  if(g<0) return '<div class="sub" style="font-size:12px;margin-top:4px">이 단어 영머니는 오늘 벌써 받았어. 내일 또 받자!</div>';
+  if(g===0) return '<div class="sub" style="font-size:12px;margin-top:4px">다시 맞힌 건 영머니가 없어. 한 번에 맞히면 +'+REWARD.BEE_Q+'원!</div>';
+  return '';
+}
+function beeTodayWon(){ const d = beeSt().day; return Object.keys(d.q).length*REWARD.BEE_Q + Object.keys(d.got).length*REWARD.BEE + (d.tb||0); }
+function beeFinish(key){
+  const st = beeSt();
+  st.done[key] = (st.done[key]||0) + 1;
+  let b = "";
+  if(!st.day.got[key]){
+    st.day.got[key] = 1;
+    S.money += REWARD.BEE; S.earned += REWARD.BEE; updateMoney();
+    b = '<p class="sub" style="margin:6px 0">오늘 첫 완주 보너스 <b>+'+REWARD.BEE+'원</b>!</p>';
+  }
+  logEv("bee",{k:key}); save();
+  return b;
+}
+function beeNeed(){ const inp = $("#beeIn"); if(inp){ inp.placeholder = "철자를 먼저 써 봐! ✏️"; inp.focus(); } }
+function beeHead(label){
+  return '<div class="learnhead"><button class="minibtn" onclick="goBee()">← 그만</button><span class="lvbadge">'+label+'</span></div>';
+}
+function beeAskBtns(i, id){
+  /* 실제 대회에서 물어볼 수 있는 것 셋: 다시 들려 주세요 · 뜻 · 품사 */
+  return '<div class="btnrow" style="flex-wrap:wrap;gap:6px;justify-content:center">'
+   +'<button class="spk sm2" onclick="speak(beeWord('+i+'))">🔁 다시 듣기</button>'
+   +'<button class="spk sm2" onclick="speak(beeWord('+i+'),0.6)">🐢 천천히</button>'
+   +'<button class="spk sm2" onclick="beeTell(\''+id+'\',\'def\','+i+')">📖 뜻</button>'
+   +'<button class="spk sm2" onclick="beeTell(\''+id+'\',\'pos\','+i+')">🏷️ 품사</button></div>'
+   +'<div class="midko" id="'+id+'" style="font-size:15px;line-height:1.5;text-align:left"></div>';
+}
+function beeTell(id, what, i){
+  const el = $("#"+id); if(!el) return;
+  const txt = what==="pos" ? BEE[i][1] : BEE[i][2];
+  el.innerHTML = (what==="pos" ? "🏷️ " : "📖 ") + esc(txt);
+  el.classList.add("on");
+  speak(txt);
+}
+
+/* ── 첫 화면 ── */
+let BV = null;   /* 지금 하는 활동 */
+function goBee(r){
+  stopAudio(); beeMicAbort();
+  if(r) BR = r;
+  if(BR==="miss" && !beeMissList().length) BR = "1";
+  BV = null; renderBee(); show("bee");
+  ttsPrefetch(beeRange(BR).map(beeWord));
+}
+function renderBee(){
+  const st = beeSt(), mn = beeMissList().length;
+  let chips = '<div class="chips">';
+  ["1","2","3","4","5","all"].forEach(r=>{ chips += '<button class="chip'+(BR===r?" on":"")+'" onclick="goBee(\''+r+'\')">'+(r==="all"?"전체 100":"Set "+r)+'</button>'; });
+  if(mn) chips += '<button class="chip'+(BR==="miss"?" on":"")+'" onclick="goBee(\'miss\')">❌ 헷갈린 '+mn+'</button>';
+  chips += '</div>';
+  const n = beeRange(BR).length, best = st.best[BR];
+  const card = (emo, title, sub, fn, key, yellow)=>'<div class="card" style="display:flex;align-items:center;gap:12px'+(yellow?';border:2px solid var(--yellow-dk)':'')+'">'
+   +'<span style="font-size:30px">'+emo+'</span><div style="flex:1"><div style="font-size:16px">'+title+(key ? midDoneMarkBee(key) : '')+'</div>'
+   +'<div class="sub" style="font-size:12.5px">'+sub+'</div></div>'
+   +'<button class="btn sm'+(yellow?' yellow':'')+'" style="width:auto" onclick="'+fn+'">'+(yellow?'시작':'가기')+'</button></div>';
+  $("#scr-bee").innerHTML =
+   '<h2 class="sec">🐝 Spelling Bee</h2>'
+   +'<p class="sub" style="font-size:13px;margin:-6px 2px 4px">Lighthouse 4학년 대회 단어 100개</p>'
+   +'<p class="sub" style="font-size:13px;margin:0 2px 10px">💰 한 번에 맞히면 <b>+'+REWARD.BEE_Q+'원</b> (단어마다 하루 한 번) · 끝까지 하면 <b>+'+REWARD.BEE+'원</b>'
+   +(beeTodayWon() ? '<br>오늘 스펠링 비로 번 영머니 <b>'+comma(beeTodayWon())+'원</b> 🎉' : '')+'</p>'
+   + chips
+   +'<p class="sub" style="font-size:13px;margin:-2px 2px 10px">지금 고른 범위: <b>'+beeRangeName(BR)+'</b> · '+n+'개</p>'
+   + card("📋", "단어장", "듣고 보고 외우기 · 철자 가리고 혼자 말해 보기", "beeList()", "", false)
+   + card("⌨️", "듣고 쓰기", "발음을 듣고 철자를 타자로 · 틀린 건 조금 뒤 다시", "beeType()", "t:"+BR, false)
+   + card("🐝", "실전 대회", "발음 듣고 🎤 철자를 한 글자씩 말하기"+(best!=null ? ' · 최고 <b>'+best+' / '+n+'</b>' : '')
+          +(BR==="all" ? '<br>🎁 점수 보너스 최대 <b>'+comma(MID_TEST_BONUS[0][1])+'원</b>' : ''), "beeCon()", "c:"+BR, true)
+   +'<div class="card" style="padding:12px 14px"><div class="mtitle" style="font-size:16px">🗓️ 이렇게 연습하면 잘 외워져</div>'
+   +'<div style="font-size:14px;line-height:1.75;word-break:keep-all">'
+   +'① 하루에 <b>한 세트(20개)</b>씩: 📋 단어장 → ⌨️ 듣고 쓰기 → 🐝 실전 대회<br>'
+   +'② 다음 날은 <b>❌ 헷갈린 단어</b>부터 먼저 잡고 새 세트로<br>'
+   +'③ 5세트를 다 돌면 매일 <b>🐝 전체 100</b> 실전 대회 한 번<br>'
+   +'④ 대회처럼: <b>단어 말하기 → 철자 한 글자씩 → 단어 한 번 더</b><br>'
+   +'<span class="sub" style="font-size:12.5px">눈으로 보기만 하면 안 남아. 소리 내어 철자를 말해 봐야 대회 날 입에서 나와!</span></div></div>';
+}
+function midDoneMarkBee(key){ const n = (beeSt().done[key]||0); return n ? ' <span class="middone">✅'+(n>1?'×'+n:'')+'</span>' : ''; }
+
+/* ── 📋 단어장 (문제가 아니라 목록이라 시험지 순서 그대로) ── */
+function beeList(){ BV = {mode:"list", hide:false}; renderBeeList(); show("bee"); }
+function renderBeeList(){
+  let rows = "";
+  beeRange(BR).forEach(i=>{
+    const w = BEE[i];
+    rows += '<div class="vrow'+(BV.hide?" beehid":"")+'" id="bv'+i+'" onclick="beeListTap('+i+')">'
+     +'<div class="vw"><span><span class="sub" style="font-size:12px">'+(i+1)+'.</span> <b class="beew">'+esc(beeShow(i))+'</b> <span class="sub" style="font-size:12px">('+esc(w[1])+')</span></span>'
+     +'<button class="spk sm2" onclick="event.stopPropagation();speak(beeWord('+i+'))">🔊</button></div>'
+     +'<div class="ven">'+esc(w[2])+'</div>'
+     +'<div class="vko">🇰🇷 '+esc(w[3])+'</div></div>';
+  });
+  $("#scr-bee").innerHTML = beeHead("📋 "+beeRangeName(BR))
+   +'<div class="btnrow" style="margin-bottom:10px"><button class="minibtn'+(BV.hide?" on":"")+'" onclick="BV.hide=!BV.hide;renderBeeList()">🙈 철자 가리기</button></div>'
+   +'<p class="sub" style="font-size:12.5px;margin:0 2px 8px">'+(BV.hide ? '🔊 듣고 철자를 소리 내어 말해 본 다음, 줄을 눌러 확인해!' : '줄을 누르면 🇰🇷 한글 뜻이 나와.')+'</p>'
+   + rows;
+}
+function beeListTap(i){ const el = $("#bv"+i); if(!el) return; if(BV && BV.hide && el.classList.contains("beehid")){ el.classList.remove("beehid"); speak(beeWord(i)); return; } el.classList.toggle("on"); }
+
+/* ── ⌨️ 듣고 쓰기: 발음 → 철자 타자. 순서는 섞는다(규칙 7). 틀린 단어는 3문제 뒤 한 번 더 ── */
+function beeType(){
+  const list = beeRange(BR);
+  if(!list.length){ goBee(); return; }
+  ac();
+  BV = {mode:"type", q:shuffle(list).map(i=>({i, re:false})), k:0, right:0, first:0, wrong:{}, earned:0, ans:null};
+  renderBeeType(); show("bee"); speak(beeWord(BV.q[0].i));
+}
+function renderBeeType(){
+  const T = BV, q = T.q[T.k], i = q.i, done = T.ans != null;
+  let body;
+  if(!done){
+    body = '<div class="card qbox center"><div class="qtype">🔊 듣고 철자를 써 봐</div>'
+     +'<button class="micbtn" style="background:var(--green);box-shadow:0 6px 0 var(--green-dk)" onclick="speak(beeWord('+i+'))">🔊</button>'
+     + beeAskBtns(i, "bko") + '</div>'
+     +'<input type="text" id="beeIn" class="spellin" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="여기에 철자 쓰기" onkeydown="if(event.key===\'Enter\'){beeTypeCheck()}">'
+     +'<button class="btn" style="margin-top:10px" onclick="beeTypeCheck()">확인 ✔</button>';
+  } else {
+    body = '<div class="card qbox center">'
+     +(T.ok ? '<div style="font-size:19px;color:var(--ok)">⭕ 정답!'+beeGainTxt(T.gain)+'</div>'
+            : '<div style="font-size:17px;color:var(--bad)">❌ 아쉬워! 정답은</div>'+spellDiff(BEE[i][0], T.ans)+'<div class="sub" style="font-size:13px">내가 쓴 것: '+esc(T.ans||"(빈칸)")+'</div>')
+     +(BEE[i][4] ? '<div class="sub" style="font-size:13px;margin-top:4px">'+esc(BEE[i][4])+' 라고 써도 정답이야</div>' : '')
+     +'<div style="font-size:15px;margin-top:8px"><b>'+esc(BEE[i][0])+'</b> <button class="spk sm2" onclick="speak(beeWord('+i+'))">🔊</button></div>'
+     +'<div class="sub" style="font-size:14px;margin-top:4px;line-height:1.45">'+esc(BEE[i][2])+'</div>'
+     +'<button class="spk sm2" style="margin-top:6px" onclick="midKo(\'bko2\')">🇰🇷 한글 뜻</button><div class="midko" id="bko2">'+esc(BEE[i][3])+'</div>'
+     +(T.ok ? '' : '<div class="sub" style="font-size:12.5px;margin-top:6px">조금 뒤에 한 번 더 나와!</div>')+'</div>'
+     +'<button class="btn" style="margin-top:10px" onclick="beeTypeNext()">'+(T.k+1 < T.q.length ? "다음 ▶" : "끝! ▶")+'</button>';
+  }
+  $("#scr-bee").innerHTML = beeHead("⌨️ 듣고 쓰기 "+(T.k+1)+" / "+T.q.length)
+   +'<div class="pbar" style="margin:2px 0 8px"><i style="width:'+(T.k/T.q.length*100).toFixed(1)+'%"></i></div>' + body;
+  if(!done){ const inp = $("#beeIn"); if(inp) setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 50); }
+}
+function beeTypeCheck(){
+  const T = BV; if(!T || T.mode!=="type" || T.ans != null) return;
+  const inp = $("#beeIn"), val = inp ? inp.value.trim() : "";
+  if(!val){ beeNeed(); return; }
+  const q = T.q[T.k], w = BEE[q.i][0];
+  T.ans = val; T.ok = beeOk(q.i, val);
+  if(T.ok){
+    Sfx.ok();
+    if(!q.re){ T.first++; T.gain = beeEarn(w); if(T.gain>0) T.earned += T.gain; } else T.gain = 0;
+    if(!T.wrong[w]){ const m = beeSt().miss; if(m[w] && !q.re) delete m[w]; }
+  } else {
+    Sfx.bad(); T.wrong[w] = 1; beeSt().miss[w] = (beeSt().miss[w]||0) + 1;
+    if(!q.re) T.q.splice(Math.min(T.k+4, T.q.length), 0, {i:q.i, re:true});   /* 틀린 건 3문제 뒤 한 번 더 */
+  }
+  save(); renderBeeType();
+  if(T.gain>0) addMoney(T.gain, $("#scr-bee .qbox"));
+}
+function beeTypeNext(){
+  const T = BV; if(!T || T.mode!=="type" || T.ans == null) return;
+  T.k++; T.ans = null; T.ok = false; T.gain = null;
+  if(T.k >= T.q.length){ beeTypeDone(); return; }
+  renderBeeType(); window.scrollTo(0,0); speak(beeWord(T.q[T.k].i));
+}
+function beeTypeDone(){
+  const T = BV, n = T.q.filter(q=>!q.re).length;
+  const b = beeFinish("t:"+BR);
+  const wrong = Object.keys(T.wrong);
+  Sfx.tada(); if(!wrong.length) confetti();
+  $("#scr-bee").innerHTML = '<div class="card center" style="padding:24px 18px"><div class="bigemo">'+(wrong.length ? "💪" : "💯")+'</div>'
+   +'<h3 style="font-size:21px">듣고 쓰기 끝!</h3>'
+   +'<div style="font-size:26px;margin:6px 0">한 번에 <b>'+T.first+'</b> / '+n+'</div>'
+   +(T.earned ? '<p class="sub" style="margin:6px 0">맞혀서 번 영머니 <b>+'+T.earned+'원</b> 💰</p>' : '') + b
+   +(wrong.length ? '<p class="sub" style="margin:6px 0">틀렸던 단어: <b>'+wrong.map(esc).join(", ")+'</b><br>❌ 헷갈린 단어에 모아 뒀어</p>' : '')
+   +'</div>'
+   +'<button class="btn yellow" onclick="beeCon()">🐝 이제 실전 대회로!</button>'
+   +'<button class="btn ghost" style="margin-top:9px" onclick="beeType()">🔁 한 번 더</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goBee()">목록으로</button>';
+  window.scrollTo(0,0);
+}
+
+/* ── 🐝 실전 대회: 발음을 듣고 🎤 를 눌러 철자를 한 글자씩 말하면 채점 (대표 지시 2026-10-18 「실전 대회는 꼭」) ──
+   음성 인식은 브라우저에 들어 있는 무료 기능(SpeechRecognition — 아이폰은 애플, 안드로이드·크롬은 구글 서버)을 쓴다.
+   돈 드는 API 아님. 말하기 단계(renderSpeak)는 여전히 자동 인식 없이 녹음·비교 방식 — 거기에 되살리지 말 것.
+   · 글자 이름은 "bee→B, see→C, you→U, double u→W" 처럼 단어로 받아 적히는 일이 많아 beeLetters 가 글자로 되돌린다.
+   · 앱이 잘못 알아들을 수 있으므로 **채점 전에 「내가 들은 철자」를 보여 주고** 아이가 [✅ 맞아, 채점] 또는
+     [🔁 잘못 들었어, 다시]를 고른다. 이때는 정답을 아직 안 보여 주므로 다시 말하기가 힌트가 되지 않는다.
+   · 음성 인식이 없거나 안 되는 기기는 ⌨️ 타자로 답한다(같은 채점).
+   · 틀린 단어는 시험 중 다시 안 나오고 점수표에서 「틀린 것만 다시」(0원) · ❌ 헷갈린 단어에 모인다.
+   · 🎁 점수 보너스는 「전체 100」 첫 시험에만, 하루 한 번, 중간고사와 같은 표(MID_TEST_BONUS). 푸는 중인 대회는 BEET 에 남아 이어서. */
+const BEE_NAMES = {
+  a:["a","ay","eh","ae"], b:["b","be","bee","bea","bie"], c:["c","see","sea","cee","si"], d:["d","dee","de","di"],
+  e:["e","ee"], f:["f","ef","eff"], g:["g","gee","ji","jee","jie"], h:["h","aitch","haitch","eich","ach","etch"],
+  i:["i","eye","aye"], j:["j","jay","jae","jey"], k:["k","kay","kaye","cay","kei"], l:["l","el","ell","elle"],
+  m:["m","em","emm"], n:["n","en"], o:["o","oh","owe"], p:["p","pee","pea","pe"], q:["q","queue","cue","que","kew","kyu"],
+  r:["r","are","ar","arr"], s:["s","es","ess"], t:["t","tee","tea","ti"], u:["u","you","yew","ewe","yu"],
+  v:["v","vee","vi"], w:["w"], x:["x","ex","ecks"], y:["y","why","wye"], z:["z","zee","zed"]
+};
+const BEE_NAME = {};
+Object.keys(BEE_NAMES).forEach(l=>BEE_NAMES[l].forEach(n=>{ BEE_NAME[n] = l; }));
+const BEE_FILLER = ["capital","capitol","big","uppercase","upper","case","lowercase","letter","um","umm","uh","uhh","hmm","erm","the","word","is","your","my","spell","spelled","spelling","its","it's","okay"];
+/* 받아 적힌 글 → 글자 목록. 단어 자체를 말한 부분(dense, D-E-N-S-E, dense)은 뺀다.
+   {L:[글자들], unk:[못 알아들은 말], said:단어를 말한 횟수} */
+function beeLetters(tr, i){
+  const acc = beeAccept(i);
+  const raw = String(tr||"").replace(/[\-\.,!?;:"“”()\/]+/g," ").split(/\s+/).filter(Boolean);
+  const L = [], unk = []; let said = 0;
+  for(let k=0;k<raw.length;k++){
+    const t = raw[k], low = t.toLowerCase().replace(/[^a-z']/g,"");
+    const lw = low.replace(/'/g,"");
+    if(!lw) continue;
+    if(low==="double" || lw==="double"){
+      const nx = (raw[k+1]||"").toLowerCase().replace(/[^a-z]/g,"");
+      if(nx==="u" || nx==="you" || nx==="yew" || nx==="ewe"){ L.push("w"); k++; continue; }
+    }
+    if(lw==="doubleu" || lw==="doubleyou" || lw==="dub" || lw==="dubya"){ L.push("w"); continue; }
+    /* "DENSE"·"DNS" 처럼 전부 대문자면 글자를 이어 적은 것 (단어 자체를 말했으면 보통 소문자로 적힌다) */
+    if(/^[A-Z]{2,}$/.test(t.replace(/[^A-Za-z]/g,"")) && BEE_FILLER.indexOf(lw)<0){ lw.split("").forEach(c=>L.push(c)); continue; }
+    if(acc.indexOf(lw) >= 0 && lw.length > 1){ said++; continue; }
+    if(lw.length===1){ L.push(lw); continue; }
+    if(BEE_NAME[lw]){ L.push(BEE_NAME[lw]); continue; }
+    if(BEE_FILLER.indexOf(low)>=0 || BEE_FILLER.indexOf(lw)>=0) continue;
+    /* 모음 없는 자음 줄(dns)도 글자를 이어 적은 것으로 본다 */
+    if(/^[bcdfghjklmnpqrstvwxz]{2,}$/.test(lw)){ lw.split("").forEach(c=>L.push(c)); continue; }
+    L.push("?"); unk.push(t);
+  }
+  return {L, unk, said};
+}
+/* 여러 후보 중 못 알아들은 말이 가장 적은 것 (정답과 비교해서 고르지 않는다 — 채점이 후해지면 안 되니까) */
+function beePick(alts, i){
+  let best = null;
+  alts.forEach(a=>{ const p = beeLetters(a, i); p.tr = a; if(!best || p.unk.length < best.unk.length || (p.unk.length===best.unk.length && p.L.length > best.L.length && !best.L.length)) best = p; });
+  return best || {L:[], unk:[], said:0, tr:""};
+}
+let BEET = null, BREC = null;
+function beeConOn(){ return !!(BEET && !BEET.done && BEET.k < BEET.q.length); }
+function beeCanMic(){ return !!SRCls && micState!=="no"; }
+function beeCon(){
+  if(beeConOn() && BEET.r===BR){ BV = BEET; beeConShow(); return; }
+  const n = beeRange(BR).length;
+  if(!n){ goBee(); return; }
+  BV = {mode:"conintro"};
+  $("#scr-bee").innerHTML = beeHead("🐝 실전 대회")
+   +'<div class="card center" style="padding:22px 18px"><div class="bigemo">🐝</div>'
+   +'<h3 style="font-size:21px">Spelling Bee 실전 대회</h3>'
+   +'<p class="sub" style="margin:2px 0 8px">'+beeRangeName(BR)+' · '+n+'개 · 순서는 섞어서</p>'
+   +'<div style="text-align:left;font-size:15px;line-height:1.8;margin:10px 4px;word-break:keep-all">'
+   +'🔊 단어를 읽어 줘. 모르면 <b>🔁 다시 · 📖 뜻 · 🏷️ 품사</b>를 물어봐 (진짜 대회처럼)<br>'
+   +'🎤 를 누르고 <b>철자를 한 글자씩 또박또박</b> 말해. 예) <b>"dense. D, E, N, S, E. dense."</b><br>'
+   +'⏹ 를 누르면 앱이 들은 철자를 보여 줘. 잘못 들었으면 다시 말하면 돼<br>'
+   +'🙅 정답은 채점한 다음에 알려 줘<br>'
+   +'💰 한 번에 맞히면 <b>+'+REWARD.BEE_Q+'원</b> · 끝까지 하면 <b>+'+REWARD.BEE+'원</b>'
+   +(BR==="all" ? '<br>🎁 <b>점수 보너스</b> (하루 한 번)<br><span style="font-size:14px">'+midTestBonusTable()+'원</span>' : '')+'</div>'
+   +(beeCanMic() ? '' : '<p class="sub" style="font-size:13px;margin:8px 0;color:var(--bad)">🎙️ 이 기기·브라우저는 음성 인식을 쓸 수 없어서 ⌨️ 타자로 답하게 돼.</p>')
+   +'<button class="btn yellow" style="margin-top:6px" onclick="beeConStart(0)">시작하기 ▶</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goBee()">목록으로</button></div>';
+  show("bee");
+}
+function beeConStart(retry){
+  ac();
+  let list;
+  if(retry && BEET) list = BEET.q.filter(q=>!q.ok).map(q=>q.i);
+  else { list = beeRange(BR); retry = 0; }
+  if(!list.length){ beeCon(); return; }
+  BEET = {mode:"con", r:BR, q:shuffle(list).map(i=>({i})), k:0, retry:!!retry, earned:0, done:false, type:!beeCanMic(), streak:0, top:0};
+  BV = BEET; beeConShow();
+}
+function beeConShow(){ renderBeeCon(); show("bee"); window.scrollTo(0,0); const q = BEET.q[BEET.k]; if(q && q.ok == null && !q.heard) speak(beeWord(q.i)); }
+function renderBeeCon(state){
+  const T = BEET, q = T.q[T.k], i = q.i, done = q.ok != null;
+  const right = T.q.filter(x=>x.ok).length;
+  let body = "";
+  if(!done){
+    body = '<div class="card qbox center"><div class="qtype">🐝 Please spell…</div>'
+     +'<button class="micbtn" style="background:var(--green);box-shadow:0 6px 0 var(--green-dk);width:78px;height:78px;font-size:32px" onclick="speak(beeWord('+i+'))">🔊</button>'
+     + beeAskBtns(i, "cko") + '</div>';
+    if(T.type){
+      body += '<input type="text" id="beeIn" class="spellin" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="여기에 철자 쓰기" onkeydown="if(event.key===\'Enter\'){beeConType()}">'
+       +'<button class="btn" style="margin-top:10px" onclick="beeConType()">채점 ✔</button>'
+       +(beeCanMic() ? '<button class="knowbtn" onclick="BEET.type=false;renderBeeCon()">🎤 말로 답하기로</button>' : '');
+    } else if(state==="rec"){
+      body += '<div class="center"><button class="micbtn listening" onclick="beeMicStop()">⏹</button>'
+       +'<p class="sub" style="font-size:13px">듣고 있어! 철자를 한 글자씩 말해 🎙️<br>다 말했으면 ⏹ 를 눌러</p>'
+       +'<div class="beetiles" id="beeLive"></div></div>';
+    } else if(state==="wait"){
+      body += '<div class="center"><p class="sub" style="font-size:14px;margin:18px 0">👂 알아듣는 중…</p></div>';
+    } else if(q.heard){
+      const h = q.heard;
+      let tiles = h.L.map(c=>'<span class="beetile'+(c==="?"?" unk":"")+'">'+(c==="?"?"❓":esc(c.toUpperCase()))+'</span>').join("");
+      body += '<div class="card center" style="padding:12px 14px"><div class="sub" style="font-size:13px">👂 앱이 들은 철자</div>'
+       +'<div class="beetiles">'+(tiles || '<span class="sub">(없음)</span>')+'</div>'
+       +(h.unk.length ? '<div class="sub" style="font-size:12.5px;color:var(--bad)">못 알아들은 말: '+h.unk.map(esc).join(", ")+'</div>' : '')
+       +'<div class="sub" style="font-size:12px;margin-top:4px">받아 적힌 말: "'+esc(h.tr)+'"</div></div>'
+       +(h.L.length ? '<button class="btn yellow" onclick="beeConGrade()">✅ 이렇게 말했어, 채점!</button>' : '')
+       +'<button class="btn ghost" style="margin-top:8px" onclick="beeMicStart()">🔁 잘못 들었어, 다시 말하기</button>'
+       +'<button class="knowbtn" onclick="BEET.type=true;q_clearHeard();renderBeeCon()">⌨️ 타자로 답하기</button>';
+    } else {
+      body += '<div class="center"><button class="micbtn" onclick="beeMicStart()">🎤</button>'
+       +'<p class="sub" style="font-size:13px">누르고 <b>철자를 한 글자씩</b> 말해 봐!</p>'
+       +(q.note ? '<p style="font-size:14px;color:var(--bad);margin:6px 0">'+q.note+'</p>' : '')
+       +'<button class="knowbtn" onclick="BEET.type=true;renderBeeCon()">⌨️ 타자로 답하기</button></div>';
+    }
+  } else {
+    const said = q.said || "";
+    body = '<div class="card qbox center">'
+     +(q.ok ? '<div style="font-size:19px;color:var(--ok)">⭕ 정답!'+beeGainTxt(q.gain)+'</div>'
+            : '<div style="font-size:17px;color:var(--bad)">❌ 아쉬워! 정답은</div>'+spellDiff(BEE[i][0], said)+'<div class="sub" style="font-size:13px">내 답: '+esc(said.toUpperCase().split("").join(" ")||"(없음)")+'</div>')
+     +(BEE[i][4] ? '<div class="sub" style="font-size:13px;margin-top:4px">'+esc(BEE[i][4])+' 라고 해도 정답이야</div>' : '')
+     +'<div style="font-size:15px;margin-top:8px"><b>'+esc(BEE[i][0])+'</b> <span class="sub" style="font-size:12px">('+esc(BEE[i][1])+')</span> <button class="spk sm2" onclick="speak(beeWord('+i+'))">🔊</button></div>'
+     +'<div class="sub" style="font-size:14px;margin-top:4px;line-height:1.45">'+esc(BEE[i][2])+'</div>'
+     +'<button class="spk sm2" style="margin-top:6px" onclick="midKo(\'cko2\')">🇰🇷 한글 뜻</button><div class="midko" id="cko2">'+esc(BEE[i][3])+'</div></div>'
+     +'<button class="btn" style="margin-top:10px" onclick="beeConNext()">'+(T.k+1 < T.q.length ? "다음 단어 ▶" : "점수 보기 ▶")+'</button>';
+  }
+  $("#scr-bee").innerHTML = '<div class="learnhead"><button class="minibtn" onclick="goBee()">← 그만</button><span class="lvbadge">'
+   +(T.retry ? "🐝 틀린 것 다시 " : "🐝 실전 대회 ")+(T.k+1)+" / "+T.q.length+'</span></div>'
+   +'<div class="pbar" style="margin:2px 0 4px"><i style="width:'+(T.k/T.q.length*100).toFixed(1)+'%"></i></div>'
+   +'<div class="sub" style="font-size:12px;text-align:right;margin-bottom:6px">⭕ '+right+'개'+(T.streak>1 ? ' · 🔥 '+T.streak+'연속' : '')+'</div>'
+   + body;
+  if(!done && T.type){ const inp = $("#beeIn"); if(inp) setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 50); }
+}
+function q_clearHeard(){ const q = BEET && BEET.q[BEET.k]; if(q){ q.heard = null; q.note = ""; } }
+function beeMicAbort(){ if(BREC){ BREC.done = true; try{ BREC.rec.abort(); }catch(e){} BREC = null; } }
+function beeMicStart(){
+  const T = BEET; if(!T || T.mode!=="con") return;
+  const q = T.q[T.k]; if(q.ok != null) return;
+  if(!beeCanMic()){ T.type = true; renderBeeCon(); return; }
+  stopAudio(); stopListen(); beeMicAbort();
+  let rec; try{ rec = new SRCls(); }catch(e){ T.type = true; renderBeeCon(); return; }
+  rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 5;
+  const R = {rec, fin:[], interim:"", done:false, err:"", t:null};
+  BREC = R; q.heard = null; q.note = "";
+  rec.onresult = function(ev){
+    if(R.done) return;
+    R.fin = []; let it = "";
+    for(let k=0;k<ev.results.length;k++){
+      const r = ev.results[k];
+      if(r.isFinal){ const a = []; for(let j=0;j<r.length;j++) a.push(r[j].transcript); R.fin.push(a); }
+      else it += " " + r[0].transcript;
+    }
+    R.interim = it;
+    const live = $("#beeLive");
+    if(live){ const p = beeLetters(R.fin.map(a=>a[0]).join(" ")+" "+R.interim, q.i); live.innerHTML = p.L.map(c=>'<span class="beetile sm">'+(c==="?"?"❓":esc(c.toUpperCase()))+'</span>').join(""); }
+  };
+  rec.onerror = function(ev){ R.err = ev.error || "x"; };
+  rec.onend = function(){
+    clearTimeout(R.t);
+    if(R.done) return;
+    R.done = true; if(BREC===R) BREC = null; if(recNow===rec) recNow = null;
+    beeHeard(R, q);
+  };
+  try{ recNow = rec; rec.start(); }
+  catch(e){ R.done = true; BREC = null; recNow = null; T.type = true; renderBeeCon(); return; }
+  R.t = setTimeout(function(){ try{ rec.stop(); }catch(e){} }, 30000);   /* 30초 지나면 알아서 멈춤 */
+  renderBeeCon("rec");
+}
+function beeMicStop(){ const R = BREC; if(!R) return; try{ R.rec.stop(); }catch(e){} renderBeeCon("wait"); }
+function beeHeard(R, q){
+  const T = BEET; if(!T || T.mode!=="con" || T.q[T.k]!==q) return;
+  if(R.err==="not-allowed" || R.err==="service-not-allowed" || R.err==="audio-capture"){
+    micState = "no"; T.type = true; renderBeeCon();
+    openModal('<div class="center"><div class="bigemo">🎙️</div><h3 style="text-align:center">음성 인식을 쓸 수 없었어요</h3>'
+     +'<p class="sub" style="text-align:center;margin:8px 0 16px;line-height:1.8"><b>아이폰·아이패드</b>: 주소창 왼쪽 <b>ㅁ가(aA)</b> 단추 → 웹 사이트 설정 → 마이크 → <b>허용</b><br>'
+     +'그래도 안 되면 설정 앱 → 일반 → 키보드 → <b>받아쓰기</b>가 켜져 있는지 봐 주세요.<br>지금은 <b>⌨️ 타자</b>로 계속할 수 있어요.</p>'
+     +'<div class="btnrow"><button class="btn" onclick="closeModal();micState=\'unknown\';BEET.type=false;renderBeeCon()">🎤 다시 시도</button>'
+     +'<button class="btn ghost" onclick="closeModal()">타자로 할게</button></div></div>');
+    return;
+  }
+  let alts = [];
+  if(R.fin.length===1) alts = R.fin[0].slice();
+  else alts = [R.fin.map(a=>a[0]).join(" ")];
+  if(R.interim.trim()) alts = alts.map(a=>(a+" "+R.interim).trim());
+  alts = alts.filter(a=>a && a.trim());
+  if(!alts.length){
+    q.note = R.err==="network" ? "🌐 음성 인식은 인터넷이 있어야 돼. 연결을 확인하거나 ⌨️ 타자로 해 봐." : "🙉 잘 안 들렸어. 조금 더 크게, 한 글자씩 또박또박!";
+    renderBeeCon(); return;
+  }
+  const p = beePick(alts, q.i);
+  if(!p.L.length && p.said){ q.note = "🙉 단어만 들렸어! 이번엔 <b>철자를 한 글자씩</b> 끊어서 말해 줘. (D… E… N…)"; renderBeeCon(); return; }
+  if(!p.L.filter(c=>c!=="?").length){ q.note = '🙉 글자를 못 알아들었어 ("'+esc(p.tr)+'"). 한 글자씩 천천히 다시!'; renderBeeCon(); return; }
+  q.heard = p; renderBeeCon();
+}
+function beeConGrade(){
+  const T = BEET; if(!T || T.mode!=="con") return;
+  const q = T.q[T.k]; if(q.ok != null || !q.heard) return;
+  beeConJudge(q, q.heard.L.join(""));
+}
+function beeConType(){
+  const T = BEET; if(!T || T.mode!=="con") return;
+  const q = T.q[T.k]; if(q.ok != null) return;
+  const inp = $("#beeIn"), val = inp ? inp.value.trim().toLowerCase().replace(/[^a-z]/g,"") : "";
+  if(!val){ beeNeed(); return; }
+  beeConJudge(q, val);
+}
+function beeConJudge(q, said){
+  const T = BEET, w = BEE[q.i][0];
+  q.said = said; q.ok = beeOk(q.i, said);
+  if(q.ok){
+    Sfx.ok(); T.streak++; T.top = Math.max(T.top, T.streak);
+    q.gain = beeEarn(w, T.retry); if(q.gain>0) T.earned += q.gain;
+    if(!T.retry){ const m = beeSt().miss; if(m[w]) delete m[w]; }
+  } else { Sfx.bad(); T.streak = 0; beeSt().miss[w] = (beeSt().miss[w]||0) + 1; }
+  save(); renderBeeCon();
+  if(q.gain>0) addMoney(q.gain, $("#scr-bee .qbox"));
+}
+function beeConNext(){
+  const T = BEET; if(!T || T.mode!=="con" || T.q[T.k].ok == null) return;
+  T.k++;
+  if(T.k >= T.q.length){ beeConDone(); return; }
+  beeConShow();
+}
+function beeConDone(){
+  const T = BEET; T.done = true; T.mode = "condone";
+  const n = T.q.length, right = T.q.filter(q=>q.ok).length, wrong = T.q.filter(q=>!q.ok);
+  let head = "", b = "", tbPay = 0;
+  if(!T.retry){
+    const st = beeSt(), isBest = st.best[T.r]==null || right > st.best[T.r];
+    const had = st.best[T.r]!=null;
+    if(isBest) st.best[T.r] = right;
+    head = '<p class="sub" style="margin:4px 0">100점으로 치면 <b>'+Math.round(right/n*100)+'점</b>'
+         +(T.top>1 ? ' · 최고 🔥 <b>'+T.top+'연속</b>' : '')+'<br>'+(isBest && had ? '🎉 최고 기록!' : '최고 기록 '+st.best[T.r]+' / '+n)+'</p>';
+    if(T.earned) b += '<p class="sub" style="margin:6px 0">맞혀서 번 영머니 <b>+'+T.earned+'원</b> 💰</p>';
+    b += beeFinish("c:"+T.r);
+    if(T.r==="all"){
+      const tier = midTestTier(right, n), paid = st.day.tb || 0;
+      if(tier.won > paid){
+        tbPay = tier.won - paid; st.day.tb = tier.won;
+        b += '<div class="midbonus">🎁 점수 보너스 <b>+'+comma(tbPay)+'원</b>!'+(paid ? '<div style="font-size:13px">오늘 받은 '+comma(paid)+'원에 더해서</div>' : '')+'</div>';
+      } else if(tier.won > 0){
+        b += '<p class="sub" style="margin:6px 0">🎁 점수 보너스는 오늘 벌써 받았어 ('+comma(paid)+'원). 더 높은 점수면 차이만큼 더 줄게!</p>';
+      }
+      if(tier.next) b += '<p class="sub" style="margin:6px 0">🎯 <b>'+tier.next.need+'개</b> 더 맞히면 점수 보너스 <b>'+comma(tier.next.won)+'원</b>!</p>';
+    }
+    logEv("bee",{k:"conscore", r:T.r, ok:right, n:n, tb:tbPay});
+  }
+  if(tbPay > 0){ S.money += tbPay; S.earned += tbPay; updateMoney(); }
+  save();
+  const emo = right===n ? "💯" : right/n >= 0.9 ? "🏆" : right/n >= 0.7 ? "👍" : "💪";
+  let rows = "";
+  wrong.forEach((q,k)=>{
+    const w = BEE[q.i];
+    rows += '<div style="padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer" onclick="midKo(\'bwk'+k+'\')">'
+     +'<b>'+esc(beeShow(q.i))+'</b> <button class="spk sm2" onclick="event.stopPropagation();speak(beeWord('+q.i+'))">🔊</button>'
+     +' <span class="sub" style="font-size:12px">내 답: '+esc((q.said||"").toUpperCase())+'</span>'
+     +'<div style="font-size:14px;line-height:1.4">'+esc(w[2])+'</div>'
+     +'<div class="midko" id="bwk'+k+'" style="font-size:14px">🇰🇷 '+esc(w[3])+'</div></div>';
+  });
+  Sfx.tada(); if(right===n) confetti();
+  $("#scr-bee").innerHTML = '<div class="card center" style="padding:24px 18px"><div class="bigemo">'+emo+'</div>'
+   +'<h3 style="font-size:21px">'+(T.retry ? "틀린 것 다시 끝!" : "실전 대회 끝!")+'</h3>'
+   +'<div style="font-size:30px;margin:6px 0"><b>'+right+'</b> / '+n+'</div>'
+   + head + b + '</div>'
+   +(wrong.length ? '<div class="card"><div class="mtitle">❌ 틀린 단어 '+wrong.length+'개 <span class="sub" style="font-size:12px">줄을 누르면 🇰🇷</span></div>'+rows+'</div>' : '')
+   +(wrong.length ? '<button class="btn yellow" onclick="beeConStart(1)">❌ 틀린 '+wrong.length+'개만 다시</button>' : '')
+   +'<button class="btn ghost" style="margin-top:9px" onclick="beeConStart(0)">🔁 처음부터 다시</button>'
+   +'<button class="btn ghost sm" style="margin-top:8px" onclick="goBee()">목록으로</button>';
+  window.scrollTo(0,0);
+  if(tbPay > 0){ const el = $("#scr-bee .midbonus"); if(el){ const r = el.getBoundingClientRect(); coinFly("+"+comma(tbPay), r.left+r.width/2, r.top); } Sfx.coin(); if(right < n) confetti(); }
 }
 
 /* ── 📖 문법 규칙 카드 (시험지 Study Guide 그대로 + 🇰🇷 설명) ── */

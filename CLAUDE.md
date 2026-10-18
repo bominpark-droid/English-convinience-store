@@ -82,7 +82,7 @@ Code.gs     (Google Apps Script 웹앱)  ← 백엔드
 ## 화면 구조
 
 `<div class="screen" id="scr-XXX">` 단위로 전환하며, `show("XXX")`로 표시한다.
-auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store / review / log(대시보드)
+auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store / review / log(대시보드) / school / mid / bee
 
 렌더 함수는 각 화면당 하나: `renderAuth, renderWelcome, renderPQ, renderHome, renderCard, renderEx, renderSpeak, renderQ, renderStore, renderReview, renderLog`
 모두 문자열로 HTML을 만들어 `innerHTML`에 넣는 방식이다. 이 패턴을 유지할 것.
@@ -235,6 +235,27 @@ auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store
   전체 60문제 시험에만, 하루 한 번. 같은 날 더 높은 단계에 오르면 **차이만큼만** 더 준다(`S.mid.day.tb`). 「틀린 것만 다시」엔 없다.
   이 때문에 중간고사 하루 최대치가 약 2,100원 → 약 3,600원이 됐다(대표 지시로 올림). 금액을 바꿀 땐 상점 물가(간식 700~3,400원)와 같이 볼 것. 푸는 중인 시험은 `MIDT` 에 남아 「← 그만」 후 이어서(앱을 닫으면 처음부터).
 - Grammar Day 3 의 Part B(Mixed Review, 18쪽)는 사진이 없어서 못 옮겼다. 섞어서 복습은 Day 1~3 문제에서 15개를 뽑는다.
+
+## 🐝 Spelling Bee (2026-10-18 신설)
+
+아들 학교 **Lighthouse International School Elementary Spelling Bee** 4학년 단어 100개(대표가 사진 5장으로 준 것).
+화면 `scr-bee`, 홈 카드 → `goBee()`. 데이터는 상수 **`BEE`** 하나: `[단어, 품사, 시험지 영어 뜻, 한글 뜻, (또 다른 정답 철자)]`.
+
+- 시험지 1쪽·3쪽은 단어 줄과 뜻 줄이 어긋나 인쇄돼 있다(13~15번, 55~71번 등). **줄 위치가 아니라 뜻으로 맞춰** 옮겼다.
+- `dollop / dallop` · `swiveled / swivelled` 처럼 시험지에 「or」로 적힌 단어는 둘 다 정답(`beeAccept`).
+- 범위 칩: Set 1~5(시험지 순서 20개씩) · 전체 100 · ❌ 헷갈린 단어(`S.bee.miss`, 한 번에 맞히면 빠짐).
+- 활동 셋: 📋 단어장(`beeList`, 🙈 철자 가리기) → ⌨️ 듣고 쓰기(`beeType`, 틀린 건 3문제 뒤 한 번 더)
+  → 🐝 **실전 대회**(`beeCon`, 대표가 꼭 원한 기능). 문제 순서는 매번 섞는다(규칙 7).
+- 여기서는 **발음이 곧 문제**다 (진짜 대회처럼). 학교 스펠링의 「소리 힌트 없음」 규칙과 다르다. 🔁 다시 · 🐢 천천히 · 📖 뜻 · 🏷️ 품사를 물어볼 수 있다.
+- **실전 대회 음성 채점**: 🎤 → 철자를 한 글자씩 말함 → ⏹. 브라우저 내장 무료 음성 인식(SpeechRecognition — 아이폰은 애플, 크롬은 구글 서버)을 쓴다. 돈 드는 API 아님.
+  - 글자 이름이 단어로 받아 적히는 일이 많아(bee→B, see→C, you→U, double u→W) `beeLetters` 가 되돌린다. 단어 자체를 말한 부분(dense, D-E-N-S-E, dense)은 뺀다. 전부 대문자 줄(DENSE)은 글자를 이어 적은 것으로 본다.
+  - 여러 후보 중 고를 때 **정답과 비교해서 고르지 않는다**(`beePick` — 채점이 후해지면 안 됨).
+  - **채점 전에 「앱이 들은 철자」를 보여 주고 아이가 [✅ 채점] / [🔁 다시 말하기] 를 고른다.** 정답은 채점 뒤에만 보이므로 다시 말하기가 힌트가 되지 않는다. 이 확인 단계를 없애지 말 것 — 인식기가 B/D/E/P/T/V 처럼 비슷한 글자를 헷갈린다.
+  - 음성 인식이 없거나 거부된 기기는 ⌨️ 타자로 답한다(같은 채점). **말하기 단계(`renderSpeak`)의 자동 인식은 여전히 제거된 상태 — 거기엔 되살리지 말 것.**
+- 보상: 한 번에 맞히면 `REWARD.BEE_Q`(10원, **단어당 하루 1회 — 듣고 쓰기·실전 대회가 같은 key**) · 활동 완주 `REWARD.BEE`(20원, 범위·활동별 하루 1회)
+  · 🐝 「전체 100」 실전 대회 점수 보너스 = 중간고사와 같은 표 `MID_TEST_BONUS`(최대 1,500원, 하루 1회, 차액만 `S.bee.day.tb`). 틀린 것만 다시는 0원.
+  하루 최대 약 2,800원. 금액을 바꿀 땐 상점 물가와 같이 볼 것.
+- 기록 `S.bee = {miss, done, best, day:{date, q, got, tb}}` (`beeSt()`). 푸는 중인 대회는 `BEET` 에 남아 이어서(앱을 닫으면 처음부터).
 
 ## 오프라인 (2026-09-11 신설)
 
