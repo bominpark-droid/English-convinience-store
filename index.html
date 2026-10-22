@@ -558,7 +558,7 @@ async function loadItemsServer(){
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
 /* 앱 판 번호 = 날짜(YYYYMMDD) + 그날 몇 번째(2자리). **index.html 을 고쳐 올릴 때마다 반드시 올린다.**
    설정 맨 아래에 보이고, 켜져 있는 앱이 서버의 판과 비교해 새 판이면 바꿔 준다(checkNewVer). */
-const APP_VER = 2026101801;
+const APP_VER = 2026102201;
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
@@ -2944,6 +2944,16 @@ function renderReview(){
 
 /* ═══════════ 학교 스펠링 — 부모가 넣는 학교 단어로 스펠링 시험 연습 ═══════════ */
 function seedSchool(){ return [
+{ id:"g3u2w1", nm:"Grade 3 Unit 2 Week 1 · Word Match (8단어)", ws:[
+ ["create","만들다, 창조하다 (동사)","to make or produce something new","We create a robot with old boxes."],
+ ["interfere","방해하다, 끼어들다 (동사)","to stop something from happening in the way that was planned","Please do not interfere with my game."],
+ ["awkward","다루기 어려운, 불편한 (형용사)","difficult to use or hold","This big box is awkward to carry."],
+ ["involved","참여한, 관련된 (형용사)","being part of an activity or event","Everyone in my class was involved in the play."],
+ ["timid","소심한, 겁 많은 (형용사)","shy and easily frightened","The timid cat hid under the bed."],
+ ["cooperation","협력, 협동 (명사)","the act of working together with someone","With cooperation, we finished the puzzle fast."],
+ ["attempt","시도 (명사)","an act of trying to do something","He jumped over the fence on his first attempt."],
+ ["furiously","몹시 화가 나서, 맹렬하게 (부사)","in a very angry manner","The dog barked furiously at the stranger."]
+]},
 { id:"g3u1w5", nm:"Grade 3 Unit 1 Week 5 · Word Match (8단어)", ws:[
  ["carve","조각하다, 깎아서 만들다 (동사)","To cut a shape into material like stone or wood to create some objects","They carve faces into the big mountain."],
  ["clue","단서, 실마리 (명사)","Something that helps to solve a puzzle or mystery","The footprint was an important clue."],
@@ -2975,7 +2985,7 @@ function seedSchool(){ return [
  ["tumble","굴러떨어지다, 구르다 (동사)","To fall down suddenly and roll","The little boy tumbled off the swing but laughed."]
 ]}]; }
 /* 기본 세트가 늘어났을 때: 안 갖고 있는 세트만 앞에 끼워 넣는다 (한 번만 — 부모가 지운 건 안 되살림) */
-const SCHOOL_SEED_V = 3;
+const SCHOOL_SEED_V = 4;
 function topUpSchool(){
   if(S.schoolSeedV >= SCHOOL_SEED_V) return;
   const have = {};
@@ -3045,8 +3055,9 @@ function renderScLearn(){
    '<div class="learnhead"><button class="minibtn" onclick="goSchool()">← 목록</button><div class="dots">'+dots+'</div></div>'
    +'<div class="card qbox"><div class="qtype">'+esc(st.nm)+' · 단어 '+(SC.i+1)+' / '+nn+'</div>'
    +'<div class="qword spellbig">'+esc(w[0])+'</div>'
-   +'<div class="qmean" style="font-size:20px">'+esc(w[1])+'</div>'
-   +(w[2]?'<p class="sub" style="margin:4px 0">'+esc(w[2])+'</p>':'')
+   +(w[2] ? '<div class="qmean" style="font-size:19px">'+esc(w[2])+'</div>'
+          +'<div style="margin:6px 0"><button class="spk" onclick="scLearnKo()">🇰🇷 한글 뜻</button></div><div class="schint" id="scHint"></div>'
+          : '<div class="qmean" style="font-size:20px">'+esc(w[1])+'</div>')
    +(w[3]?'<div class="ex" style="font-size:15px;margin-top:6px">'+esc(w[3])+'</div>':'')
    +'<div style="margin-top:10px"><button class="spk" onclick="speak(S.school[SC.si].ws[SC.i][0])">🔊 단어</button> '
    +(w[3]?'<button class="spk" onclick="speak(S.school[SC.si].ws[SC.i][3])">🔊 문장</button>':'')+'</div></div>'
@@ -3056,6 +3067,8 @@ function renderScLearn(){
                  : '<button class="btn" onclick="scLNext()">다음 ▶</button>')+'</div>';
   speak(w[0]);
 }
+/* 단어 보기도 시험지 영어 뜻이 먼저, 한글은 🇰🇷 를 눌러야 (대표 지시 — 중간고사와 같은 방식) */
+function scLearnKo(){ const el=$("#scHint"); if(el) el.textContent = S.school[SC.si].ws[SC.i][1]; }
 function scLNext(){ if(SC.i < S.school[SC.si].ws.length-1){ SC.i++; renderScLearn(); } }
 function scLPrev(){ if(SC.i > 0){ SC.i--; renderScLearn(); } }
 /* ── 스펠링 연습: 보고 → 가리고 → 쓰기 (맞을 때까지) ── */
