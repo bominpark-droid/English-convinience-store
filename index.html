@@ -558,7 +558,7 @@ async function loadItemsServer(){
    비워 두면 서버 없이 게스트 모드로만 작동합니다. */
 /* 앱 판 번호 = 날짜(YYYYMMDD) + 그날 몇 번째(2자리). **index.html 을 고쳐 올릴 때마다 반드시 올린다.**
    설정 맨 아래에 보이고, 켜져 있는 앱이 서버의 판과 비교해 새 판이면 바꿔 준다(checkNewVer). */
-const APP_VER = 2026102201;
+const APP_VER = 2026102801;
 const SERVER_URL = "https://script.google.com/macros/s/AKfycbzKVP3wfZWfKvYEEKjRNhW5yRLkXX_gGG6MCSy-fVfosxuROAoPSqAT_2M087AMV3mp/exec";
 
 let SESSION = null; /* {uid, name, token, tts} */
@@ -2944,6 +2944,16 @@ function renderReview(){
 
 /* ═══════════ 학교 스펠링 — 부모가 넣는 학교 단어로 스펠링 시험 연습 ═══════════ */
 function seedSchool(){ return [
+{ id:"g3u2w2", nm:"Grade 3 Unit 2 Week 2 · Word Match (8단어)", ws:[
+ ["inspect","자세히 살펴보다, 점검하다 (동사)","to look at closely","The teacher will inspect our homework."],
+ ["photograph","사진 (명사)","a picture made by a camera","I took a photograph of my dog."],
+ ["opportunity","기회 (명사)","a chance","This trip is a great opportunity to learn."],
+ ["valuable","소중한, 값진 (형용사)","having worth or value","Grandma's ring is very valuable."],
+ ["arrive","도착하다 (동사)","to get to a place","We will arrive at school at eight."],
+ ["whisper","속삭이다 (동사)","to speak softly","Please whisper in the library."],
+ ["immigrate","이민 오다, 이주해 오다 (동사)","to come to live and settle in a new country","My uncle wants to immigrate to Canada."],
+ ["moment","잠깐, 순간 (명사)","a briefly short time","Please wait a moment."]
+]},
 { id:"g3u2w1", nm:"Grade 3 Unit 2 Week 1 · Word Match (8단어)", ws:[
  ["create","만들다, 창조하다 (동사)","to make or produce something new","We create a robot with old boxes."],
  ["interfere","방해하다, 끼어들다 (동사)","to stop something from happening in the way that was planned","Please do not interfere with my game."],
@@ -2985,7 +2995,7 @@ function seedSchool(){ return [
  ["tumble","굴러떨어지다, 구르다 (동사)","To fall down suddenly and roll","The little boy tumbled off the swing but laughed."]
 ]}]; }
 /* 기본 세트가 늘어났을 때: 안 갖고 있는 세트만 앞에 끼워 넣는다 (한 번만 — 부모가 지운 건 안 되살림) */
-const SCHOOL_SEED_V = 4;
+const SCHOOL_SEED_V = 5;
 function topUpSchool(){
   if(S.schoolSeedV >= SCHOOL_SEED_V) return;
   const have = {};

@@ -157,7 +157,7 @@ auth(로그인) / welcome / place(레벨테스트) / home / learn / quiz / store
 
 - 데이터는 `S.school = [{id, nm, ws:[[단어, 뜻, 영어정의, 예문], ...]}]` — 계정 상태에 살아
   기존 save/load 로 서버 저장. **Code.gs 는 안 건드렸다.** 부팅 때 `S.school` 이 배열이 아니면
-  `seedSchool()` 을 심는다. 기본 세트(각 8단어): **Grade 3 Unit 2 Week 1 (Word Match, 2026-10-22 추가 · 시험지 영어 뜻 그대로)** ·
+  `seedSchool()` 을 심는다. 기본 세트(각 8단어): **Grade 3 Unit 2 Week 2 (Word Match, 2026-10-28 추가 · 시험지 영어 뜻 그대로)** · **Grade 3 Unit 2 Week 1 (Word Match, 2026-10-22 추가 · 시험지 영어 뜻 그대로)** ·
   **Grade 3 Unit 1 Week 5 (Word Match)** · Mary Anderson's New Invention · Room to Grow.
 - **📖 단어 보기도 시험지 영어 뜻이 먼저, 한글 뜻은 🇰🇷(`scLearnKo`) 를 눌러야** 보인다 (2026-10-22, 중간고사와 같은 방식). 처음부터 한글이 보이게 되돌리지 말 것.
 - **기본 세트를 늘릴 때는 seedSchool 에 넣는 것만으로 부족하다** — 이미 쓰던 계정은
